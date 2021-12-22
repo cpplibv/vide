@@ -866,6 +866,8 @@ private:
 	ArchiveType& processImpl(T& t) {
 		using OutArchiveType = typename traits::detail::get_output_from_input<ArchiveType>::type;
 		typename traits::has_member_save_minimal<T, OutArchiveType>::type value;
+//		typename traits::has_member_save_minimal<T, ArchiveType>::type value;
+//		typename traits::has_member_save_minimal<T, typename ArchiveType::ArchiveOutput>::type value;
 		self->process(value);
 		access::member_load_minimal(*self, t, value);
 		return *self;
@@ -876,6 +878,8 @@ private:
 	ArchiveType& processImpl(T& t) {
 		using OutArchiveType = typename traits::detail::get_output_from_input<ArchiveType>::type;
 		typename traits::has_non_member_save_minimal<T, OutArchiveType>::type value;
+//		typename traits::has_non_member_save_minimal<T, ArchiveType>::type value;
+//		typename traits::has_non_member_save_minimal<T, typename ArchiveType::ArchiveOutput>::type value;
 		self->process(value);
 		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(*self, t, value);
 		return *self;

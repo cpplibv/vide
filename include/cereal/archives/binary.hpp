@@ -32,131 +32,129 @@
 #include <cereal/cereal.hpp>
 #include <sstream>
 
-namespace cereal
-{
-  // ######################################################################
-  //! An output archive designed to save data in a compact binary representation
-  /*! This archive outputs data to a stream in an extremely compact binary
-      representation with as little extra metadata as possible.
 
-      This archive does nothing to ensure that the endianness of the saved
-      and loaded data is the same.  If you need to have portability over
-      architectures with different endianness, use PortableBinaryOutputArchive.
+namespace cereal {
 
-      When using a binary archive and a file stream, you must use the
-      std::ios::binary format flag to avoid having your data altered
-      inadvertently.
+class BinaryOutputArchive;
+class BinaryInputArchive;
 
-      \ingroup Archives */
-  class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision>
-  {
-    public:
-      //! Construct, outputting to the provided stream
-      /*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
-                        even cout! */
-      BinaryOutputArchive(std::ostream & stream) :
-        OutputArchive<BinaryOutputArchive, AllowEmptyClassElision>(this),
-        itsStream(stream)
-      { }
+// ######################################################################
+//! An output archive designed to save data in a compact binary representation
+/*! This archive outputs data to a stream in an extremely compact binary
+	representation with as little extra metadata as possible.
 
-      ~BinaryOutputArchive() noexcept = default;
+	This archive does nothing to ensure that the endianness of the saved
+	and loaded data is the same.  If you need to have portability over
+	architectures with different endianness, use PortableBinaryOutputArchive.
 
-      //! Writes size bytes of data to the output stream
-      void saveBinary( const void * data, std::streamsize size )
-      {
-        auto const writtenSize = itsStream.rdbuf()->sputn( reinterpret_cast<const char*>( data ), size );
+	When using a binary archive and a file stream, you must use the
+	std::ios::binary format flag to avoid having your data altered
+	inadvertently.
 
-        if(writtenSize != size)
-          throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
-      }
+	\ingroup Archives */
+class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision> {
+public:
+	using ArchiveInput = BinaryInputArchive;
 
-    private:
-      std::ostream & itsStream;
-  };
+public:
+	//! Construct, outputting to the provided stream
+	/*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
+					  even cout! */
+	explicit BinaryOutputArchive(std::ostream& stream) :
+			OutputArchive<BinaryOutputArchive, AllowEmptyClassElision>(this),
+			itsStream(stream) {}
 
-  // ######################################################################
-  //! An input archive designed to load data saved using BinaryOutputArchive
-  /*  This archive does nothing to ensure that the endianness of the saved
-      and loaded data is the same.  If you need to have portability over
-      architectures with different endianness, use PortableBinaryOutputArchive.
+	~BinaryOutputArchive() noexcept = default;
 
-      When using a binary archive and a file stream, you must use the
-      std::ios::binary format flag to avoid having your data altered
-      inadvertently.
+	//! Writes size bytes of data to the output stream
+	void saveBinary(const void* data, std::streamsize size) {
+		auto const writtenSize = itsStream.rdbuf()->sputn(reinterpret_cast<const char*>( data ), size);
 
-      \ingroup Archives */
-  class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision>
-  {
-    public:
-      //! Construct, loading from the provided stream
-      BinaryInputArchive(std::istream & stream) :
-        InputArchive<BinaryInputArchive, AllowEmptyClassElision>(this),
-        itsStream(stream)
-      { }
+		if (writtenSize != size)
+			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
+	}
 
-      ~BinaryInputArchive() noexcept = default;
+private:
+	std::ostream& itsStream;
+};
 
-      //! Reads size bytes of data from the input stream
-      void loadBinary( void * const data, std::streamsize size )
-      {
-        auto const readSize = itsStream.rdbuf()->sgetn( reinterpret_cast<char*>( data ), size );
+// ######################################################################
+//! An input archive designed to load data saved using BinaryOutputArchive
+/*  This archive does nothing to ensure that the endianness of the saved
+	and loaded data is the same.  If you need to have portability over
+	architectures with different endianness, use PortableBinaryOutputArchive.
 
-        if(readSize != size)
-          throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
-      }
+	When using a binary archive and a file stream, you must use the
+	std::ios::binary format flag to avoid having your data altered
+	inadvertently.
 
-    private:
-      std::istream & itsStream;
-  };
+	\ingroup Archives */
+class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision> {
+public:
+	using ArchiveOutput = BinaryOutputArchive;
 
-  // ######################################################################
-  // Common BinaryArchive serialization functions
+public:
+	//! Construct, loading from the provided stream
+	explicit BinaryInputArchive(std::istream& stream) :
+			InputArchive<BinaryInputArchive, AllowEmptyClassElision>(this),
+			itsStream(stream) {}
 
-  //! Saving for POD types to binary
-  template<class T> inline
-  typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-  CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive & ar, T const & t)
-  {
-    ar.saveBinary(std::addressof(t), sizeof(t));
-  }
+	~BinaryInputArchive() noexcept = default;
 
-  //! Loading for POD types from binary
-  template<class T> inline
-  typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-  CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive & ar, T & t)
-  {
-    ar.loadBinary(std::addressof(t), sizeof(t));
-  }
+	//! Reads size bytes of data from the input stream
+	void loadBinary(void* const data, std::streamsize size) {
+		auto const readSize = itsStream.rdbuf()->sgetn(reinterpret_cast<char*>( data ), size);
 
-  //! Serializing NVP types to binary
-  template <class Archive, class T> inline
-  CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
-  CEREAL_SERIALIZE_FUNCTION_NAME( Archive & ar, NameValuePair<T> & t )
-  {
-    ar( t.value );
-  }
+		if (readSize != size)
+			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
+	}
 
-  //! Serializing SizeTags to binary
-  template <class Archive, class T> inline
-  CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
-  CEREAL_SERIALIZE_FUNCTION_NAME( Archive & ar, SizeTag<T> & t )
-  {
-    ar( t.size );
-  }
+private:
+	std::istream& itsStream;
+};
 
-  //! Saving binary data
-  template <class T> inline
-  void CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive & ar, BinaryData<T> const & bd)
-  {
-    ar.saveBinary( bd.data, static_cast<std::streamsize>( bd.size ) );
-  }
+// ######################################################################
+// Common BinaryArchive serialization functions
 
-  //! Loading binary data
-  template <class T> inline
-  void CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive & ar, BinaryData<T> & bd)
-  {
-    ar.loadBinary(bd.data, static_cast<std::streamsize>( bd.size ) );
-  }
+//! Saving for POD types to binary
+template <class T> inline
+typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive& ar, T const& t) {
+	ar.saveBinary(std::addressof(t), sizeof(t));
+}
+
+//! Loading for POD types from binary
+template <class T> inline
+typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive& ar, T& t) {
+	ar.loadBinary(std::addressof(t), sizeof(t));
+}
+
+//! Serializing NVP types to binary
+template <class Archive, class T> inline
+CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
+CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, NameValuePair <T>& t) {
+	ar(t.value);
+}
+
+//! Serializing SizeTags to binary
+template <class Archive, class T> inline
+CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
+CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, SizeTag <T>& t) {
+	ar(t.size);
+}
+
+//! Saving binary data
+template <class T> inline
+void CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive& ar, BinaryData <T> const& bd) {
+	ar.saveBinary(bd.data, static_cast<std::streamsize>( bd.size ));
+}
+
+//! Loading binary data
+template <class T> inline
+void CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive& ar, BinaryData <T>& bd) {
+	ar.loadBinary(bd.data, static_cast<std::streamsize>( bd.size ));
+}
 } // namespace cereal
 
 // register archives for polymorphic support

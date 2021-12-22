@@ -20,11 +20,18 @@ include(cmake/wish_warning.cmake)
 #endif ()
 #
 #option(SKIP_PERFORMANCE_COMPARISON "Skip building performance comparison (requires boost)" OFF)
+#
+## TODO: should not be needed! CK
+#if (NOT CMAKE_VERSION VERSION_LESS 3.0) # installing cereal requires INTERFACE lib
+#    option(JUST_INSTALL_CEREAL "Don't do anything besides installing the library" OFF)
+#endif ()
 
-# TODO: should not be needed! CK
-if (NOT CMAKE_VERSION VERSION_LESS 3.0) # installing cereal requires INTERFACE lib
-    option(JUST_INSTALL_CEREAL "Don't do anything besides installing the library" OFF)
-endif ()
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RELEASE)
+endif()
+
+set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
+
 
 
 set(CEREAL_THREAD_LIBS)

@@ -69,7 +69,7 @@
 #define CEREAL_SIZE_TYPE uint64_t
 #endif // CEREAL_SIZE_TYPE
 
-// ######################################################################
+// =================================================================================================
 
 #ifndef CEREAL_SERIALIZE_FUNCTION_NAME
 //! The serialization/deserialization function name to search for.
@@ -106,4 +106,4 @@
 #define CEREAL_SAVE_MINIMAL_FUNCTION_NAME save_minimal
 #endif // CEREAL_SAVE_MINIMAL_FUNCTION_NAME
 
-// ######################################################################
+// =================================================================================================

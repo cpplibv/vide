@@ -64,7 +64,7 @@ namespace cereal
     template <class Archive, class T>
     struct LoadAndConstructLoadWrapper
     {
-      using ST = typename std::aligned_storage<sizeof(T), CEREAL_ALIGNOF(T)>::type;
+      using ST = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
 
       LoadAndConstructLoadWrapper() :
         construct( reinterpret_cast<T *>( &st ) )

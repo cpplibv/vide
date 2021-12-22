@@ -103,11 +103,11 @@ struct PolymorphicCaster {
 	PolymorphicCaster(const PolymorphicCaster&) = default;
 	PolymorphicCaster& operator=(const PolymorphicCaster&) = default;
 
-	PolymorphicCaster(PolymorphicCaster&&) CEREAL_NOEXCEPT {}
+	PolymorphicCaster(PolymorphicCaster&&) noexcept {}
 
-	PolymorphicCaster& operator=(PolymorphicCaster&&) CEREAL_NOEXCEPT { return *this; }
+	PolymorphicCaster& operator=(PolymorphicCaster&&) noexcept { return *this; }
 
-	virtual ~PolymorphicCaster() CEREAL_NOEXCEPT = default;
+	virtual ~PolymorphicCaster() noexcept = default;
 
 	//! Downcasts to the proper derived type
 	virtual void const* downcast(void const* const ptr) const = 0;
@@ -640,11 +640,7 @@ struct adl_tag {};
 //! an anonymous namespace.  Now the template instantiations will correspond
 //! to the same type, and since they are marked inline with C++17, they will be merged
 //! across all TUs.
-#ifdef CEREAL_HAS_CPP17
 struct polymorphic_binding_tag {};
-#else
-namespace { struct polymorphic_binding_tag {}; }
-#endif
 
 
 //! Causes the static object bindings between an archive type and a serializable type T

@@ -91,7 +91,7 @@ public:
 	public:
 		LockGuard() = default;
 		LockGuard(LockGuard const&) = default; // prevents implicit copy ctor warning
-		~LockGuard() CEREAL_NOEXCEPT {} // prevents variable not used
+		~LockGuard() noexcept {} // prevents variable not used
 #endif
 	};
 

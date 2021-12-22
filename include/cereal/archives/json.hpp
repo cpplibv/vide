@@ -170,7 +170,7 @@ namespace cereal
       }
 
       //! Destructor, flushes the JSON
-      ~JSONOutputArchive() CEREAL_NOEXCEPT
+      ~JSONOutputArchive() noexcept
       {
         if (itsNodeStack.top() == NodeType::InObject)
           itsWriter.EndObject();
@@ -444,7 +444,7 @@ namespace cereal
           itsIteratorStack.emplace_back(itsDocument.MemberBegin(), itsDocument.MemberEnd());
       }
 
-      ~JSONInputArchive() CEREAL_NOEXCEPT = default;
+      ~JSONInputArchive() noexcept = default;
 
       //! Loads some binary data, encoded as a base64 string
       /*! This will automatically start and finish a node to load the data, and can be called directly by

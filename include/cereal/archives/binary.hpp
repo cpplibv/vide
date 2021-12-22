@@ -59,7 +59,7 @@ namespace cereal
         itsStream(stream)
       { }
 
-      ~BinaryOutputArchive() CEREAL_NOEXCEPT = default;
+      ~BinaryOutputArchive() noexcept = default;
 
       //! Writes size bytes of data to the output stream
       void saveBinary( const void * data, std::streamsize size )
@@ -94,7 +94,7 @@ namespace cereal
         itsStream(stream)
       { }
 
-      ~BinaryInputArchive() CEREAL_NOEXCEPT = default;
+      ~BinaryInputArchive() noexcept = default;
 
       //! Reads size bytes of data from the input stream
       void loadBinary( void * const data, std::streamsize size )

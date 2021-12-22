@@ -264,11 +264,11 @@ class OutputArchiveBase {
 public:
 	OutputArchiveBase() = default;
 
-	OutputArchiveBase(OutputArchiveBase&&) CEREAL_NOEXCEPT {}
+	OutputArchiveBase(OutputArchiveBase&&) noexcept {}
 
-	OutputArchiveBase& operator=(OutputArchiveBase&&) CEREAL_NOEXCEPT { return *this; }
+	OutputArchiveBase& operator=(OutputArchiveBase&&) noexcept { return *this; }
 
-	virtual ~OutputArchiveBase() CEREAL_NOEXCEPT = default;
+	virtual ~OutputArchiveBase() noexcept = default;
 
 private:
 	virtual void rtti() {}
@@ -278,11 +278,11 @@ class InputArchiveBase {
 public:
 	InputArchiveBase() = default;
 
-	InputArchiveBase(InputArchiveBase&&) CEREAL_NOEXCEPT {}
+	InputArchiveBase(InputArchiveBase&&) noexcept {}
 
-	InputArchiveBase& operator=(InputArchiveBase&&) CEREAL_NOEXCEPT { return *this; }
+	InputArchiveBase& operator=(InputArchiveBase&&) noexcept { return *this; }
 
-	virtual ~InputArchiveBase() CEREAL_NOEXCEPT = default;
+	virtual ~InputArchiveBase() noexcept = default;
 
 private:
 	virtual void rtti() {}

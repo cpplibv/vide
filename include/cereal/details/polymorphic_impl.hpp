@@ -69,7 +69,6 @@
     have been registered with CEREAL_REGISTER_ARCHIVE.  This must be called
     after all archives are registered (usually after the archives themselves
     have been included). */
-#ifdef CEREAL_HAS_CPP17
 #define CEREAL_BIND_TO_ARCHIVES(...)                                     \
     namespace cereal {                                                   \
     namespace detail {                                                   \
@@ -82,21 +81,6 @@
         CEREAL_BIND_TO_ARCHIVES_UNUSED_FUNCTION                          \
     };                                                                   \
     }} /* end namespaces */
-#else
-#define CEREAL_BIND_TO_ARCHIVES(...)                                     \
-	namespace cereal {                                                   \
-	namespace detail {                                                   \
-	template<>                                                           \
-	struct init_binding<__VA_ARGS__> {                                   \
-		static bind_to_archives<__VA_ARGS__> const& b;                   \
-		CEREAL_BIND_TO_ARCHIVES_UNUSED_FUNCTION                          \
-	};                                                                   \
-	bind_to_archives<__VA_ARGS__> const & init_binding<__VA_ARGS__>::b = \
-		::cereal::detail::StaticObject<                                  \
-			bind_to_archives<__VA_ARGS__>                                \
-		>::getInstance().bind();                                         \
-	}} /* end namespaces */
-#endif
 
 namespace cereal {
 /* Polymorphic casting support */
@@ -234,13 +218,8 @@ struct PolymorphicCasters {
 #undef UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION
 };
 
-#ifdef CEREAL_OLDER_GCC
-	#define CEREAL_EMPLACE_MAP(map, key, value)                     \
-	  map.insert( std::make_pair(std::move(key), std::move(value)) );
-#else // NOT CEREAL_OLDER_GCC
-	#define CEREAL_EMPLACE_MAP(map, key, value)                     \
+#define CEREAL_EMPLACE_MAP(map, key, value)                     \
       map.emplace( key, value );
-#endif // NOT_CEREAL_OLDER_GCC
 
 //! Strongly typed derivation of PolymorphicCaster
 template <class Base, class Derived>
@@ -349,11 +328,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 
 								// Insert the new path if it doesn't exist, otherwise this will just lookup where to do the
 								// replacement
-#ifdef CEREAL_OLDER_GCC
-								auto old = unregisteredRelations.insert( hint, std::make_pair(parent, newPath) );
-#else // NOT CEREAL_OLDER_GCC
 								auto old = unregisteredRelations.emplace_hint(hint, parent, newPath);
-#endif // NOT CEREAL_OLDER_GCC
 
 								// If there was an uncommitted path, we need to perform a replacement
 								if (uncommittedExists)

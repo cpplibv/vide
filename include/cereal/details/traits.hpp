@@ -30,12 +30,6 @@
 #ifndef CEREAL_DETAILS_TRAITS_HPP_
 #define CEREAL_DETAILS_TRAITS_HPP_
 
-#ifndef __clang__
-#if (__GNUC__ == 4 && __GNUC_MINOR__ <= 7)
-#define CEREAL_OLDER_GCC
-#endif // gcc 4.7 or earlier
-#endif // __clang__
-
 #include <type_traits>
 #include <typeindex>
 
@@ -56,9 +50,6 @@ struct delay_static_assert : std::false_type {};
 
 // ######################################################################
 // SFINAE Helpers
-#ifdef CEREAL_OLDER_GCC // when VS supports better SFINAE, we can use this as the default
-template<typename> struct Void { typedef void type; };
-#endif // CEREAL_OLDER_GCC
 
 //! Return type for SFINAE Enablers
 enum class sfinae {};
@@ -180,15 +171,7 @@ struct get_input_from_output : no {
 	@param name The name of the function to test for (e.g. serialize, load, save)
 	@param test_name The name to give the test for the function being tested for (e.g. serialize, versioned_serialize)
 	@param versioned Either blank or the macro CEREAL_MAKE_VERSIONED_TEST */
-#ifdef CEREAL_OLDER_GCC
-	#define CEREAL_MAKE_HAS_MEMBER_TEST(name, test_name, versioned)                                                                         \
-	template <class T, class A, class SFINAE = void>                                                                                        \
-	struct has_member_##test_name : no {};                                                                                                  \
-	template <class T, class A>                                                                                                             \
-	struct has_member_##test_name<T, A,                                                                                                     \
-	  typename detail::Void< decltype( cereal::access::member_##name( std::declval<A&>(), std::declval<T&>() versioned ) ) >::type> : yes {}
-#else // NOT CEREAL_OLDER_GCC
-	#define CEREAL_MAKE_HAS_MEMBER_TEST(name, test_name, versioned)                                                                     \
+#define CEREAL_MAKE_HAS_MEMBER_TEST(name, test_name, versioned)                                                                     \
     namespace detail                                                                                                                    \
     {                                                                                                                                   \
       template <class T, class A>                                                                                                       \
@@ -203,7 +186,6 @@ struct get_input_from_output : no {
     } /* end namespace detail */                                                                                                        \
     template <class T, class A>                                                                                                         \
     struct has_member_##test_name : std::integral_constant<bool, detail::has_member_##name##_##versioned##_impl<T, A>::value> {}
-#endif // NOT CEREAL_OLDER_GCC
 
 // ######################################################################
 //! Creates a test for whether a non const non-member function exists
@@ -268,31 +250,7 @@ CEREAL_MAKE_HAS_NON_MEMBER_TEST(versioned_load, CEREAL_LOAD_FUNCTION_NAME, CEREA
 
 	@param test_name The name to give the test (e.g. save or versioned_save)
 	@param versioned Either blank or the macro CEREAL_MAKE_VERSIONED_TEST */
-#ifdef CEREAL_OLDER_GCC
-	#define CEREAL_MAKE_HAS_MEMBER_SAVE_IMPL(test_name, versioned)                                                                  \
-	namespace detail                                                                                                                \
-	{                                                                                                                               \
-	template <class T, class A>                                                                                                     \
-	struct has_member_##test_name##_impl                                                                                            \
-	  {                                                                                                                             \
-		template <class TT, class AA, class SFINAE = void> struct test : no {};                                                     \
-		template <class TT, class AA>                                                                                               \
-		struct test<TT, AA,                                                                                                         \
-		  typename detail::Void< decltype( cereal::access::member_save( std::declval<AA&>(),                                        \
-																		std::declval<TT const &>() versioned ) ) >::type> : yes {}; \
-		static const bool value = test<T, A>();                                                                                     \
-																																	\
-		template <class TT, class AA, class SFINAE = void> struct test2 : no {};                                                    \
-		template <class TT, class AA>                                                                                               \
-		struct test2<TT, AA,                                                                                                        \
-		  typename detail::Void< decltype( cereal::access::member_save_non_const(                                                   \
-											std::declval<AA&>(),                                                                    \
-											std::declval<typename std::remove_const<TT>::type&>() versioned ) ) >::type> : yes {};  \
-		static const bool not_const_type = test2<T, A>();                                                                           \
-	  };                                                                                                                            \
-	} /* end namespace detail */
-#else /* NOT CEREAL_OLDER_GCC =================================== */
-	#define CEREAL_MAKE_HAS_MEMBER_SAVE_IMPL(test_name, versioned)                                                                  \
+#define CEREAL_MAKE_HAS_MEMBER_SAVE_IMPL(test_name, versioned)                                                                  \
     namespace detail                                                                                                                \
     {                                                                                                                               \
     template <class T, class A>                                                                                                     \
@@ -312,7 +270,6 @@ CEREAL_MAKE_HAS_NON_MEMBER_TEST(versioned_load, CEREAL_LOAD_FUNCTION_NAME, CEREA
         static const bool not_const_type = std::is_same<decltype(test2<T, A>(0)), yes>::value;                                      \
       };                                                                                                                            \
     } /* end namespace detail */
-#endif /* NOT CEREAL_OLDER_GCC */
 
 // ######################################################################
 // Member Save
@@ -413,33 +370,7 @@ struct is_minimal_type : std::integral_constant<bool,
 
 	@param test_name The name to give the test (e.g. save_minimal or versioned_save_minimal)
 	@param versioned Either blank or the macro CEREAL_MAKE_VERSIONED_TEST */
-#ifdef CEREAL_OLDER_GCC
-	#define CEREAL_MAKE_HAS_MEMBER_SAVE_MINIMAL_IMPL(test_name, versioned)                                                                        \
-	namespace detail                                                                                                                              \
-	{                                                                                                                                             \
-	  template <class T, class A>                                                                                                                 \
-	  struct has_member_##test_name##_impl                                                                                                        \
-	  {                                                                                                                                           \
-		template <class TT, class AA, class SFINAE = void> struct test : no {};                                                                   \
-		template <class TT, class AA>                                                                                                             \
-		struct test<TT, AA, typename detail::Void< decltype(                                                                                      \
-			cereal::access::member_save_minimal( std::declval<AA const &>(),                                                                      \
-												 std::declval<TT const &>() versioned ) ) >::type> : yes {};                                      \
-																																				  \
-		static const bool value = test<T, A>();                                                                                                   \
-																																				  \
-		template <class TT, class AA, class SFINAE = void> struct test2 : no {};                                                                  \
-		template <class TT, class AA>                                                                                                             \
-		struct test2<TT, AA, typename detail::Void< decltype(                                                                                     \
-			cereal::access::member_save_minimal_non_const( std::declval<AA const &>(),                                                            \
-														   std::declval<typename std::remove_const<TT>::type&>() versioned ) ) >::type> : yes {}; \
-		static const bool not_const_type = test2<T, A>();                                                                                         \
-																																				  \
-		static const bool valid = value || !not_const_type;                                                                                       \
-	  };                                                                                                                                          \
-	} /* end namespace detail */
-#else /* NOT CEREAL_OLDER_GCC =================================== */
-	#define CEREAL_MAKE_HAS_MEMBER_SAVE_MINIMAL_IMPL(test_name, versioned)                     \
+#define CEREAL_MAKE_HAS_MEMBER_SAVE_MINIMAL_IMPL(test_name, versioned)                     \
     namespace detail                                                                           \
     {                                                                                          \
       template <class T, class A>                                                              \
@@ -462,7 +393,6 @@ struct is_minimal_type : std::integral_constant<bool,
         static const bool valid = value || !not_const_type;                                    \
       };                                                                                       \
     } /* end namespace detail */
-#endif // NOT CEREAL_OLDER_GCC
 
 // ######################################################################
 //! Creates helpers for minimal save functions
@@ -661,24 +591,7 @@ struct AnyConvert {
 
 	@param test_name The name to give the test (e.g. load_minimal or versioned_load_minimal)
 	@param versioned Either blank or the macro CEREAL_MAKE_VERSIONED_TEST */
-#ifdef CEREAL_OLDER_GCC
-	#define CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(test_name, versioned)                                                    \
-	namespace detail                                                                                                          \
-	{                                                                                                                         \
-	  template <class T, class A, class SFINAE = void> struct has_member_##test_name##_impl : no {};                          \
-	  template <class T, class A>                                                                                             \
-	  struct has_member_##test_name##_impl<T, A, typename detail::Void< decltype(                                             \
-		  cereal::access::member_load_minimal( std::declval<A const &>(),                                                     \
-											   std::declval<T &>(), AnyConvert() versioned ) ) >::type> : yes {};             \
-																															  \
-		template <class T, class A, class U, class SFINAE = void> struct has_member_##test_name##_type_impl : no {};          \
-		template <class T, class A, class U>                                                                                  \
-		struct has_member_##test_name##_type_impl<T, A, U, typename detail::Void< decltype(                                   \
-			cereal::access::member_load_minimal( std::declval<A const &>(),                                                   \
-												 std::declval<T &>(), NoConvertConstRef<U>() versioned ) ) >::type> : yes {}; \
-	} /* end namespace detail */
-#else /* NOT CEREAL_OLDER_GCC =================================== */
-	#define CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(test_name, versioned)              \
+#define CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(test_name, versioned)              \
     namespace detail                                                                    \
     {                                                                                   \
       template <class T, class A>                                                       \
@@ -703,7 +616,6 @@ struct AnyConvert {
                                                                                         \
       };                                                                                \
     } /* end namespace detail */
-#endif // NOT CEREAL_OLDER_GCC
 
 // ######################################################################
 //! Creates helpers for minimal load functions
@@ -774,12 +686,6 @@ CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
 
 // ######################################################################
 // Non-Member Load Minimal
-namespace detail {
-#ifdef CEREAL_OLDER_GCC
-void CEREAL_LOAD_MINIMAL_FUNCTION_NAME(); // prevents nonsense complaining about not finding this
-void CEREAL_SAVE_MINIMAL_FUNCTION_NAME();
-#endif // CEREAL_OLDER_GCC
-} // namespace detail
 
 // ######################################################################
 //! Creates a test for whether a non-member load_minimal function exists
@@ -1234,19 +1140,11 @@ struct strip_minimal<T, true> {
 //! Determines whether the class T can be default constructed by cereal::access
 template <class T>
 struct is_default_constructible {
-#ifdef CEREAL_OLDER_GCC
-	template <class TT, class SFINAE = void>
-	struct test : no {};
-	template <class TT>
-	struct test<TT, typename detail::Void< decltype( cereal::access::construct<TT>() ) >::type> : yes {};
-	static const bool value = test<T>();
-#else // NOT CEREAL_OLDER_GCC =========================================
 	template <class TT>
 	static auto test(int) -> decltype(cereal::access::construct<TT>(), yes());
 	template <class>
 	static no test(...);
 	static const bool value = std::is_same<decltype(test<T>(0)), yes>::value;
-#endif // NOT CEREAL_OLDER_GCC
 };
 
 // ######################################################################

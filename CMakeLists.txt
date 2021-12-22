@@ -103,10 +103,10 @@ if(JUST_INSTALL_CEREAL)
 endif()
 
 
-if(NOT SKIP_PERFORMANCE_COMPARISON)
-    # Boost serialization for performance sandbox
-    find_package(Boost REQUIRED COMPONENTS serialization)
-endif()
+#if(NOT SKIP_PERFORMANCE_COMPARISON)
+#    # Boost serialization for performance sandbox
+#    find_package(Boost REQUIRED COMPONENTS serialization)
+#endif()
 
 
 option(BUILD_TESTS "Build tests" ${CEREAL_MASTER_PROJECT})

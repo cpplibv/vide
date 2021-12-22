@@ -893,7 +893,4 @@ void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, std::basic_string<CharT, Tra
 CEREAL_REGISTER_ARCHIVE(cereal::XMLOutputArchive)
 CEREAL_REGISTER_ARCHIVE(cereal::XMLInputArchive)
 
-// tie input and output archives together
-CEREAL_SETUP_ARCHIVE_TRAITS(cereal::XMLInputArchive, cereal::XMLOutputArchive)
-
 #endif // CEREAL_ARCHIVES_XML_HPP_

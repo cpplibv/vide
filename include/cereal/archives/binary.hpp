@@ -161,7 +161,4 @@ void CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive& ar, BinaryData <T>& bd) {
 CEREAL_REGISTER_ARCHIVE(cereal::BinaryOutputArchive)
 CEREAL_REGISTER_ARCHIVE(cereal::BinaryInputArchive)
 
-// tie input and output archives together
-CEREAL_SETUP_ARCHIVE_TRAITS(cereal::BinaryInputArchive, cereal::BinaryOutputArchive)
-
 #endif // CEREAL_ARCHIVES_BINARY_HPP_

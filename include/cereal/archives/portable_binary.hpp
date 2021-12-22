@@ -314,7 +314,4 @@ void CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, BinaryData <T>& b
 CEREAL_REGISTER_ARCHIVE(cereal::PortableBinaryOutputArchive)
 CEREAL_REGISTER_ARCHIVE(cereal::PortableBinaryInputArchive)
 
-// tie input and output archives together
-CEREAL_SETUP_ARCHIVE_TRAITS(cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive)
-
 #endif // CEREAL_ARCHIVES_PORTABLE_BINARY_HPP_

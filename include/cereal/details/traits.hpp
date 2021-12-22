@@ -137,29 +137,6 @@ template <bool ... Conditions>
 using DisableIf = typename detail::DisableIfHelper<Conditions...>::type;
 
 // ######################################################################
-namespace detail {
-template <class InputArchive>
-struct get_output_from_input : no {
-	static_assert(detail::delay_static_assert<InputArchive>::value,
-			"Could not find an associated output archive for input archive.");
-};
-
-template <class OutputArchive>
-struct get_input_from_output : no {
-	static_assert(detail::delay_static_assert<OutputArchive>::value,
-			"Could not find an associated input archive for output archive.");
-};
-}
-
-//! Sets up traits that relate an input archive to an output archive
-#define CEREAL_SETUP_ARCHIVE_TRAITS(InputArchive, OutputArchive)  \
-    namespace cereal { namespace traits { namespace detail {          \
-      template <> struct get_output_from_input<InputArchive>          \
-      { using type = OutputArchive; };                                \
-      template <> struct get_input_from_output<OutputArchive>         \
-      { using type = InputArchive; }; } } } /* end namespaces */
-
-// ######################################################################
 //! Used to convert a MAKE_HAS_XXX macro into a versioned variant
 #define CEREAL_MAKE_VERSIONED_TEST ,0
 
@@ -208,34 +185,21 @@ struct get_input_from_output : no {
     struct has_non_member_##test_name : std::integral_constant<bool, detail::has_non_member_##test_name##_impl<T, A>::value> {}
 
 // ######################################################################
+
 // Member Serialize
 CEREAL_MAKE_HAS_MEMBER_TEST(serialize, serialize,);
-
-// ######################################################################
 // Member Serialize (versioned)
 CEREAL_MAKE_HAS_MEMBER_TEST(serialize, versioned_serialize, CEREAL_MAKE_VERSIONED_TEST);
-
-// ######################################################################
 // Non Member Serialize
 CEREAL_MAKE_HAS_NON_MEMBER_TEST(serialize, CEREAL_SERIALIZE_FUNCTION_NAME,);
-
-// ######################################################################
 // Non Member Serialize (versioned)
 CEREAL_MAKE_HAS_NON_MEMBER_TEST(versioned_serialize, CEREAL_SERIALIZE_FUNCTION_NAME, CEREAL_MAKE_VERSIONED_TEST);
-
-// ######################################################################
 // Member Load
 CEREAL_MAKE_HAS_MEMBER_TEST(load, load,);
-
-// ######################################################################
 // Member Load (versioned)
 CEREAL_MAKE_HAS_MEMBER_TEST(load, versioned_load, CEREAL_MAKE_VERSIONED_TEST);
-
-// ######################################################################
 // Non Member Load
 CEREAL_MAKE_HAS_NON_MEMBER_TEST(load, CEREAL_LOAD_FUNCTION_NAME,);
-
-// ######################################################################
 // Non Member Load (versioned)
 CEREAL_MAKE_HAS_NON_MEMBER_TEST(versioned_load, CEREAL_LOAD_FUNCTION_NAME, CEREAL_MAKE_VERSIONED_TEST);
 
@@ -580,6 +544,34 @@ struct AnyConvert {
 };
 } // namespace detail
 
+// =================================================================================================
+// =================================================================================================
+
+// NOTE: The get_output_from_input only used for save_minimal/load_minimal
+//			and there only to determine the return type of save_minimal
+// TODO P2: This get_output_from_input should be eliminated (Maybe deduce argument type, or deduce return type of save with a dummy AR type, or rely on a member typedef)
+
+template <typename Archive>
+using get_output_from_input = typename Archive::ArchiveOutput;
+
+// -------------------------------------------------------------------------------------------------
+
+template <typename Archive, typename T>
+using get_member_save_minimal_type = typename has_member_save_minimal<T, get_output_from_input<Archive>>::type;
+
+template <typename Archive, typename T>
+using get_non_member_save_minimal_type = typename has_non_member_save_minimal<T, get_output_from_input<Archive>>::type;
+
+template <typename Archive, typename T>
+using get_member_versioned_save_minimal_type = typename has_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
+
+template <typename Archive, typename T>
+using get_non_member_versioned_save_minimal_type = typename has_non_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
+
+// =================================================================================================
+// =================================================================================================
+
+
 // ######################################################################
 //! Creates a test for whether a member load_minimal function exists
 /*! This creates a class derived from std::integral_constant that will be true if
@@ -638,7 +630,7 @@ struct AnyConvert {
       template <class T, class A>                                                                                         \
       struct has_member_##load_test_name##_wrapper<T, A, true>                                                            \
       {                                                                                                                   \
-        using AOut = typename detail::get_output_from_input<A>::type;                                                     \
+        using AOut = traits::get_output_from_input<A>;                                                                    \
                                                                                                                           \
         static_assert( has_member_##save_test_prefix##_minimal<T, AOut>::value,                                           \
           "cereal detected member " #load_test_name " but no valid member " #save_test_name ". \n "                       \
@@ -740,7 +732,7 @@ CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
       template <class T, class A>                                                                                            \
       struct has_non_member_##test_name##_wrapper<T, A, true>                                                                \
       {                                                                                                                      \
-        using AOut = typename detail::get_output_from_input<A>::type;                                                        \
+        using AOut = get_output_from_input<A>;                                                                               \
                                                                                                                              \
         static_assert( detail::has_non_member_##save_name##_impl<T, AOut>::valid,                                            \
           "cereal detected non-member " #test_name " but no valid non-member " #save_name ". \n "                            \
@@ -761,10 +753,9 @@ CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
       detail::has_non_member_##test_name##_wrapper<T, A, detail::has_non_member_##test_name##_impl<T, A>::exists>::value> {};
 
 // ######################################################################
+
 // Non-Member Load Minimal
 CEREAL_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(load_minimal, save_minimal,)
-
-// ######################################################################
 // Non-Member Load Minimal (versioned)
 CEREAL_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_save_minimal, CEREAL_MAKE_VERSIONED_TEST)
 
@@ -992,19 +983,20 @@ template <class T, class OutputArchive>
 struct count_output_serializers : std::integral_constant<int,
 		count_specializations<T, OutputArchive>::value ? count_specializations<T, OutputArchive>::value :
 				has_member_save<T, OutputArchive>::value +
-						has_non_member_save<T, OutputArchive>::value +
-						has_member_serialize<T, OutputArchive>::value +
-						has_non_member_serialize<T, OutputArchive>::value +
-						has_member_save_minimal<T, OutputArchive>::value +
-						has_non_member_save_minimal<T, OutputArchive>::value +
-						/*-versioned---------------------------------------------------------*/
-								has_member_versioned_save<T, OutputArchive>::value +
-						has_non_member_versioned_save<T, OutputArchive>::value +
-						has_member_versioned_serialize<T, OutputArchive>::value +
-						has_non_member_versioned_serialize<T, OutputArchive>::value +
-						has_member_versioned_save_minimal<T, OutputArchive>::value +
-						has_non_member_versioned_save_minimal<T, OutputArchive>::value> {
+				has_non_member_save<T, OutputArchive>::value +
+				has_member_serialize<T, OutputArchive>::value +
+				has_non_member_serialize<T, OutputArchive>::value +
+				has_member_save_minimal<T, OutputArchive>::value +
+				has_non_member_save_minimal<T, OutputArchive>::value +
+				/*-versioned---------------------------------------------------------*/
+				has_member_versioned_save<T, OutputArchive>::value +
+				has_non_member_versioned_save<T, OutputArchive>::value +
+				has_member_versioned_serialize<T, OutputArchive>::value +
+				has_non_member_versioned_serialize<T, OutputArchive>::value +
+				has_member_versioned_save_minimal<T, OutputArchive>::value +
+				has_non_member_versioned_save_minimal<T, OutputArchive>::value> {
 };
+
 }
 
 template <class T, class OutputArchive>
@@ -1020,18 +1012,18 @@ template <class T, class InputArchive>
 struct count_input_serializers : std::integral_constant<int,
 		count_specializations<T, InputArchive>::value ? count_specializations<T, InputArchive>::value :
 				has_member_load<T, InputArchive>::value +
-						has_non_member_load<T, InputArchive>::value +
-						has_member_serialize<T, InputArchive>::value +
-						has_non_member_serialize<T, InputArchive>::value +
-						has_member_load_minimal<T, InputArchive>::value +
-						has_non_member_load_minimal<T, InputArchive>::value +
-						/*-versioned---------------------------------------------------------*/
-								has_member_versioned_load<T, InputArchive>::value +
-						has_non_member_versioned_load<T, InputArchive>::value +
-						has_member_versioned_serialize<T, InputArchive>::value +
-						has_non_member_versioned_serialize<T, InputArchive>::value +
-						has_member_versioned_load_minimal<T, InputArchive>::value +
-						has_non_member_versioned_load_minimal<T, InputArchive>::value> {
+				has_non_member_load<T, InputArchive>::value +
+				has_member_serialize<T, InputArchive>::value +
+				has_non_member_serialize<T, InputArchive>::value +
+				has_member_load_minimal<T, InputArchive>::value +
+				has_non_member_load_minimal<T, InputArchive>::value +
+				/*-versioned---------------------------------------------------------*/
+				has_member_versioned_load<T, InputArchive>::value +
+				has_non_member_versioned_load<T, InputArchive>::value +
+				has_member_versioned_serialize<T, InputArchive>::value +
+				has_non_member_versioned_serialize<T, InputArchive>::value +
+				has_member_versioned_load_minimal<T, InputArchive>::value +
+				has_non_member_versioned_load_minimal<T, InputArchive>::value> {
 };
 }
 

@@ -864,10 +864,7 @@ private:
 	//! Member split (load_minimal)
 	template <class T, PROCESS_IF(member_load_minimal)> inline
 	ArchiveType& processImpl(T& t) {
-		using OutArchiveType = typename traits::detail::get_output_from_input<ArchiveType>::type;
-		typename traits::has_member_save_minimal<T, OutArchiveType>::type value;
-//		typename traits::has_member_save_minimal<T, ArchiveType>::type value;
-//		typename traits::has_member_save_minimal<T, typename ArchiveType::ArchiveOutput>::type value;
+		traits::get_member_save_minimal_type<ArchiveType, T> value;
 		self->process(value);
 		access::member_load_minimal(*self, t, value);
 		return *self;
@@ -876,10 +873,7 @@ private:
 	//! Non member split (load_minimal)
 	template <class T, PROCESS_IF(non_member_load_minimal)> inline
 	ArchiveType& processImpl(T& t) {
-		using OutArchiveType = typename traits::detail::get_output_from_input<ArchiveType>::type;
-		typename traits::has_non_member_save_minimal<T, OutArchiveType>::type value;
-//		typename traits::has_non_member_save_minimal<T, ArchiveType>::type value;
-//		typename traits::has_non_member_save_minimal<T, typename ArchiveType::ArchiveOutput>::type value;
+		traits::get_non_member_save_minimal_type<ArchiveType, T> value;
 		self->process(value);
 		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(*self, t, value);
 		return *self;
@@ -987,9 +981,8 @@ private:
 	/*! Versioning implementation */
 	template <class T, PROCESS_IF(member_versioned_load_minimal)> inline
 	ArchiveType& processImpl(T& t) {
-		using OutArchiveType = typename traits::detail::get_output_from_input<ArchiveType>::type;
 		const auto version = loadClassVersion<T>();
-		typename traits::has_member_versioned_save_minimal<T, OutArchiveType>::type value;
+		traits::get_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self->process(value);
 		access::member_load_minimal(*self, t, value, version);
 		return *self;
@@ -999,9 +992,8 @@ private:
 	/*! Versioning implementation */
 	template <class T, PROCESS_IF(non_member_versioned_load_minimal)> inline
 	ArchiveType& processImpl(T& t) {
-		using OutArchiveType = typename traits::detail::get_output_from_input<ArchiveType>::type;
 		const auto version = loadClassVersion<T>();
-		typename traits::has_non_member_versioned_save_minimal<T, OutArchiveType>::type value;
+		traits::get_non_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self->process(value);
 		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(*self, t, value, version);
 		return *self;

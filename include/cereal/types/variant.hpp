@@ -36,66 +36,48 @@
 
 
 namespace cereal {
-namespace variant_detail {
-//! @internal
+namespace detail {
+
+// -------------------------------------------------------------------------------------------------
+
+template <std::size_t N, typename Archive, typename... Types>
+inline void load_std_variant(std::size_t index, Archive& ar, std::variant<Types...>& variant) {
+	if (N == index) {
+		variant.template emplace<N>();
+		ar & CEREAL_NVP_("value", std::get<N>(variant));
+	} else if constexpr (N + 1 < sizeof...(Types))
+		load_std_variant<N + 1>(index, ar, variant);
+}
+
+} // namespace detail ------------------------------------------------------------------------------
+
+template <typename Archive, typename... Types>
+inline void save(Archive& ar, const std::variant<Types...>& variant) {
+	static_assert(sizeof...(Types) < 256, "Variant serialization only supported up to 255 type.");
+
+	const auto index = static_cast<uint8_t>(variant.index());
+	ar & CEREAL_NVP_("type", index);
+	std::visit([&](const auto& value) {
+		ar & CEREAL_NVP(value);
+	}, variant);
+}
+
+template <typename Archive, typename... Types>
+inline void load(Archive& ar, std::variant<Types...>& variant) {
+	static_assert(sizeof...(Types) < 256, "Variant serialization only supported up to 255 type.");
+
+	uint8_t index;
+	ar & CEREAL_NVP_("type", index);
+	if (index >= sizeof...(Types))
+		throw cereal::Exception("Invalid 'index' when deserializing std::variant");
+
+	detail::load_std_variant<0>(index, ar, variant);
+}
+
+/// Serializing a std::monostate
 template <class Archive>
-struct variant_save_visitor {
-	variant_save_visitor(Archive& ar_) : ar(ar_) {}
-
-	template <class T>
-	void operator()(T const& value) const {
-		ar(CEREAL_NVP_("data", value));
-	}
-
-	Archive& ar;
-};
-
-//! @internal
-template <int N, class Variant, class ... Args, class Archive>
-typename std::enable_if<N == std::variant_size_v<Variant>, void>::type
-load_variant(Archive& /*ar*/, int /*target*/, Variant& /*variant*/) {
-	throw ::cereal::Exception("Error traversing variant during load");
-}
-
-//! @internal
-template <int N, class Variant, class H, class ... T, class Archive>
-typename std::enable_if<N < std::variant_size_v<Variant>, void>::type
-load_variant(Archive& ar, int target, Variant& variant) {
-	if (N == target) {
-		H value;
-		ar(CEREAL_NVP_("data", value));
-		variant = std::move(value);
-	} else
-		load_variant<N + 1, Variant, T...>(ar, target, variant);
-}
-
-} // namespace variant_detail
-
-//! Saving for std::variant
-template <class Archive, typename VariantType1, typename... VariantTypes> inline
-void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::variant<VariantType1, VariantTypes...> const& variant) {
-	std::int32_t index = static_cast<std::int32_t>(variant.index());
-	ar(CEREAL_NVP_("index", index));
-	variant_detail::variant_save_visitor<Archive> visitor(ar);
-	std::visit(visitor, variant);
-}
-
-//! Loading for std::variant
-template <class Archive, typename... VariantTypes> inline
-void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::variant<VariantTypes...>& variant) {
-	using variant_t = typename std::variant<VariantTypes...>;
-
-	std::int32_t index;
-	ar(CEREAL_NVP_("index", index));
-	if (index >= static_cast<std::int32_t>(std::variant_size_v<variant_t>))
-		throw Exception("Invalid 'index' selector when deserializing std::variant");
-
-	variant_detail::load_variant<0, variant_t, VariantTypes...>(ar, index, variant);
-}
-
-//! Serializing a std::monostate
-template <class Archive>
-void CEREAL_SERIALIZE_FUNCTION_NAME(Archive&, std::monostate const&) {}
-} // namespace cereal
+void CEREAL_SERIALIZE_FUNCTION_NAME(Archive&, const std::monostate&) {}
 
 #endif // CEREAL_TYPES_STD_VARIANT_HPP_
+
+} // namespace cereal

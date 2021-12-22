@@ -114,6 +114,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
     #	SET(CMAKE_RANLIB "gcc-ranlib")
     #	add_definitions(-DNDEBUG)
     wish_static_link_std()
+    add_compile_options(-static) # Normally wish_static_link_std() would take care of this, but cereal is not really using wish
 
 elseif (CMAKE_BUILD_TYPE STREQUAL "DEV")
     add_compile_options(-O3)
@@ -124,6 +125,7 @@ endif ()
 
 add_compile_options(-m64)
 add_compile_options(-std=c++23)
+
 
 # -------------------------------------------------------------------------------------------------
 

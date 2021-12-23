@@ -547,26 +547,37 @@ struct AnyConvert {
 // =================================================================================================
 // =================================================================================================
 
-// NOTE: The get_output_from_input only used for save_minimal/load_minimal
-//			and there only to determine the return type of save_minimal
-// TODO P2: This get_output_from_input should be eliminated (Maybe deduce argument type, or deduce return type of save with a dummy AR type, or rely on a member typedef)
-
-template <typename Archive>
-using get_output_from_input = typename Archive::ArchiveOutput;
-
-// -------------------------------------------------------------------------------------------------
+//// NOTE: The get_output_from_input only used for save_minimal/load_minimal
+////			and there only to determine the return type of save_minimal
+//
+//template <typename Archive>
+//using get_output_from_input = typename Archive::ArchiveOutput;
+//
+//// -------------------------------------------------------------------------------------------------
+//
+//template <typename Archive, typename T>
+//using get_member_save_minimal_type = typename has_member_save_minimal<T, get_output_from_input<Archive>>::type;
+//
+//template <typename Archive, typename T>
+//using get_non_member_save_minimal_type = typename has_non_member_save_minimal<T, get_output_from_input<Archive>>::type;
+//
+//template <typename Archive, typename T>
+//using get_member_versioned_save_minimal_type = typename has_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
+//
+//template <typename Archive, typename T>
+//using get_non_member_versioned_save_minimal_type = typename has_non_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
 
 template <typename Archive, typename T>
-using get_member_save_minimal_type = typename has_member_save_minimal<T, get_output_from_input<Archive>>::type;
+using get_member_save_minimal_type = typename has_member_save_minimal<T, Archive>::type;
 
 template <typename Archive, typename T>
-using get_non_member_save_minimal_type = typename has_non_member_save_minimal<T, get_output_from_input<Archive>>::type;
+using get_non_member_save_minimal_type = typename has_non_member_save_minimal<T, Archive>::type;
 
 template <typename Archive, typename T>
-using get_member_versioned_save_minimal_type = typename has_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
+using get_member_versioned_save_minimal_type = typename has_member_versioned_save_minimal<T, Archive>::type;
 
 template <typename Archive, typename T>
-using get_non_member_versioned_save_minimal_type = typename has_non_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
+using get_non_member_versioned_save_minimal_type = typename has_non_member_versioned_save_minimal<T, Archive>::type;
 
 // =================================================================================================
 // =================================================================================================
@@ -630,13 +641,7 @@ using get_non_member_versioned_save_minimal_type = typename has_non_member_versi
       template <class T, class A>                                                                                         \
       struct has_member_##load_test_name##_wrapper<T, A, true>                                                            \
       {                                                                                                                   \
-        using AOut = traits::get_output_from_input<A>;                                                                    \
-                                                                                                                          \
-        static_assert( has_member_##save_test_prefix##_minimal<T, AOut>::value,                                           \
-          "cereal detected member " #load_test_name " but no valid member " #save_test_name ". \n "                       \
-          "cannot evaluate correctness of " #load_test_name " without valid " #save_test_name "." );                      \
-                                                                                                                          \
-        using SaveType = typename detail::get_member_##save_test_prefix##_minimal_type<T, AOut, true>::type;              \
+        using SaveType = typename detail::get_member_##save_test_prefix##_minimal_type<T, A, true>::type;              \
         const static bool value = has_member_##load_test_name##_impl<T, A>::value;                                        \
         const static bool valid = has_member_##load_test_name##_type_impl<T, A, SaveType>::value;                         \
                                                                                                                           \
@@ -732,13 +737,7 @@ CEREAL_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
       template <class T, class A>                                                                                            \
       struct has_non_member_##test_name##_wrapper<T, A, true>                                                                \
       {                                                                                                                      \
-        using AOut = get_output_from_input<A>;                                                                               \
-                                                                                                                             \
-        static_assert( detail::has_non_member_##save_name##_impl<T, AOut>::valid,                                            \
-          "cereal detected non-member " #test_name " but no valid non-member " #save_name ". \n "                            \
-          "cannot evaluate correctness of " #test_name " without valid " #save_name "." );                                   \
-                                                                                                                             \
-        using SaveType = typename detail::get_non_member_##save_name##_type<T, AOut, true>::type;                            \
+        using SaveType = typename detail::get_non_member_##save_name##_type<T, A, true>::type;                            \
         using check = has_non_member_##test_name##_impl<T, A, SaveType>;                                                     \
         static const bool value = check::exists;                                                                             \
                                                                                                                              \

@@ -1,3 +1,24 @@
+VaderY - Fork
+==========================================
+
+- Remove CEREAL_SETUP_ARCHIVE_TRAITS (Input and output archives are no longer linked)
+  - Pro: Enables archives to be template types
+  - Pro: One less macro that has to be called
+  - Pro: Allows single in or out direction archives or type supports
+  - Con: load_minimal type deduction is now done with the input archives on the save_minimal function (never called, only for deduction)
+  - Con: No check if save_minimal and load_minimal are correctly using the same type
+  - Note: Cons could be negated with a single typedef inside the input archive to the output archive
+- Fixes and breaks some minor stuff
+- Bump versions to C++23, GCC 11.2, CMake 3.20
+- Remove some legacy compiler support
+
+Planned:
+- Add safe/unsafe data serialization support
+  - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
+- Add context wrapped archives
+- Maybe: Context variables passed as additional function arguments
+
+
 cereal - A C++11 library for serialization
 ==========================================
 

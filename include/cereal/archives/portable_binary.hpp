@@ -78,9 +78,6 @@ inline void swap_bytes(std::uint8_t* data) {
   \ingroup Archives */
 class PortableBinaryOutputArchive : public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision> {
 public:
-	using ArchiveInput = PortableBinaryInputArchive;
-
-public:
 	//! A class containing various advanced options for the PortableBinaryOutput archive
 	class Options {
 	public:

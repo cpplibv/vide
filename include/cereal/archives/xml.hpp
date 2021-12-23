@@ -97,9 +97,6 @@ class XMLInputArchive;
 	\ingroup Archives */
 class XMLOutputArchive : public OutputArchive<XMLOutputArchive>, public traits::TextArchive {
 public:
-	using ArchiveInput = XMLInputArchive;
-
-public:
 	/*! @name Common Functionality
 		Common use cases for directly interacting with an XMLOutputArchive */
 	//! @{

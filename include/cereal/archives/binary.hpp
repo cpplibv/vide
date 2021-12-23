@@ -54,9 +54,6 @@ class BinaryInputArchive;
 	\ingroup Archives */
 class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision> {
 public:
-	using ArchiveInput = BinaryInputArchive;
-
-public:
 	//! Construct, outputting to the provided stream
 	/*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
 					  even cout! */

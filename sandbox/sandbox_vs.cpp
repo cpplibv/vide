@@ -45,8 +45,6 @@
 //CEREAL_FORCE_LINK_SHARED_LIBRARY(Sandbox)
 
 struct Archive {
-	using ArchiveInput = Archive;
-	using ArchiveOutput = Archive;
 };
 
 struct Test {

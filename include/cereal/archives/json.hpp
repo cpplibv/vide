@@ -107,9 +107,6 @@ class JSONInputArchive;
 
 	\ingroup Archives */
 class JSONOutputArchive : public OutputArchive<JSONOutputArchive>, public traits::TextArchive {
-public:
-	using ArchiveInput = JSONInputArchive;
-
 private:
 	enum class NodeType { StartObject, InObject, StartArray, InArray };
 

@@ -403,9 +403,6 @@ private:
 	\ingroup Archives */
 class XMLInputArchive : public InputArchive<XMLInputArchive>, public traits::TextArchive {
 public:
-	using ArchiveOutput = XMLOutputArchive;
-
-public:
 	/*! @name Common Functionality
 		Common use cases for directly interacting with an XMLInputArchive */
 	//! @{

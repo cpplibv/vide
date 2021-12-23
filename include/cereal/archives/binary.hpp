@@ -35,9 +35,6 @@
 
 namespace cereal {
 
-class BinaryOutputArchive;
-class BinaryInputArchive;
-
 // ######################################################################
 //! An output archive designed to save data in a compact binary representation
 /*! This archive outputs data to a stream in an extremely compact binary
@@ -52,13 +49,13 @@ class BinaryInputArchive;
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision> {
+class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
 public:
 	//! Construct, outputting to the provided stream
 	/*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
 					  even cout! */
 	explicit BinaryOutputArchive(std::ostream& stream) :
-			OutputArchive<BinaryOutputArchive, AllowEmptyClassElision>(this),
+			OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream) {}
 
 	~BinaryOutputArchive() noexcept = default;
@@ -86,14 +83,11 @@ private:
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision> {
-public:
-	using ArchiveOutput = BinaryOutputArchive;
-
+class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP> {
 public:
 	//! Construct, loading from the provided stream
 	explicit BinaryInputArchive(std::istream& stream) :
-			InputArchive<BinaryInputArchive, AllowEmptyClassElision>(this),
+			InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream) {}
 
 	~BinaryInputArchive() noexcept = default;

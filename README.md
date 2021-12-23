@@ -1,6 +1,9 @@
 VaderY - Fork
 ==========================================
 
+- Remove some legacy compiler support
+- Bump required versions to C++23, GCC 11.2, CMake 3.20
+- Fixes and breaks some minor stuff
 - Remove CEREAL_SETUP_ARCHIVE_TRAITS (Input and output archives are no longer linked)
   - Pro: Enables archives to be template types
   - Pro: One less macro that has to be called
@@ -8,13 +11,12 @@ VaderY - Fork
   - Con: load_minimal type deduction is now done with the input archives on the save_minimal function (never called, only for deduction)
   - Con: No check if save_minimal and load_minimal are correctly using the same type
   - Note: Cons could be negated with a single typedef inside the input archive to the output archive
-- Fixes and breaks some minor stuff
-- Bump versions to C++23, GCC 11.2, CMake 3.20
-- Remove some legacy compiler support
+- New archive flag cereal::IgnoreNVP: Add support for specifying if archives ignores name from NVPs (previously it was hardcoded for the built-in binary archive only)
 
 Planned:
 - Add safe/unsafe data serialization support
   - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
+- Improved compile time performance
 - Add context wrapped archives
 - Maybe: Context variables passed as additional function arguments
 

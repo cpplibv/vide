@@ -175,7 +175,14 @@ void epilogue(Archive& /* archive */, T const& /* data */) {}
 	  by using the traits is_output_serializable and is_input_serializable
 	  in cereal/details/traits.hpp.
 	@ingroup Internal */
-enum Flags { AllowEmptyClassElision = 1 };
+enum Flags {
+	AllowEmptyClassElision = 1 << 0,
+	IgnoreNVP = 1 << 1,
+	//	____ = 1 << 2,
+	//	____ = 1 << 3,
+	//	____ = 1 << 4,
+	//	____ = 1 << 5,
+};
 
 // ######################################################################
 //! Registers a specific Archive type with cereal
@@ -290,6 +297,9 @@ enum Flags { AllowEmptyClassElision = 1 };
 template <class ArchiveType, std::uint32_t Flags = 0>
 class OutputArchive : public detail::OutputArchiveBase {
 public:
+	static constexpr bool ignores_nvp = Flags & cereal::IgnoreNVP;
+
+public:
 	//! Construct the output archive
 	/*! @param derived A pointer to the derived ArchiveType (pass this from the derived archive) */
 	OutputArchive(ArchiveType* const derived) : self(derived), itsCurrentPointerId(1), itsCurrentPolymorphicTypeId(1) {}
@@ -315,20 +325,6 @@ public:
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
 		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
 	//! @{
-
-	//! Indicates this archive is not intended for loading
-	/*! This ensures compatibility with boost archive types.  If you are transitioning
-		from boost, you can check this value within a member or external serialize function
-		(i.e., Archive::is_loading::value) to disable behavior specific to loading, until
-		you can transition to split save/load or save_minimal/load_minimal functions */
-	using is_loading = std::false_type;
-
-	//! Indicates this archive is intended for saving
-	/*! This ensures compatibility with boost archive types.  If you are transitioning
-		from boost, you can check this value within a member or external serialize function
-		(i.e., Archive::is_saving::value) to enable behavior specific to loading, until
-		you can transition to split save/load or save_minimal/load_minimal functions */
-	using is_saving = std::true_type;
 
 	//! Serializes passed in data
 	/*! This is a boost compatability layer and is not the preferred way of using
@@ -649,6 +645,9 @@ private:
 template <class ArchiveType, std::uint32_t Flags = 0>
 class InputArchive : public detail::InputArchiveBase {
 public:
+	static constexpr bool ignores_nvp = Flags & cereal::IgnoreNVP;
+
+public:
 	//! Construct the output archive
 	/*! @param derived A pointer to the derived ArchiveType (pass this from the derived archive) */
 	InputArchive(ArchiveType* const derived) :
@@ -679,20 +678,6 @@ public:
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
 		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
 	//! @{
-
-	//! Indicates this archive is intended for loading
-	/*! This ensures compatibility with boost archive types.  If you are transitioning
-		from boost, you can check this value within a member or external serialize function
-		(i.e., Archive::is_loading::value) to enable behavior specific to loading, until
-		you can transition to split save/load or save_minimal/load_minimal functions */
-	using is_loading = std::true_type;
-
-	//! Indicates this archive is not intended for saving
-	/*! This ensures compatibility with boost archive types.  If you are transitioning
-		from boost, you can check this value within a member or external serialize function
-		(i.e., Archive::is_saving::value) to disable behavior specific to loading, until
-		you can transition to split save/load or save_minimal/load_minimal functions */
-	using is_saving = std::false_type;
 
 	//! Serializes passed in data
 	/*! This is a boost compatability layer and is not the preferred way of using

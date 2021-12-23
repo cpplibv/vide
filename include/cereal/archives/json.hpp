@@ -414,9 +414,6 @@ private:
 
 	\ingroup Archives */
 class JSONInputArchive : public InputArchive<JSONInputArchive>, public traits::TextArchive {
-public:
-	using ArchiveOutput = JSONOutputArchive;
-
 private:
 	using ReadStream = CEREAL_RAPIDJSON_NAMESPACE::IStreamWrapper;
 	typedef CEREAL_RAPIDJSON_NAMESPACE::GenericValue<CEREAL_RAPIDJSON_NAMESPACE::UTF8<>> JSONValue;

@@ -167,27 +167,21 @@ public:
 	Type value;
 };
 
-//! A specialization of make_nvp<> that simply forwards the value for binary archives
+//! A specialization of make_nvp<> that simply forwards the value for archives who ignores nvp
 /*! @relates NameValuePair
 	@internal */
-template <class Archive, class T> inline
-typename
-std::enable_if<std::is_same<Archive, ::cereal::BinaryInputArchive>::value ||
-		std::is_same<Archive, ::cereal::BinaryOutputArchive>::value,
-		T&&>::type
-make_nvp(const char*, T&& value) {
+template <class Archive, class T>
+	requires Archive::ignores_nvp
+inline decltype(auto) make_nvp(const char*, T&& value) {
 	return std::forward<T>(value);
 }
 
-//! A specialization of make_nvp<> that actually creates an nvp for non-binary archives
+//! A specialization of make_nvp<> that actually creates an nvp for archives who uses nvp
 /*! @relates NameValuePair
 	@internal */
-template <class Archive, class T> inline
-typename
-std::enable_if<!std::is_same<Archive, ::cereal::BinaryInputArchive>::value &&
-		!std::is_same<Archive, ::cereal::BinaryOutputArchive>::value,
-		NameValuePair<T>>::type
-make_nvp(const char* name, T&& value) {
+template <class Archive, class T>
+	requires (not Archive::ignores_nvp)
+inline NameValuePair<T> make_nvp(const char* name, T&& value) {
 	return {name, std::forward<T>(value)};
 }
 
@@ -262,6 +256,15 @@ namespace detail {
    archive adapters for an example of this */
 class OutputArchiveBase {
 public:
+	//! Indicates this archive is not intended for loading
+	//! This ensures compatibility with boost archive types
+	using is_loading = std::false_type;
+
+	//! Indicates this archive is intended for saving
+	//! This ensures compatibility with boost archive types
+	using is_saving = std::true_type;
+
+public:
 	OutputArchiveBase() = default;
 
 	OutputArchiveBase(OutputArchiveBase&&) noexcept {}
@@ -275,6 +278,15 @@ private:
 };
 
 class InputArchiveBase {
+public:
+	//! Indicates this archive is intended for loading
+	//! This ensures compatibility with boost archive types.
+	using is_loading = std::true_type;
+
+	//! Indicates this archive is not intended for saving
+	//! This ensures compatibility with boost archive types.
+	using is_saving = std::false_type;
+
 public:
 	InputArchiveBase() = default;
 

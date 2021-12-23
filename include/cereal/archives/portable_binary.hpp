@@ -76,7 +76,7 @@ inline void swap_bytes(std::uint8_t* data) {
 			 <a href="www.github.com/USCiLab/cereal">the project github</a>.
 
   \ingroup Archives */
-class PortableBinaryOutputArchive : public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision> {
+class PortableBinaryOutputArchive : public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
 public:
 	//! A class containing various advanced options for the PortableBinaryOutput archive
 	class Options {
@@ -115,7 +115,7 @@ public:
 		@param options The PortableBinary specific options to use.  See the Options struct
 					   for the values of default parameters */
 	explicit PortableBinaryOutputArchive(std::ostream& stream, Options const& options = Options::Default()) :
-			OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision>(this),
+			OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream),
 			itsConvertEndianness(portable_binary_detail::is_little_endian() ^ options.is_little_endian()) {
 		this->operator()(options.is_little_endian());
@@ -170,10 +170,7 @@ private:
 			 <a href="www.github.com/USCiLab/cereal">the project github</a>.
 
   \ingroup Archives */
-class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision> {
-public:
-	using ArchiveOutput = PortableBinaryOutputArchive;
-
+class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP> {
 public:
 	//! A class containing various advanced options for the PortableBinaryInput archive
 	class Options {
@@ -212,7 +209,7 @@ public:
 		@param options The PortableBinary specific options to use.  See the Options struct
 					   for the values of default parameters */
 	explicit PortableBinaryInputArchive(std::istream& stream, Options const& options = Options::Default()) :
-			InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision>(this),
+			InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream),
 			itsConvertEndianness(false) {
 		uint8_t streamLittleEndian;

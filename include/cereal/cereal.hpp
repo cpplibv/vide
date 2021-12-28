@@ -40,34 +40,14 @@
 #include <cstdint>
 #include <functional>
 
-#include <cereal/macros.hpp>
-#include <cereal/details/traits.hpp>
 #include <cereal/details/helpers.hpp>
+#include <cereal/details/traits.hpp>
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
 #include <cereal/types/base_class.hpp>
 
 
 namespace cereal {
-// ######################################################################
-//! Creates a name value pair
-/*! @relates NameValuePair
-	@ingroup Utility */
-template <class T> inline
-NameValuePair<T> make_nvp(std::string const& name, T&& value) {
-	return {name.c_str(), std::forward<T>(value)};
-}
-
-//! Creates a name value pair
-/*! @relates NameValuePair
-	@ingroup Utility */
-template <class T> inline
-NameValuePair<T> make_nvp(const char* name, T&& value) {
-	return {name, std::forward<T>(value)};
-}
-
-//! Creates a name value pair for the variable T with the same name as the variable
-/*! @relates NameValuePair
-	@ingroup Utility */
-#define CEREAL_NVP(T) ::cereal::make_nvp(#T, T)
 
 // ######################################################################
 //! Convenience function to create binary data for both const and non const pointers
@@ -176,12 +156,12 @@ void epilogue(Archive& /* archive */, T const& /* data */) {}
 	  in cereal/details/traits.hpp.
 	@ingroup Internal */
 enum Flags {
-	AllowEmptyClassElision = 1 << 0,
-	IgnoreNVP = 1 << 1,
-	//	____ = 1 << 2,
-	//	____ = 1 << 3,
-	//	____ = 1 << 4,
-	//	____ = 1 << 5,
+	AllowEmptyClassElision = 1u << 0u,
+	IgnoreNVP = 1u << 1u,
+	//	____ = 1u << 2u,
+	//	____ = 1u << 3u,
+	//	____ = 1u << 4u,
+	//	____ = 1u << 5u,
 };
 
 // ######################################################################
@@ -297,7 +277,7 @@ enum Flags {
 template <class ArchiveType, std::uint32_t Flags = 0>
 class OutputArchive : public detail::OutputArchiveBase {
 public:
-	static constexpr bool ignores_nvp = Flags & cereal::IgnoreNVP;
+	static constexpr bool ignores_nvp = (Flags & cereal::IgnoreNVP) != 0;
 
 public:
 	//! Construct the output archive
@@ -382,7 +362,7 @@ public:
 		@internal
 		@param name The name to associate with a polymorphic type
 		@return A key that uniquely identifies the polymorphic type name */
-	inline std::uint32_t registerPolymorphicType(char const* name) {
+	inline std::uint32_t registerPolymorphicType(const char* name) {
 		auto id = itsPolymorphicTypeMap.find(name);
 		if (id == itsPolymorphicTypeMap.end()) {
 			auto polyId = itsCurrentPolymorphicTypeId++;
@@ -616,7 +596,7 @@ private:
 	std::uint32_t itsCurrentPointerId;
 
 	//! Maps from polymorphic type name strings to ids
-	std::unordered_map<char const*, std::uint32_t> itsPolymorphicTypeMap;
+	std::unordered_map<const char*, std::uint32_t> itsPolymorphicTypeMap;
 
 	//! The id to be given to the next polymorphic type name
 	std::uint32_t itsCurrentPolymorphicTypeId;
@@ -645,7 +625,7 @@ private:
 template <class ArchiveType, std::uint32_t Flags = 0>
 class InputArchive : public detail::InputArchiveBase {
 public:
-	static constexpr bool ignores_nvp = Flags & cereal::IgnoreNVP;
+	static constexpr bool ignores_nvp = (Flags & cereal::IgnoreNVP) != 0;
 
 public:
 	//! Construct the output archive

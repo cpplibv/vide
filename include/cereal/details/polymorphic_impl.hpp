@@ -521,7 +521,7 @@ template <class Archive, class T> struct OutputBindingCreator {
 	//! Writes appropriate metadata to the archive for this polymorphic type
 	static void writeMetadata(Archive& ar) {
 		// Register the polymorphic type name with the archive, and get the id
-		char const* name = binding_name<T>::name();
+		const char* name = binding_name<T>::name();
 		std::uint32_t id = ar.registerPolymorphicType(name);
 
 		// Serialize the id

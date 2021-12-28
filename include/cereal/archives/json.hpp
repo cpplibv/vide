@@ -259,7 +259,7 @@ public:
 	void saveValue(std::string const& s) { itsWriter.String(s.c_str(), static_cast<CEREAL_RAPIDJSON_NAMESPACE::SizeType>( s.size())); }
 
 	//! Saves a const char * to the current node
-	void saveValue(char const* s) { itsWriter.String(s); }
+	void saveValue(const char* s) { itsWriter.String(s); }
 
 	//! Saves a nullptr to the current node
 	void saveValue(std::nullptr_t) { itsWriter.Null(); }
@@ -370,7 +370,7 @@ public:
 private:
 	WriteStream itsWriteStream;          //!< Rapidjson write stream
 	JSONWriter itsWriter;                //!< Rapidjson writer
-	char const* itsNextName;            //!< The next name
+	const char* itsNextName;            //!< The next name
 	std::stack<uint32_t> itsNameCounter; //!< Counter for creating unique names for unnamed nodes
 	std::stack<NodeType> itsNodeStack;
 }; // JSONOutputArchive

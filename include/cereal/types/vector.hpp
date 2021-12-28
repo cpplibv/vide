@@ -27,86 +27,77 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TYPES_VECTOR_HPP_
-#define CEREAL_TYPES_VECTOR_HPP_
+#pragma once
 
-#include <cereal/cereal.hpp>
 #include <vector>
 
-namespace cereal
-{
-  //! Serialization for std::vectors of arithmetic (but not bool) using binary serialization, if supported
-  template <class Archive, class T, class A> inline
-  typename std::enable_if<traits::is_output_serializable<BinaryData<T>, Archive>::value
-                          && std::is_arithmetic<T>::value && !std::is_same<T, bool>::value, void>::type
-  CEREAL_SAVE_FUNCTION_NAME( Archive & ar, std::vector<T, A> const & vector )
-  {
-    ar( make_size_tag( static_cast<size_type>(vector.size()) ) ); // number of elements
-    ar( binary_data( vector.data(), vector.size() * sizeof(T) ) );
-  }
+#include <cereal/binary_data.hpp>
+#include <cereal/macros.hpp>
+#include <cereal/size_tag.hpp>
 
-  //! Serialization for std::vectors of arithmetic (but not bool) using binary serialization, if supported
-  template <class Archive, class T, class A> inline
-  typename std::enable_if<traits::is_input_serializable<BinaryData<T>, Archive>::value
-                          && std::is_arithmetic<T>::value && !std::is_same<T, bool>::value, void>::type
-  CEREAL_LOAD_FUNCTION_NAME( Archive & ar, std::vector<T, A> & vector )
-  {
-    size_type vectorSize;
-    ar( make_size_tag( vectorSize ) );
 
-    vector.resize( static_cast<std::size_t>( vectorSize ) );
-    ar( binary_data( vector.data(), static_cast<std::size_t>( vectorSize ) * sizeof(T) ) );
-  }
+namespace cereal {
 
-  //! Serialization for non-arithmetic vector types
-  template <class Archive, class T, class A> inline
-  typename std::enable_if<(!traits::is_output_serializable<BinaryData<T>, Archive>::value
-                          || !std::is_arithmetic<T>::value) && !std::is_same<T, bool>::value, void>::type
-  CEREAL_SAVE_FUNCTION_NAME( Archive & ar, std::vector<T, A> const & vector )
-  {
-    ar( make_size_tag( static_cast<size_type>(vector.size()) ) ); // number of elements
-    for(auto && v : vector)
-      ar( v );
-  }
+// -------------------------------------------------------------------------------------------------
 
-  //! Serialization for non-arithmetic vector types
-  template <class Archive, class T, class A> inline
-  typename std::enable_if<(!traits::is_input_serializable<BinaryData<T>, Archive>::value
-                          || !std::is_arithmetic<T>::value) && !std::is_same<T, bool>::value, void>::type
-  CEREAL_LOAD_FUNCTION_NAME( Archive & ar, std::vector<T, A> & vector )
-  {
-    size_type size;
-    ar( make_size_tag( size ) );
+//! Serialization for non-arithmetic vector types
+template <class Archive, class T, class A>
+inline void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, const std::vector<T, A>& vector) {
+	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
+	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
+	constexpr bool serialize_as_binary = binary_serializable && Archive::template could_serialize<BinaryData<T>>;
 
-    vector.resize( static_cast<std::size_t>( size ) );
-    for(auto && v : vector)
-      ar( v );
-  }
+	ar(make_size_tag(static_cast<size_type>(vector.size()))); // number of elements
 
-  //! Serialization for bool vector types
-  template <class Archive, class A> inline
-  void CEREAL_SAVE_FUNCTION_NAME( Archive & ar, std::vector<bool, A> const & vector )
-  {
-    ar( make_size_tag( static_cast<size_type>(vector.size()) ) ); // number of elements
-    for(const auto v : vector)
-      ar( static_cast<bool>(v) );
-  }
+	if constexpr (serialize_as_binary) {
+		ar(binary_data(vector.data(), vector.size() * sizeof(T)));
+	} else {
+		for (const auto& v : vector)
+			ar(v);
+	}
+}
 
-  //! Serialization for bool vector types
-  template <class Archive, class A> inline
-  void CEREAL_LOAD_FUNCTION_NAME( Archive & ar, std::vector<bool, A> & vector )
-  {
-    size_type size;
-    ar( make_size_tag( size ) );
+//! Serialization for non-arithmetic vector types
+template <class Archive, class T, class A>
+inline void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::vector<T, A>& vector) {
+	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
+	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
+	constexpr bool serialize_as_binary = binary_serializable && Archive::template could_serialize<BinaryData<T>>;
 
-    vector.resize( static_cast<std::size_t>( size ) );
-    for(auto v : vector)
-    {
-      bool b;
-      ar( b );
-      v = b;
-    }
-  }
+	size_type size;
+	ar(make_size_tag(size));
+	vector.resize(static_cast<std::size_t>(size));
+
+	if constexpr (serialize_as_binary) {
+		ar(binary_data(vector.data(), vector.size() * sizeof(T)));
+	} else {
+		for (auto& v : vector)
+			ar(v);
+	}
+}
+
+//! Serialization for bool vector types
+template <class Archive, class A> inline
+void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::vector<bool, A> const& vector) {
+	ar(make_size_tag(static_cast<size_type>(vector.size()))); // number of elements
+	for (const auto v : vector)
+		ar(static_cast<bool>(v));
+}
+
+//! Serialization for bool vector types
+template <class Archive, class A> inline
+void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::vector<bool, A>& vector) {
+	size_type size;
+	ar(make_size_tag(size));
+
+	vector.resize(static_cast<std::size_t>( size ));
+	for (auto v : vector) {
+		bool b;
+		ar(b);
+		v = b;
+	}
+}
+
+// -------------------------------------------------------------------------------------------------
+
 } // namespace cereal
-
-#endif // CEREAL_TYPES_VECTOR_HPP_

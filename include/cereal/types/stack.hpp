@@ -30,8 +30,10 @@
 #ifndef CEREAL_TYPES_STACK_HPP_
 #define CEREAL_TYPES_STACK_HPP_
 
-#include <cereal/cereal.hpp>
 #include <stack>
+
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
 
 // The default container for stack is deque, so let's include that too
 #include <cereal/types/deque.hpp>

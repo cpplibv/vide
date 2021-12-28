@@ -43,6 +43,9 @@
 
 #pragma once
 
+#include <cstdint>
+
+
 #ifndef CEREAL_THREAD_SAFE
 //! Whether cereal should be compiled for a threaded environment
 /*! This macro causes cereal to use mutexes to control access to
@@ -68,6 +71,14 @@
     size type (e.g. uint32_t). */
 #define CEREAL_SIZE_TYPE uint64_t
 #endif // CEREAL_SIZE_TYPE
+
+//! The size type used by cereal
+/*! To ensure compatability between 32, 64, etc bit machines, we need to use
+	a fixed size type instead of size_t, which may vary from machine to
+	machine.
+
+	The default value for CEREAL_SIZE_TYPE is specified in cereal/macros.hpp */
+using size_type = CEREAL_SIZE_TYPE;
 
 // =================================================================================================
 

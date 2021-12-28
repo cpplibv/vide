@@ -32,6 +32,10 @@
 
 #include <chrono>
 
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+
+
 namespace cereal
 {
   //! Saving std::chrono::duration

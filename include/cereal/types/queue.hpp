@@ -30,13 +30,16 @@
 #ifndef CEREAL_TYPES_QUEUE_HPP_
 #define CEREAL_TYPES_QUEUE_HPP_
 
-#include <cereal/details/helpers.hpp>
 #include <queue>
+
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
 
 // The default container for queue is deque, so let's include that too
 #include <cereal/types/deque.hpp>
 // The default comparator for queue is less
 #include <cereal/types/functional.hpp>
+
 
 namespace cereal
 {

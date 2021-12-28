@@ -30,8 +30,11 @@
 #ifndef CEREAL_TYPES_STD_OPTIONAL_
 #define CEREAL_TYPES_STD_OPTIONAL_
 
-#include <cereal/cereal.hpp>
 #include <optional>
+
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+
 
 namespace cereal {
   //! Saving for std::optional

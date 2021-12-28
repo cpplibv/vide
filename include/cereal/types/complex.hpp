@@ -32,6 +32,9 @@
 
 #include <complex>
 
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+
 namespace cereal
 {
   //! Serializing (save) for std::complex

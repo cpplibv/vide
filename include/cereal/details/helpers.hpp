@@ -37,8 +37,9 @@
 #include <unordered_map>
 #include <stdexcept>
 
-#include <cereal/macros.hpp>
 #include <cereal/details/static_object.hpp>
+#include <cereal/macros.hpp>
+#include <cereal/map_item.hpp>
 
 
 namespace cereal {
@@ -51,14 +52,6 @@ struct Exception : public std::runtime_error {
 	explicit Exception(const char* what_) : std::runtime_error(what_) {}
 };
 
-// ######################################################################
-//! The size type used by cereal
-/*! To ensure compatability between 32, 64, etc bit machines, we need to use
-	a fixed size type instead of size_t, which may vary from machine to
-	machine.
-
-	The default value for CEREAL_SIZE_TYPE is specified in cereal/macros.hpp */
-using size_type = CEREAL_SIZE_TYPE;
 
 // forward decls
 class BinaryOutputArchive;
@@ -70,27 +63,6 @@ class BinaryInputArchive;
 namespace detail {
 struct DeferredDataCore {}; //!< Traits struct for DeferredData
 }
-
-// ######################################################################
-//! A wrapper around data that can be serialized in a binary fashion
-/*! This class is used to demarcate data that can safely be serialized
-	as a binary chunk of data.  Individual archives can then choose how
-	best represent this during serialization.
-
-	@internal */
-template <class T>
-struct BinaryData {
-	//! Internally store the pointer as a void *, keeping const if created with
-	//! a const pointer
-	using PT = typename std::conditional<std::is_const<typename std::remove_pointer<typename std::remove_reference<T>::type>::type>::value,
-			const void*,
-			void*>::type;
-
-	BinaryData(T&& d, uint64_t s) : data(std::forward<T>(d)), size(s) {}
-
-	PT data;       //!< pointer to beginning of data
-	uint64_t size; //!< size in bytes
-};
 
 // ######################################################################
 //! A wrapper around data that should be serialized after all non-deferred data
@@ -187,90 +159,6 @@ struct adl_tag;
 // used during saving pointers
 static const uint32_t msb_32bit = 0x80000000;
 static const int32_t msb2_32bit = 0x40000000;
-}
-
-// ######################################################################
-//! A wrapper around size metadata
-/*! This class provides a way for archives to have more flexibility over how
-	they choose to serialize size metadata for containers.  For some archive
-	types, the size may be implicitly encoded in the output (e.g. JSON) and
-	not need an explicit entry.  Specializing serialize or load/save for
-	your archive and SizeTags allows you to choose what happens.
-
-	@internal */
-template <class T>
-class SizeTag {
-private:
-	// Store a reference if passed an lvalue reference, otherwise
-	// make a copy of the data
-	using Type = typename std::conditional<std::is_lvalue_reference<T>::value,
-			T,
-			typename std::decay<T>::type>::type;
-
-	SizeTag& operator=(SizeTag const&) = delete;
-
-public:
-	SizeTag(T&& sz) : size(std::forward<T>(sz)) {}
-
-	Type size;
-};
-
-// ######################################################################
-//! A wrapper around a key and value for serializing data into maps.
-/*! This class just provides a grouping of keys and values into a struct for
-	human readable archives. For example, XML archives will use this wrapper
-	to write maps like so:
-
-	@code{.xml}
-	<mymap>
-	  <item0>
-		<key>MyFirstKey</key>
-		<value>MyFirstValue</value>
-	  </item0>
-	  <item1>
-		<key>MySecondKey</key>
-		<value>MySecondValue</value>
-	  </item1>
-	</mymap>
-	@endcode
-
-	\sa make_map_item
-	@internal */
-template <class Key, class Value>
-struct MapItem {
-	using KeyType = typename std::conditional<
-			std::is_lvalue_reference<Key>::value,
-			Key,
-			typename std::decay<Key>::type>::type;
-
-	using ValueType = typename std::conditional<
-			std::is_lvalue_reference<Value>::value,
-			Value,
-			typename std::decay<Value>::type>::type;
-
-	//! Construct a MapItem from a key and a value
-	/*! @internal */
-	MapItem(Key&& key_, Value&& value_) : key(std::forward<Key>(key_)), value(std::forward<Value>(value_)) {}
-
-	MapItem& operator=(MapItem const&) = delete;
-
-	KeyType key;
-	ValueType value;
-
-	//! Serialize the MapItem with the NVPs "key" and "value"
-	template <class Archive> inline
-	void CEREAL_SERIALIZE_FUNCTION_NAME(Archive& archive) {
-		archive(make_nvp<Archive>("key", key),
-				make_nvp<Archive>("value", value));
-	}
-};
-
-//! Create a MapItem so that human readable archives will group keys and values together
-/*! @internal
-	@relates MapItem */
-template <class KeyType, class ValueType> inline
-MapItem<KeyType, ValueType> make_map_item(KeyType&& key, ValueType&& value) {
-	return {std::forward<KeyType>(key), std::forward<ValueType>(value)};
 }
 
 namespace detail {

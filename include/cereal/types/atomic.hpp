@@ -30,8 +30,11 @@
 #ifndef CEREAL_TYPES_ATOMIC_HPP_
 #define CEREAL_TYPES_ATOMIC_HPP_
 
-#include <cereal/cereal.hpp>
 #include <atomic>
+
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+
 
 namespace cereal
 {

@@ -30,8 +30,11 @@
 #ifndef CEREAL_TYPES_LIST_HPP_
 #define CEREAL_TYPES_LIST_HPP_
 
-#include <cereal/cereal.hpp>
 #include <list>
+
+#include <cereal/macros.hpp>
+#include <cereal/size_tag.hpp>
+
 
 namespace cereal
 {

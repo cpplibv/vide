@@ -31,7 +31,11 @@
 #ifndef CEREAL_CONCEPTS_PAIR_ASSOCIATIVE_CONTAINER_HPP_
 #define CEREAL_CONCEPTS_PAIR_ASSOCIATIVE_CONTAINER_HPP_
 
-#include <cereal/cereal.hpp>
+#include <cereal/macros.hpp>
+#include <cereal/map_item.hpp>
+#include <cereal/nvp.hpp>
+#include <cereal/size_tag.hpp>
+
 
 namespace cereal
 {

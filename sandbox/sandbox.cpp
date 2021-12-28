@@ -30,17 +30,17 @@
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/archives/xml.hpp>
 
+#include <cereal/types/array.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cereal/types/bitset.hpp>
+#include <cereal/types/chrono.hpp>
+#include <cereal/types/complex.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/polymorphic.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/utility.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/bitset.hpp>
-#include <cereal/types/polymorphic.hpp>
 
 //#include <cxxabi.h>
 #include <sstream>
@@ -205,6 +205,8 @@ struct Everything
   Test2 t2;
   Test3 t3;
   test4::Test4 t4;
+  std::chrono::system_clock::time_point time_point;
+  std::chrono::system_clock::duration time_dur;
   std::string s;
 
   template<class Archive>
@@ -216,6 +218,8 @@ struct Everything
     ar(CEREAL_NVP(t2));
     ar(CEREAL_NVP(t3));
     ar(CEREAL_NVP(t4));
+    ar(CEREAL_NVP(time_point));
+    ar(CEREAL_NVP(time_dur));
     ar(CEREAL_NVP(s));
   }
 
@@ -228,6 +232,8 @@ struct Everything
       t2.a == o.t2.a &&
       t3.a == o.t3.a &&
       t4.a == o.t4.a &&
+	  time_point == o.time_point &&
+	  time_dur == o.time_dur &&
       s == o.s;
   }
 };
@@ -477,6 +483,8 @@ int main()
   e_out.t2 = {2};
   e_out.t3 = {3};
   e_out.t4 = {4};
+  e_out.time_point = std::chrono::system_clock::now();
+  e_out.time_dur = std::chrono::seconds{3};
   e_out.s = "Hello, World!";
   std::unique_ptr<NoDefaultCtor> nodefault( new NoDefaultCtor( 3 ) );
 

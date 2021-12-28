@@ -27,35 +27,38 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TYPES_STRING_HPP_
-#define CEREAL_TYPES_STRING_HPP_
 
-#include <cereal/cereal.hpp>
+#pragma once
+
 #include <string>
 
-namespace cereal
-{
-  //! Serialization for basic_string types, if binary data is supported
-  template<class Archive, class CharT, class Traits, class Alloc> inline
-  typename std::enable_if<traits::is_output_serializable<BinaryData<CharT>, Archive>::value, void>::type
-  CEREAL_SAVE_FUNCTION_NAME(Archive & ar, std::basic_string<CharT, Traits, Alloc> const & str)
-  {
-    // Save number of chars + the data
-    ar( make_size_tag( static_cast<size_type>(str.size()) ) );
-    ar( binary_data( str.data(), str.size() * sizeof(CharT) ) );
-  }
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+#include <cereal/size_tag.hpp>
+#include <cereal/binary_data.hpp>
 
-  //! Serialization for basic_string types, if binary data is supported
-  template<class Archive, class CharT, class Traits, class Alloc> inline
-  typename std::enable_if<traits::is_input_serializable<BinaryData<CharT>, Archive>::value, void>::type
-  CEREAL_LOAD_FUNCTION_NAME(Archive & ar, std::basic_string<CharT, Traits, Alloc> & str)
-  {
-    size_type size;
-    ar( make_size_tag( size ) );
-    str.resize(static_cast<std::size_t>(size));
-    ar( binary_data( const_cast<CharT *>( str.data() ), static_cast<std::size_t>(size) * sizeof(CharT) ) );
-  }
+
+namespace cereal {
+
+// -------------------------------------------------------------------------------------------------
+
+//! Serialization for basic_string types, if binary data is supported
+template <class Archive, class CharT, class Traits, class Alloc>
+inline void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::basic_string<CharT, Traits, Alloc> const& str) {
+	// Save number of chars + the data
+	ar(make_size_tag(static_cast<size_type>(str.size())));
+	ar(binary_data(str.data(), str.size() * sizeof(CharT)));
+}
+
+//! Serialization for basic_string types, if binary data is supported
+template <class Archive, class CharT, class Traits, class Alloc>
+inline void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
+	size_type size;
+	ar(make_size_tag(size));
+	str.resize(static_cast<std::size_t>(size));
+	ar(binary_data(const_cast<CharT*>( str.data()), static_cast<std::size_t>(size) * sizeof(CharT)));
+}
+
+// -------------------------------------------------------------------------------------------------
+
 } // namespace cereal
-
-#endif // CEREAL_TYPES_STRING_HPP_
-

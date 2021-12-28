@@ -30,9 +30,12 @@
 #ifndef CEREAL_TYPES_STD_VARIANT_HPP_
 #define CEREAL_TYPES_STD_VARIANT_HPP_
 
-#include <cereal/cereal.hpp>
 #include <variant>
 #include <cstdint>
+
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+#include <cereal/size_tag.hpp>
 
 
 namespace cereal {
@@ -52,7 +55,7 @@ inline void load_std_variant(std::size_t index, Archive& ar, std::variant<Types.
 } // namespace detail ------------------------------------------------------------------------------
 
 template <typename Archive, typename... Types>
-inline void save(Archive& ar, const std::variant<Types...>& variant) {
+inline void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, const std::variant<Types...>& variant) {
 	static_assert(sizeof...(Types) < 256, "Variant serialization only supported up to 255 type.");
 
 	const auto index = static_cast<uint8_t>(variant.index());
@@ -63,7 +66,7 @@ inline void save(Archive& ar, const std::variant<Types...>& variant) {
 }
 
 template <typename Archive, typename... Types>
-inline void load(Archive& ar, std::variant<Types...>& variant) {
+inline void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::variant<Types...>& variant) {
 	static_assert(sizeof...(Types) < 256, "Variant serialization only supported up to 255 type.");
 
 	uint8_t index;

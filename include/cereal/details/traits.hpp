@@ -35,6 +35,7 @@
 
 #include <cereal/macros.hpp>
 #include <cereal/access.hpp>
+#include <cereal/construct.hpp>
 
 
 namespace cereal {

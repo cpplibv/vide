@@ -2,6 +2,7 @@
 #include <derived.hpp>
 
 #include <cereal/access.hpp>
+#include <cereal/construct.hpp>
 #include <cereal/details/traits.hpp>
 #include <cereal/details/helpers.hpp>
 #include <cereal/types/base_class.hpp>

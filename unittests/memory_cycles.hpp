@@ -57,50 +57,6 @@ std::ostream& operator<<(std::ostream& os, MemoryCycle const & s)
   return os;
 }
 
-class MemoryCycleLoadAndConstruct
-{
-  public:
-    MemoryCycleLoadAndConstruct( int v ) :
-      value( v )
-    { }
-
-    MemoryCycleLoadAndConstruct( int v,
-        std::weak_ptr<MemoryCycleLoadAndConstruct> p ) :
-      value( v ),
-      ptr( p )
-    { }
-
-    bool operator==( MemoryCycleLoadAndConstruct const & other ) const
-    {
-      return value == other.value && ptr.lock() == other.ptr.lock();
-    }
-
-    template <class Archive>
-    void serialize( Archive & ar )
-    {
-      ar( value, ptr );
-    }
-
-    template <class Archive>
-    static void load_and_construct( Archive & ar, cereal::construct<MemoryCycleLoadAndConstruct> & construct )
-    {
-      int val;
-      std::weak_ptr<MemoryCycleLoadAndConstruct> p;
-
-      ar( val, p );
-      construct( val, p );
-    }
-
-    int value;
-    std::weak_ptr<MemoryCycleLoadAndConstruct> ptr;
-};
-
-std::ostream& operator<<(std::ostream& os, MemoryCycleLoadAndConstruct const & s)
-{
-  os << "[value: " << s.value << " ptr: " << s.ptr.lock() << "]";
-  return os;
-}
-
 template <class IArchive, class OArchive> inline
 void test_memory_cycles()
 {
@@ -111,32 +67,25 @@ void test_memory_cycles()
   {
     auto o_ptr1 = std::make_shared<MemoryCycle>( random_value<int>(gen) );
     o_ptr1->ptr = o_ptr1;
-    auto o_ptr2 = std::make_shared<MemoryCycleLoadAndConstruct>( random_value<int>(gen) );
-    o_ptr2->ptr = o_ptr2;
 
     std::ostringstream os;
     {
       OArchive oar(os);
 
       oar( o_ptr1 );
-      oar( o_ptr2 );
     }
 
     decltype(o_ptr1) i_ptr1;
-    decltype(o_ptr2) i_ptr2;
 
     std::istringstream is(os.str());
     {
       IArchive iar(is);
 
       iar( i_ptr1 );
-      iar( i_ptr2 );
     }
 
     CHECK_EQ( o_ptr1->value, i_ptr1->value );
     CHECK_EQ( i_ptr1.get(), i_ptr1->ptr.lock().get() );
-    CHECK_EQ( o_ptr2->value, i_ptr2->value );
-    CHECK_EQ( i_ptr2.get(), i_ptr2->ptr.lock().get() );
   }
 }
 #endif // CEREAL_TEST_MEMORY_CYCLES_H_

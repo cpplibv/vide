@@ -41,9 +41,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include <cereal/binary_data.hpp>
+#include <cereal/details/bits.hpp>
 #include <cereal/details/helpers.hpp>
 #include <cereal/details/traits.hpp>
+#include <cereal/binary_data.hpp>
 #include <cereal/macros.hpp>
 #include <cereal/nvp.hpp>
 #include <cereal/size_tag.hpp>
@@ -841,9 +842,6 @@ private:
 
 		return unserializable_type_tag{};
 	}
-
-	//! Befriend for versioning in load_and_construct
-	template <class A, class B, bool C, bool D, bool E, bool F> friend struct detail::Construct;
 
 	//! Registers a class version with the archive and serializes it if necessary
 	/*! If this is the first time this class has been serialized, we will record its

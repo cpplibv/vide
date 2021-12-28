@@ -38,11 +38,6 @@
 #include <cereal/details/traits.hpp>
 #include <cereal/details/polymorphic_impl.hpp>
 
-#if defined(_MSC_VER) && _MSC_VER < 1916
-#define CEREAL_STATIC_CONSTEXPR static
-#else
-#define CEREAL_STATIC_CONSTEXPR static constexpr
-#endif
 
 //! Registers a derived polymorphic type with cereal
 /*! Polymorphic types must be registered before smart
@@ -85,7 +80,7 @@
   template <>                                                            \
   struct binding_name<__VA_ARGS__>                                       \
   {                                                                      \
-    CEREAL_STATIC_CONSTEXPR char const * name() { return #__VA_ARGS__; } \
+    static constexpr char const * name() { return #__VA_ARGS__; } \
   };                                                                     \
   } } /* end namespaces */                                               \
   CEREAL_BIND_TO_ARCHIVES(__VA_ARGS__)
@@ -101,7 +96,7 @@
   namespace detail {                                                \
   template <>                                                       \
   struct binding_name<T>                                            \
-  { CEREAL_STATIC_CONSTEXPR char const * name() { return Name; } }; \
+  { static constexpr char const * name() { return Name; } }; \
   } } /* end namespaces */                                          \
   CEREAL_BIND_TO_ARCHIVES(T)
 
@@ -231,7 +226,8 @@ namespace cereal
         @internal */
     template<class Archive, class T> inline
     typename std::enable_if<(traits::is_default_constructible<T>::value
-                             || traits::has_load_and_construct<T, Archive>::value)
+//                             || traits::has_load_and_construct<T, Archive>::value
+                             )
                              && !std::is_abstract<T>::value, bool>::type
     serialize_wrapper(Archive & ar, std::shared_ptr<T> & ptr, std::uint32_t const nameid)
     {
@@ -249,7 +245,8 @@ namespace cereal
         @internal */
     template<class Archive, class T, class D> inline
     typename std::enable_if<(traits::is_default_constructible<T>::value
-                             || traits::has_load_and_construct<T, Archive>::value)
+//                             || traits::has_load_and_construct<T, Archive>::value
+							 )
                              && !std::is_abstract<T>::value, bool>::type
     serialize_wrapper(Archive & ar, std::unique_ptr<T, D> & ptr, std::uint32_t const nameid)
     {
@@ -269,7 +266,8 @@ namespace cereal
         @internal */
     template<class Archive, class T> inline
     typename std::enable_if<(!traits::is_default_constructible<T>::value
-                             && !traits::has_load_and_construct<T, Archive>::value)
+//                             && !traits::has_load_and_construct<T, Archive>::value
+							 )
                              || std::is_abstract<T>::value, bool>::type
     serialize_wrapper(Archive &, std::shared_ptr<T> &, std::uint32_t const nameid)
     {
@@ -286,7 +284,8 @@ namespace cereal
         @internal */
     template<class Archive, class T, class D> inline
      typename std::enable_if<(!traits::is_default_constructible<T>::value
-                               && !traits::has_load_and_construct<T, Archive>::value)
+//                               && !traits::has_load_and_construct<T, Archive>::value
+							   )
                                || std::is_abstract<T>::value, bool>::type
     serialize_wrapper(Archive &, std::unique_ptr<T, D> &, std::uint32_t const nameid)
     {

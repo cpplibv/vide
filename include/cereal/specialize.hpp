@@ -31,8 +31,6 @@
 #define CEREAL_SPECIALIZE_HPP_
 
 namespace cereal {
-// Forward declaration of access class that users can become friends with
-class access;
 
 // ######################################################################
 //! A specifier used in conjunction with cereal::specialize to disambiguate

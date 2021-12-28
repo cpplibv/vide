@@ -271,16 +271,6 @@ public:
   {
     ar( y );
   }
-
-  template <class Archive>
-  static void load_and_construct( Archive & ar, cereal::construct<NoDefaultCtor> & construct )
-  {
-    int yy;
-    ar( yy );
-    construct( yy, true );
-    construct->z = 33;
-    construct.ptr()->z = 33;
-  }
 };
 
 //namespace cereal

@@ -187,7 +187,16 @@ struct PolyLA : std::enable_shared_from_this<PolyLA>
 
 struct PolyDerivedLA : public PolyLA
 {
-  PolyDerivedLA( int xx ) : x( xx ) { }
+	PolyDerivedLA() = default;
+	//	template <class Archive>
+	//	static void load_and_construct( Archive & ar, cereal::construct<PolyDerivedLA> & construct )
+	//	{
+	//		int xx;
+	//		ar( xx );
+	//		construct( xx );
+	//		ar( construct->vec );
+	//	}
+	PolyDerivedLA( int xx ) : x( xx ) { }
   virtual ~PolyDerivedLA() {}
 
   int x;
@@ -198,15 +207,6 @@ struct PolyDerivedLA : public PolyLA
   {
     ar( x );
     ar( vec );
-  }
-
-  template <class Archive>
-  static void load_and_construct( Archive & ar, cereal::construct<PolyDerivedLA> & construct )
-  {
-    int xx;
-    ar( xx );
-    construct( xx );
-    ar( construct->vec );
   }
 
   void foo() {}

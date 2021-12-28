@@ -1,7 +1,7 @@
 VaderY - Fork
 ==========================================
 
-This fork is not compatible with the original
+This fork is not compatible with the upstream!
 
 - Remove some legacy compiler support
 - Bump required versions to C++23, GCC 11.2, CMake 3.20
@@ -18,7 +18,7 @@ This fork is not compatible with the original
 - Move `cereal::access` into its own header and add access_fwd.hpp header for forward declaration only
 - Move `BinaryData`, `SizeTag`, `MapItem` and `constrcut` into their own header
 - Rework type serializers to only include what is required
- 
+- Remove `load_and_construct`
 
 Planned:
 - Add safe/unsafe data serialization support

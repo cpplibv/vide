@@ -2,7 +2,6 @@
 #include <derived.hpp>
 
 #include <cereal/access.hpp>
-#include <cereal/construct.hpp>
 #include <cereal/details/traits.hpp>
 #include <cereal/details/helpers.hpp>
 #include <cereal/types/base_class.hpp>
@@ -65,10 +64,6 @@ struct Test {
 	}
 
 	template <class Archive>
-	static void load_and_construct(Archive&, cereal::construct<Test>&) {
-	}
-
-	template <class Archive>
 	int save_minimal(const Archive&) const {
 		return 0;
 	}
@@ -98,16 +93,6 @@ int save_minimal(const Archive&, const Test&) { return 0; }
 
 template <class Archive>
 int save_minimal(const Archive&, const Test&, const std::uint32_t) { return 0; }
-
-namespace cereal {
-template <>
-struct LoadAndConstruct<Test> {
-	template <class Archive>
-	static void load_and_construct(Archive&, cereal::construct<Test>& construct) {
-		construct();
-	}
-};
-}
 
 struct A {
 	virtual void foo() = 0;
@@ -154,11 +139,6 @@ public:
 int main() {
 	typedef Test T;
 	std::cout << std::boolalpha;
-
-	// Test Load and Construct internal/external
-	std::cout << "\tload_and_construct" << std::endl;
-	std::cout << cereal::traits::has_member_load_and_construct<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_load_and_construct<T, Archive>::value << std::endl;
 
 	// serialize
 	std::cout << "\tserialize" << std::endl;
@@ -220,7 +200,6 @@ int main() {
 	// array size
 	std::cout << "\tarray size" << std::endl;
 	std::cout << typeid(A).name() << std::endl;
-	std::cout << typeid(cereal::traits::has_load_and_construct<int, bool>).name() << std::endl;
 
 	// extra testing
 	std::cout << "\textra" << std::endl;

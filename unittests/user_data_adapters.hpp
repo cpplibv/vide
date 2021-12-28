@@ -42,79 +42,80 @@ struct UserData
   std::reference_wrapper<SomeStruct> ref;
 };
 
-struct UserStruct
-{
-  UserStruct( std::int32_t i,
-              SomeStruct * pointer,
-              SomeStruct & reference ) :
-    i32( i ),
-    p( pointer ),
-    ref( reference )
-  { }
-
-  UserStruct & operator=( UserStruct const & ) = delete;
-
-  std::int32_t i32;
-  SomeStruct const * p;
-  SomeStruct & ref;
-
-  template <class Archive>
-  void serialize( Archive & ar )
-  {
-    ar( i32 );
-  }
-
-  template <class Archive>
-  static void load_and_construct( Archive & ar, cereal::construct<UserStruct> & construct )
-  {
-    std::int32_t ii;
-    ar( ii );
-    auto & data = cereal::get_user_data<UserData>( ar );
-    construct( ii, data.p, data.ref.get() );
-  }
-};
+//struct UserStruct
+//{
+//	UserStruct() = default;
+//	//  template <class Archive>
+//	//  static void load_and_construct( Archive & ar, cereal::construct<UserStruct> & construct )
+//	//  {
+//	//    std::int32_t ii;
+//	//    ar( ii );
+//	//    auto & data = cereal::get_user_data<UserData>( ar );
+//	//    construct( ii, data.p, data.ref.get() );
+//	//  }
+//
+//	UserStruct( std::int32_t i,
+//              SomeStruct * pointer,
+//              SomeStruct & reference ) :
+//    i32( i ),
+//    p( pointer ),
+//    ref( reference )
+//  { }
+//
+//  UserStruct & operator=( UserStruct const & ) = delete;
+//
+//  std::int32_t i32;
+//  SomeStruct const * p;
+//  SomeStruct & ref;
+//
+//  template <class Archive>
+//  void serialize( Archive & ar )
+//  {
+//    ar( i32 );
+//  }
+//};
 
 template <class IArchive, class OArchive> inline
 void test_user_data_adapters()
 {
-  std::random_device rd;
-  std::mt19937 gen(rd());
-
-  auto rng = [&](){ return random_value<int>(gen); };
-
-  for(int ii=0; ii<100; ++ii)
-  {
-    SomeStruct ss;
-    std::unique_ptr<UserStruct> o_ptr( new UserStruct( rng(), &ss, ss ) );
-
-    std::ostringstream os;
-    {
-      OArchive oar(os);
-
-      oar(o_ptr);
-    }
-
-    decltype( o_ptr  ) i_ptr;
-
-    std::istringstream is(os.str());
-    {
-      UserData ud(&ss, ss);
-      cereal::UserDataAdapter<UserData, IArchive> iar(ud, is);
-
-      iar(i_ptr);
-    }
-
-    CHECK_EQ( i_ptr->p, o_ptr->p );
-    CHECK_EQ( std::addressof(i_ptr->ref), std::addressof(o_ptr->ref) );
-    CHECK_EQ( i_ptr->i32, o_ptr->i32 );
-
-    std::istringstream bad_is(os.str());
-    {
-      IArchive iar(bad_is);
-
-      CHECK_THROWS_AS( iar(i_ptr), ::cereal::Exception );
-    }
-  }
+//  std::random_device rd;
+//  std::mt19937 gen(rd());
+//
+//  auto rng = [&](){ return random_value<int>(gen); };
+//
+//  for(int ii=0; ii<100; ++ii)
+//  {
+//    SomeStruct ss;
+////    std::unique_ptr<UserStruct> o_ptr( new UserStruct( rng(), &ss, ss ) );
+//
+//    std::ostringstream os;
+//    {
+//      OArchive oar(os);
+//
+////      oar(o_ptr);
+//    }
+//
+////    decltype( o_ptr  ) i_ptr;
+//
+//    std::istringstream is(os.str());
+//    {
+//      UserData ud(&ss, ss);
+//      cereal::UserDataAdapter<UserData, IArchive> iar(ud, is);
+//
+////      iar(i_ptr);
+//    }
+//
+////    CHECK_EQ( i_ptr->p, o_ptr->p );
+////    CHECK_EQ( std::addressof(i_ptr->ref), std::addressof(o_ptr->ref) );
+////    CHECK_EQ( i_ptr->i32, o_ptr->i32 );
+//
+//    std::istringstream bad_is(os.str());
+//    {
+//      IArchive iar(bad_is);
+//
+////      CHECK_THROWS_AS( iar(i_ptr), ::cereal::Exception );
+//    }
+//  }
 }
 
 #endif // CEREAL_TEST_USER_DATA_ADAPTERS_H_

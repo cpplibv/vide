@@ -120,20 +120,7 @@ public:
 	static T* construct() {
 		return new T();
 	}
-
-	template <class T> inline
-	static std::false_type load_and_construct(...) { return std::false_type(); }
-
-	template <class T, class Archive> inline
-	static auto load_and_construct(Archive& ar, ::cereal::construct<T>& construct) -> decltype(T::load_and_construct(ar, construct)) {
-		T::load_and_construct(ar, construct);
-	}
-
-	template <class T, class Archive> inline
-	static auto load_and_construct(Archive& ar, ::cereal::construct<T>& construct, const std::uint32_t version) -> decltype(T::load_and_construct(ar, construct, version)) {
-		T::load_and_construct(ar, construct, version);
-	}
-}; // end class access
+};
 
 // -------------------------------------------------------------------------------------------------
 

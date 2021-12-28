@@ -33,9 +33,9 @@
 #include <type_traits>
 #include <typeindex>
 
-#include <cereal/macros.hpp>
 #include <cereal/access.hpp>
-#include <cereal/construct.hpp>
+#include <cereal/macros.hpp>
+#include <cereal/specialize.hpp>
 
 
 namespace cereal {
@@ -763,74 +763,6 @@ CEREAL_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_s
 #undef CEREAL_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST
 
 // ######################################################################
-namespace detail {
-// const stripped away before reaching here, prevents errors on conversion from
-// construct<const T> to construct<T>
-template <typename T, typename A>
-struct has_member_load_and_construct_impl : std::integral_constant<bool,
-		std::is_same<decltype(access::load_and_construct<T>(std::declval<A&>(), std::declval<::cereal::construct<T>&>())), void>::value> {
-};
-
-template <typename T, typename A>
-struct has_member_versioned_load_and_construct_impl : std::integral_constant<bool,
-		std::is_same<decltype(access::load_and_construct<T>(std::declval<A&>(), std::declval<::cereal::construct<T>&>(), 0)), void>::value> {
-};
-} // namespace detail
-
-//! Member load and construct check
-template <typename T, typename A>
-struct has_member_load_and_construct :
-		detail::has_member_load_and_construct_impl<typename std::remove_const<T>::type, A> {
-};
-
-//! Member load and construct check (versioned)
-template <typename T, typename A>
-struct has_member_versioned_load_and_construct :
-		detail::has_member_versioned_load_and_construct_impl<typename std::remove_const<T>::type, A> {
-};
-
-// ######################################################################
-//! Creates a test for whether a non-member load_and_construct specialization exists
-/*! This creates a class derived from std::integral_constant that will be true if
-	the type has the proper non-member function for the given archive. */
-#define CEREAL_MAKE_HAS_NON_MEMBER_LOAD_AND_CONSTRUCT_TEST(test_name, versioned)                                            \
-    namespace detail                                                                                                            \
-    {                                                                                                                           \
-      template <class T, class A>                                                                                               \
-      struct has_non_member_##test_name##_impl                                                                                  \
-      {                                                                                                                         \
-        template <class TT, class AA>                                                                                           \
-        static auto test(int) -> decltype( LoadAndConstruct<TT>::load_and_construct(                                            \
-                                           std::declval<AA&>(), std::declval< ::cereal::construct<TT>&>() versioned ), yes());  \
-        template <class, class>                                                                                                 \
-        static no test( ... );                                                                                                  \
-        static const bool value = std::is_same<decltype( test<T, A>( 0 ) ), yes>::value;                                        \
-      };                                                                                                                        \
-    } /* end namespace detail */                                                                                                \
-    template <class T, class A>                                                                                                 \
-    struct has_non_member_##test_name :                                                                                         \
-      std::integral_constant<bool, detail::has_non_member_##test_name##_impl<typename std::remove_const<T>::type, A>::value> {};
-
-// ######################################################################
-//! Non member load and construct check
-CEREAL_MAKE_HAS_NON_MEMBER_LOAD_AND_CONSTRUCT_TEST(load_and_construct,)
-
-// ######################################################################
-//! Non member load and construct check (versioned)
-CEREAL_MAKE_HAS_NON_MEMBER_LOAD_AND_CONSTRUCT_TEST(versioned_load_and_construct, CEREAL_MAKE_VERSIONED_TEST)
-
-// ######################################################################
-//! Has either a member or non member load and construct
-template <typename T, typename A>
-struct has_load_and_construct : std::integral_constant<bool,
-		has_member_load_and_construct<T, A>::value || has_non_member_load_and_construct<T, A>::value ||
-				has_member_versioned_load_and_construct<T, A>::value || has_non_member_versioned_load_and_construct<T, A>::value> {
-};
-
-// ######################################################################
-#undef CEREAL_MAKE_HAS_NON_MEMBER_LOAD_AND_CONSTRUCT_TEST
-
-// ######################################################################
 // End of serialization existence tests
 #undef CEREAL_MAKE_VERSIONED_TEST
 
@@ -1081,34 +1013,6 @@ struct has_minimal_base_class_serialization_impl<Cast, Test, Archive, false> : s
 template <class Cast, template <class, class> class Test, class Archive>
 struct has_minimal_base_class_serialization : detail::has_minimal_base_class_serialization_impl<Cast, Test, Archive> {};
 
-
-// ######################################################################
-namespace detail {
-struct shared_from_this_wrapper {
-	template <class U>
-	static auto (check)(U const& t) -> decltype(::cereal::access::shared_from_this(t), std::true_type());
-
-	static auto (check)(...) -> decltype(std::false_type());
-
-	template <class U>
-	static auto get(U const& t) -> decltype(t.shared_from_this());
-};
-}
-
-//! Determine if T or any base class of T has inherited from std::enable_shared_from_this
-template <class T>
-struct has_shared_from_this : decltype((detail::shared_from_this_wrapper::check)(std::declval<T>())) {};
-
-//! Get the type of the base class of T which inherited from std::enable_shared_from_this
-template <class T>
-struct get_shared_from_this_base {
-private:
-	using PtrType = decltype(detail::shared_from_this_wrapper::get(std::declval<T>()));
-public:
-	//! The type of the base of T that inherited from std::enable_shared_from_this
-	using type = typename std::decay<typename PtrType::element_type>::type;
-};
-
 // ######################################################################
 //! Extracts the true type from something possibly wrapped in a cereal NoConvert
 /*! Internally cereal uses some wrapper classes to test the validity of non-member
@@ -1197,74 +1101,6 @@ struct is_text_archive : std::integral_constant<bool,
 };
 } // namespace traits
 
-// ######################################################################
-namespace detail {
-template <class T, class A,
-		bool Member = traits::has_member_load_and_construct<T, A>::value,
-		bool MemberVersioned = traits::has_member_versioned_load_and_construct<T, A>::value,
-		bool NonMember = traits::has_non_member_load_and_construct<T, A>::value,
-		bool NonMemberVersioned = traits::has_non_member_versioned_load_and_construct<T, A>::value>
-struct Construct {
-	static_assert(cereal::traits::detail::delay_static_assert<T>::value,
-			"cereal found more than one compatible load_and_construct function for the provided type and archive combination. \n\n "
-			"Types must either have a member load_and_construct function or a non-member specialization of LoadAndConstruct (you may not mix these). \n "
-			"In addition, you may not mix versioned with non-versioned load_and_construct functions. \n\n ");
-
-	static T* load_andor_construct(A& /*ar*/, construct<T>& /*construct*/ ) { return nullptr; }
-};
-
-// no load and construct case
-template <class T, class A>
-struct Construct<T, A, false, false, false, false> {
-	static_assert(::cereal::traits::is_default_constructible<T>::value,
-			"Trying to serialize a an object with no default constructor. \n\n "
-			"Types must either be default constructible or define either a member or non member Construct function. \n "
-			"Construct functions generally have the signature: \n\n "
-			"template <class Archive> \n "
-			"static void load_and_construct(Archive & ar, cereal::construct<T> & construct) \n "
-			"{ \n "
-			"  var a; \n "
-			"  ar( a ) \n "
-			"  construct( a ); \n "
-			"} \n\n");
-
-	static T* load_andor_construct() { return ::cereal::access::construct<T>(); }
-};
-
-// member non-versioned
-template <class T, class A>
-struct Construct<T, A, true, false, false, false> {
-	static void load_andor_construct(A& ar, construct<T>& construct) {
-		access::load_and_construct<T>(ar, construct);
-	}
-};
-
-// member versioned
-template <class T, class A>
-struct Construct<T, A, false, true, false, false> {
-	static void load_andor_construct(A& ar, construct <T>& construct) {
-		const auto version = ar.template loadClassVersion<T>();
-		access::load_and_construct<T>(ar, construct, version);
-	}
-};
-
-// non-member non-versioned
-template <class T, class A>
-struct Construct<T, A, false, false, true, false> {
-	static void load_andor_construct(A& ar, construct <T>& construct) {
-		LoadAndConstruct<T>::load_and_construct(ar, construct);
-	}
-};
-
-// non-member versioned
-template <class T, class A>
-struct Construct<T, A, false, false, false, true> {
-	static void load_andor_construct(A& ar, construct <T>& construct) {
-		const auto version = ar.template loadClassVersion<T>();
-		LoadAndConstruct<T>::load_and_construct(ar, construct, version);
-	}
-};
-} // namespace detail
 } // namespace cereal
 
 #endif // CEREAL_DETAILS_TRAITS_HPP_

@@ -67,7 +67,7 @@
 
     If you choose to modify this type, ensure that you use a fixed
     size type (e.g. uint32_t). */
-#define CEREAL_SIZE_TYPE uint64_t
+#define CEREAL_SIZE_TYPE uint32_t
 #endif // CEREAL_SIZE_TYPE
 
 // =================================================================================================

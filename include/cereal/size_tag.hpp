@@ -3,6 +3,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <cereal/size_type.hpp> // Convenience include as size_type is always used with SizeTag
+
 
 namespace cereal {
 

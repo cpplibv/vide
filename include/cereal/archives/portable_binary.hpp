@@ -115,7 +115,6 @@ public:
 		@param options The PortableBinary specific options to use.  See the Options struct
 					   for the values of default parameters */
 	explicit PortableBinaryOutputArchive(std::ostream& stream, Options const& options = Options::Default()) :
-			OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream),
 			itsConvertEndianness(portable_binary_detail::is_little_endian() ^ options.is_little_endian()) {
 		this->operator()(options.is_little_endian());
@@ -209,7 +208,6 @@ public:
 		@param options The PortableBinary specific options to use.  See the Options struct
 					   for the values of default parameters */
 	explicit PortableBinaryInputArchive(std::istream& stream, Options const& options = Options::Default()) :
-			InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream),
 			itsConvertEndianness(false) {
 		uint8_t streamLittleEndian;

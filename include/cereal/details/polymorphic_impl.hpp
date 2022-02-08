@@ -110,7 +110,7 @@ struct PolymorphicCaster {
 	virtual ~PolymorphicCaster() noexcept = default;
 
 	//! Downcasts to the proper derived type
-	virtual void const* downcast(void const* const ptr) const = 0;
+	virtual const void* downcast(const void* const ptr) const = 0;
 	//! Upcast to proper base type
 	virtual void* upcast(void* const ptr) const = 0;
 	//! Upcast to proper base type, shared_ptr version
@@ -364,7 +364,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 #undef CEREAL_EMPLACE_MAP
 
 	//! Performs the proper downcast with the templated types
-	void const* downcast(void const* const ptr) const override {
+	const void* downcast(const void* const ptr) const override {
 		return dynamic_cast<Derived const*>( static_cast<Base const*>( ptr ));
 	}
 
@@ -420,7 +420,7 @@ struct OutputBindingMap {
 		a pointer to actual data (contents of smart_ptr's get() function)
 		as their second parameter, and the type info of the owning smart_ptr
 		as their final parameter */
-	typedef std::function<void(void*, void const*, std::type_info const&)> Serializer;
+	typedef std::function<void(void*, const void*, std::type_info const&)> Serializer;
 
 	//! Struct containing the serializer functions for all pointer types
 	struct Serializers {
@@ -598,7 +598,7 @@ template <class Archive, class T> struct OutputBindingCreator {
 		typename OutputBindingMap<Archive>::Serializers serializers;
 
 		serializers.shared_ptr =
-				[&](void* arptr, void const* dptr, std::type_info const& baseInfo) {
+				[&](void* arptr, const void* dptr, std::type_info const& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 
@@ -612,7 +612,7 @@ template <class Archive, class T> struct OutputBindingCreator {
 				};
 
 		serializers.unique_ptr =
-				[&](void* arptr, void const* dptr, std::type_info const& baseInfo) {
+				[&](void* arptr, const void* dptr, std::type_info const& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 

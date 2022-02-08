@@ -160,7 +160,6 @@ public:
 		@param options The JSON specific options to use.  See the Options struct
 					   for the values of default parameters */
 	explicit JSONOutputArchive(std::ostream& stream, Options const& options = Options::Default()) :
-			OutputArchive<JSONOutputArchive>(this),
 			itsWriteStream(stream),
 			itsWriter(itsWriteStream),
 			itsNextName(nullptr) {
@@ -429,7 +428,6 @@ public:
 	//! Construct, reading from the provided stream
 	/*! @param stream The stream to read from */
 	explicit JSONInputArchive(std::istream& stream) :
-			InputArchive<JSONInputArchive>(this),
 			itsNextName(nullptr),
 			itsReadStream(stream) {
 		itsDocument.ParseStream<>(itsReadStream);

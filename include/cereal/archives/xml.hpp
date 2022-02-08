@@ -176,7 +176,6 @@ public:
 		@param options The XML specific options to use.  See the Options struct
 					   for the values of default parameters */
 	explicit XMLOutputArchive(std::ostream& stream, Options const& options = Options::Default()) :
-			OutputArchive<XMLOutputArchive>(this),
 			itsStream(stream),
 			itsOutputType(options.itsOutputType),
 			itsIndent(options.itsIndent),
@@ -413,7 +412,6 @@ public:
 
 		@param stream The stream to read from.  Can be a stringstream or a file. */
 	explicit XMLInputArchive(std::istream& stream) :
-			InputArchive<XMLInputArchive>(this),
 			itsData(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()) {
 		try {
 			itsData.push_back('\0'); // rapidxml will do terrible things without the data being null terminated

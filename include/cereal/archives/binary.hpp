@@ -55,7 +55,6 @@ public:
 	/*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
 					  even cout! */
 	explicit BinaryOutputArchive(std::ostream& stream) :
-			OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream) {}
 
 	~BinaryOutputArchive() noexcept = default;
@@ -87,7 +86,6 @@ class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyCla
 public:
 	//! Construct, loading from the provided stream
 	explicit BinaryInputArchive(std::istream& stream) :
-			InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP>(this),
 			itsStream(stream) {}
 
 	~BinaryInputArchive() noexcept = default;

@@ -972,12 +972,12 @@ struct base_class_id {
 	base_class_id(T const* const t) :
 			type(typeid(T)),
 			ptr(t),
-			hash(std::hash<std::type_index>()(typeid(T)) ^ (std::hash<void const*>()(t) << 1)) {}
+			hash(std::hash<std::type_index>()(typeid(T)) ^ (std::hash<const void*>()(t) << 1)) {}
 
 	bool operator==(base_class_id const& other) const { return (type == other.type) && (ptr == other.ptr); }
 
 	std::type_index type;
-	void const* ptr;
+	const void* ptr;
 	size_t hash;
 };
 

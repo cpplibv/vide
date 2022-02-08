@@ -45,6 +45,20 @@ if (UNIX)
 endif ()
 
 
+option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+if (${FORCE_COLORED_OUTPUT})
+	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+		message(STATUS "Force colored output: GCC")
+		add_compile_options(-fdiagnostics-color=always)
+	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		message(STATUS "Force colored output: Clang")
+		add_compile_options(-fcolor-diagnostics)
+	endif()
+else()
+	message(STATUS "Force colored output: False")
+endif()
+
+
 #if(MSVC)
 #    add_compile_options(/bigobj /W3 /WX)
 #else()

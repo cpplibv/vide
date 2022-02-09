@@ -120,8 +120,8 @@ struct TestStruct {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(mm, mmv);
-		ar(nmm, nmmv);
+		ar(mm)(mmv);
+		ar(nmm)(nmmv);
 	}
 
 	MemberMinimal mm;

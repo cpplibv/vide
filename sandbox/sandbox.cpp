@@ -670,7 +670,7 @@ int main()
     long double d = 1.123451234512345;
     long long j = 2394873298472343;
 
-    oar( bb, a, x, y, z, d, j );
+    oar(bb)(a)(x)(y)(z)(d)(j);
     std::cout << bb << " " << a << " " << x << " " << y << " " << z << " " << d << " " << j << std::endl;
     // valgrind will complain about uninitialized bytes here - seems to be the padding caused by the long double and
     // long long allocations (this padding just exists on the stack and is never used anywhere)
@@ -688,7 +688,7 @@ int main()
     long double d;
     long long j;
 
-    iar( bb, a, x, y, z, d, j );
+    iar(bb)(a)(x)(y)(z)(d)(j);
 
     std::cout << bb << " " << a << " " << x << " " << y << " " << z << " " << d << " " << j << std::endl;
 
@@ -705,7 +705,7 @@ int main()
     std::vector<int> four = {1, 2, 3, 4};
 
     // Output is ordered 3 2 1 4
-    ar( three, CEREAL_NVP(two), one, cereal::make_nvp("five", four) );
+    ar(three)(CEREAL_NVP(two))(one)(cereal::make_nvp("five", four));
   }
 
   {
@@ -747,16 +747,16 @@ int main()
     cereal::XMLOutputArchive ar(ss);
 
     BoostTransitionMS b(3);
-    ar( b, b );
+    ar(b)(b);
 
     BoostTransitionSplit c(4);
-    ar( c, c );
+    ar(c)(c);
 
     BoostTransitionNMS d(5);
-    ar( d, d );
+    ar(d)(d);
 
     BoostTransitionNMSplit e(32);
-    ar( e, e );
+    ar(e)(e);
   }
 
   {

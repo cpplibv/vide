@@ -52,12 +52,12 @@ void test_memory()
     {
       OArchive oar(os);
 
-      oar( o_xptr1, o_xptr2, o_xptr3 );
-      oar( o_yptr1, o_yptr2 );
-      oar( o_nullptr1, o_nullptr2 );
+		oar(o_xptr1)(o_xptr2)(o_xptr3);
+		oar(o_yptr1)(o_yptr2);
+		oar(o_nullptr1)(o_nullptr2);
 
-      oar( o_zptr1, o_zptr2 );
-      oar( o_nullptr3 );
+		oar(o_zptr1)(o_zptr2);
+		oar(o_nullptr3);
     }
 
     std::shared_ptr<int> i_xptr1;
@@ -76,12 +76,12 @@ void test_memory()
     {
       IArchive iar(is);
 
-      iar( i_xptr1, i_xptr2, i_xptr3 );
-      iar( i_yptr1, i_yptr2 );
-      iar( i_nullptr1, i_nullptr2 );
+		iar(i_xptr1)(i_xptr2)(i_xptr3);
+		iar(i_yptr1)(i_yptr2);
+		iar(i_nullptr1)(i_nullptr2);
 
-      iar( i_zptr1, i_zptr2 );
-      iar( i_nullptr3 );
+		iar(i_zptr1)(i_zptr2);
+		iar(i_nullptr3);
     }
 
     CHECK_EQ(o_xptr1.get(), o_xptr2.get());

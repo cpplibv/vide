@@ -25,7 +25,7 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#pargma once
+#pragma once
 
 #include "common.hpp"
 
@@ -45,7 +45,7 @@ struct MemoryCycle {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(value, ptr);
+		ar(value)(ptr);
 	}
 };
 

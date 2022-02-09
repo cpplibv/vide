@@ -400,12 +400,12 @@ void test_structs_specialized()
     {
       OArchive oar(os);
 
-      oar( o_iser, o_iserv,
-           o_ispl, o_isplv, o_shared_ispl,
-           o_isplm, o_isplvm,
-           o_eser, o_eserv,
-           o_espl, o_esplv,
-           o_esplm, o_esplvm );
+		oar(o_iser)(o_iserv);
+		oar(o_ispl)(o_isplv)(o_shared_ispl);
+		oar(o_isplm)(o_isplvm);
+		oar(o_eser)(o_eserv);
+		oar(o_espl)(o_esplv);
+		oar(o_esplm)(o_esplvm);
     }
 
     decltype(o_iser) i_iser;
@@ -432,12 +432,12 @@ void test_structs_specialized()
     {
       IArchive iar(is);
 
-      iar( i_iser, i_iserv,
-           i_ispl, i_isplv, i_shared_ispl,
-           i_isplm, i_isplvm,
-           i_eser, i_eserv,
-           i_espl, i_esplv,
-           i_esplm, i_esplvm );
+		iar(i_iser)(i_iserv);
+		iar(i_ispl)(i_isplv)(i_shared_ispl);
+		iar(i_isplm)(i_isplvm);
+		iar(i_eser)(i_eserv);
+		iar(i_espl)(i_esplv);
+		iar(i_esplm)(i_esplvm);
     }
 
     CHECK_EQ(i_iser.x, o_iser.x);

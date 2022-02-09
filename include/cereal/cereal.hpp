@@ -308,11 +308,11 @@ private:
 	}
 
 public:
-	//! Serializes all passed in data
+	//! Serializes the passed in data
 	/*! This is the primary interface for serializing data with an archive */
-	template <class ... Types>
-	inline ArchiveType& operator()(Types&& ... args) {
-		self().process(std::forward<Types>(args)...);
+	template <class T>
+	inline ArchiveType& operator()(T&& arg) {
+		self().process(std::forward<T>(arg));
 		return self();
 	}
 
@@ -401,13 +401,6 @@ private:
 		prologue(self(), var);
 		self().processImpl(var);
 		epilogue(self(), var);
-	}
-
-	//! Unwinds to process all data
-	template <class T, class ... Other>
-	inline void process(T&& head, Other&& ... tail) {
-		self().process(std::forward<T>(head));
-		self().process(std::forward<Other>(tail)...);
 	}
 
 	//! Serialization of a virtual_base_class wrapper
@@ -645,11 +638,11 @@ private:
 	}
 
 public:
-	//! Serializes all passed in data
+	//! Serializes the passed in data
 	/*! This is the primary interface for serializing data with an archive */
-	template <class ... Types>
-	inline ArchiveType& operator()(Types&& ... args) {
-		process(std::forward<Types>(args)...);
+	template <class T>
+	inline ArchiveType& operator()(T&& arg) {
+		self().process(std::forward<T>(arg));
 		return self();
 	}
 
@@ -751,13 +744,6 @@ private:
 		prologue(self(), var);
 		self().processImpl(var);
 		epilogue(self(), var);
-	}
-
-	//! Unwinds to process all data
-	template <class T, class ... Other>
-	inline void process(T&& head, Other&& ... tail) {
-		process(std::forward<T>(head));
-		process(std::forward<Other>(tail)...);
 	}
 
 	//! Serialization of a virtual_base_class wrapper

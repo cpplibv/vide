@@ -38,19 +38,19 @@ struct unordered_naming
   template <class Archive>
   void save( Archive & ar ) const
   {
-    ar( CEREAL_NVP(x),
-        CEREAL_NVP(z),
-        CEREAL_NVP(y),
-        CEREAL_NVP(xx) );
+    	ar(CEREAL_NVP(x));
+        ar(CEREAL_NVP(z));
+        ar(CEREAL_NVP(y));
+        ar(CEREAL_NVP(xx));
   }
 
   template <class Archive>
   void load( Archive & ar )
   {
-    ar( x,
-        CEREAL_NVP(y),
-        CEREAL_NVP(z),
-        CEREAL_NVP(xx) );
+    	ar(x);
+        ar(CEREAL_NVP(y));
+        ar(CEREAL_NVP(z));
+        ar(CEREAL_NVP(xx));
   }
 
   bool operator==( unordered_naming const & other ) const
@@ -102,15 +102,14 @@ void test_unordered_loads()
 
     std::ostringstream os;
     {
-      OArchive oar(os);
-
-      oar( cereal::make_nvp( name1, o_int1 ),
-           cereal::make_nvp( name2, o_double2 ),
-           cereal::make_nvp( name3, o_vecbool3 ),
-           cereal::make_nvp( name4, o_int4 ),
-           cereal::make_nvp( name5, o_int5 ),
-           cereal::make_nvp( name6, o_int6 ),
-           cereal::make_nvp( name7, o_un7 ) );
+		OArchive oar(os);
+		oar(cereal::make_nvp(name1, o_int1));
+		oar(cereal::make_nvp(name2, o_double2));
+		oar(cereal::make_nvp(name3, o_vecbool3));
+		oar(cereal::make_nvp(name4, o_int4));
+		oar(cereal::make_nvp(name5, o_int5));
+		oar(cereal::make_nvp(name6, o_int6));
+		oar(cereal::make_nvp(name7, o_un7));
     }
 
     decltype(o_int1) i_int1;
@@ -123,15 +122,14 @@ void test_unordered_loads()
 
     std::istringstream is(os.str());
     {
-      IArchive iar(is);
-
-      iar( cereal::make_nvp( name7, i_un7 ),
-           cereal::make_nvp( name2, i_double2 ),
-           cereal::make_nvp( name4, i_int4 ),
-           cereal::make_nvp( name3, i_vecbool3 ),
-           cereal::make_nvp( name1, i_int1 ),
-           cereal::make_nvp( name5, i_int5 ),
-           i_int6 );
+		IArchive iar(is);
+		iar(cereal::make_nvp(name7, i_un7));
+		iar(cereal::make_nvp(name2, i_double2));
+		iar(cereal::make_nvp(name4, i_int4));
+		iar(cereal::make_nvp(name3, i_vecbool3));
+		iar(cereal::make_nvp(name1, i_int1));
+		iar(cereal::make_nvp(name5, i_int5));
+		iar(i_int6);
     }
 
     CHECK_EQ(o_int1, i_int1);

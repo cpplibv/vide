@@ -178,7 +178,7 @@ struct StructInternalSerialize : StructBase
   template<class Archive>
     void serialize(Archive & ar)
     {
-      ar(x, y);
+      ar(x)(y);
     }
 };
 
@@ -189,13 +189,13 @@ struct StructInternalSplit : StructBase
   template<class Archive>
     void save(Archive & ar) const
     {
-      ar(x, y);
+      ar(x)(y);
     }
 
   template<class Archive>
     void load(Archive & ar)
     {
-      ar(x, y);
+      ar(x)(y);
     }
 };
 
@@ -208,7 +208,7 @@ struct StructExternalSerialize : StructBase
 template<class Archive>
 void serialize(Archive & ar, StructExternalSerialize & s)
 {
-  ar(s.x, s.y);
+  ar(s.x)(s.y);
 }
 
 struct StructExternalSplit : StructBase
@@ -220,13 +220,13 @@ struct StructExternalSplit : StructBase
 template<class Archive> inline
 void save(Archive & ar, StructExternalSplit const & s)
 {
-  ar(s.x, s.y);
+  ar(s.x)(s.y);
 }
 
 template<class Archive> inline
 void load(Archive & ar, StructExternalSplit & s)
 {
-  ar(s.x, s.y);
+  ar(s.x)(s.y);
 }
 
 template<class T>

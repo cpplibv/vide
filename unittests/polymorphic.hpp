@@ -140,7 +140,7 @@ struct PolyBase
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( x, y );
+    ar(x)(y);
   }
 
   virtual void foo() = 0;
@@ -164,8 +164,8 @@ struct PolyDerived : PolyBase
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( cereal::base_class<PolyBase>( this ),
-        a, b );
+    ar(cereal::base_class<PolyBase>(this));
+	ar(a)(b);
   }
 
   bool operator==( PolyDerived const & other ) const
@@ -294,14 +294,14 @@ void test_polymorphic()
     {
       OArchive oar(os);
 
-      oar( o_shared, o_sharedC );
-      oar( o_weak, o_weakC );
-      oar( o_unique, o_uniqueC );
+      oar( o_shared)(o_sharedC );
+      oar( o_weak)(o_weakC );
+      oar( o_unique)(o_uniqueC );
 
       oar( o_sharedLA );
       oar( o_sharedLAC );
 
-      oar( o_sharedA, o_weakA, o_uniqueA );
+      oar( o_sharedA)(o_weakA)(o_uniqueA );
     }
 
     decltype(o_shared) i_shared;
@@ -324,14 +324,14 @@ void test_polymorphic()
     {
       IArchive iar(is);
 
-      iar( i_shared, i_sharedC );
-      iar( i_weak, i_weakC );
-      iar( i_unique, i_uniqueC );
+      iar( i_shared)(i_sharedC );
+      iar( i_weak)(i_weakC );
+      iar( i_unique)(i_uniqueC );
 
       iar( i_sharedLA );
       iar( i_sharedLAC );
 
-      iar( i_sharedA, i_weakA, i_uniqueA );
+      iar( i_sharedA)(i_weakA)(i_uniqueA );
     }
 
     auto i_locked = i_weak.lock();

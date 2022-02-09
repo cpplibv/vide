@@ -21,6 +21,11 @@ This fork is experimental and wishes to alter multiple core functionality of the
 - Remove pointer to derived in archive bases (just use this with CRTP)
 - Make archives movable
 - Remove the experimental UserDataAdapter (A better solution will come)
+- Remove the ability to call the archives with multiple member at the same times as `ar(member0, member1, member2)`. Chaining is still possible prefer that syntax `ar(member0)(member1)(member2)` or just use multiple calls
+  - Pro: Enables some future shenanigans 
+  - Pro: Alternative syntax are more clear and has same number of character, and has better auto formatting
+  - Pro: More clear evaluation order, less variadic template
+  - Con: More breakage
 
 
 Planned:

@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
 
 
 namespace cereal {
@@ -52,10 +53,10 @@ struct MapItem {
 	ValueType value;
 
 	//! Serialize the MapItem with the NVPs "key" and "value"
-	template <class Archive> inline
-	void CEREAL_SERIALIZE_FUNCTION_NAME(Archive& archive) {
-		archive(make_nvp<Archive>("key", key),
-				make_nvp<Archive>("value", value));
+	template <class Archive>
+	inline void CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar) {
+		ar(CEREAL_NVP(key));
+		ar(CEREAL_NVP(value));
 	}
 };
 

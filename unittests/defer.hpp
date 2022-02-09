@@ -39,7 +39,9 @@ struct DeferRelation
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( node, x, y );
+    ar(node);
+	ar(x);
+	ar(y);
   }
 
   bool operator==( DeferRelation const & other ) const;
@@ -74,13 +76,14 @@ struct DeferNode
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( id, w,
-        cereal::defer( iser ),
-        cereal::defer( ispl ),
-        cereal::defer( eser ),
-        cereal::defer( espl ),
-        cereal::defer( relations ),
-        z );
+        ar(id);
+		ar(w);
+        ar(cereal::defer( iser ));
+        ar(cereal::defer( ispl ));
+        ar(cereal::defer( eser ));
+        ar(cereal::defer( espl ));
+        ar(cereal::defer( relations ));
+        ar(z);
   }
 
   bool operator==( DeferNode const & other ) const

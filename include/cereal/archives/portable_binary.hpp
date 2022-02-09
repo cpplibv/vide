@@ -36,9 +36,6 @@
 
 namespace cereal {
 
-class PortableBinaryOutputArchive;
-class PortableBinaryInputArchive;
-
 namespace portable_binary_detail {
 //! Returns true if the current machine is little endian
 /*! @ingroup Internal */
@@ -76,7 +73,13 @@ inline void swap_bytes(std::uint8_t* data) {
 			 <a href="www.github.com/USCiLab/cereal">the project github</a>.
 
   \ingroup Archives */
-class PortableBinaryOutputArchive : public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
+class PortableBinaryOutputArchive :
+		public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
+
+private:
+	std::ostream& itsStream;
+	const uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon saving
+
 public:
 	//! A class containing various advanced options for the PortableBinaryOutput archive
 	class Options {
@@ -123,8 +126,8 @@ public:
 	~PortableBinaryOutputArchive() noexcept = default;
 
 	//! Writes size bytes of data to the output stream
-	template <std::streamsize DataSize> inline
-	void saveBinary(const void* data, std::streamsize size) {
+	template <std::streamsize DataSize>
+	inline void saveBinary(const void* data, std::streamsize size) {
 		std::streamsize writtenSize = 0;
 
 		if (itsConvertEndianness) {
@@ -137,10 +140,6 @@ public:
 		if (writtenSize != size)
 			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
 	}
-
-private:
-	std::ostream& itsStream;
-	const uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon saving
 };
 
 // ######################################################################
@@ -170,6 +169,10 @@ private:
 
   \ingroup Archives */
 class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP> {
+private:
+	std::istream& itsStream;
+	uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon loading
+
 public:
 	//! A class containing various advanced options for the PortableBinaryInput archive
 	class Options {
@@ -221,8 +224,8 @@ public:
 	/*! @param data The data to save
 		@param size The number of bytes in the data
 		@tparam DataSize T The size of the actual type of the data elements being loaded */
-	template <std::streamsize DataSize> inline
-	void loadBinary(void* const data, std::streamsize size) {
+	template <std::streamsize DataSize>
+	inline void loadBinary(void* const data, std::streamsize size) {
 		// load data
 		auto const readSize = itsStream.rdbuf()->sgetn(reinterpret_cast<char*>( data ), size);
 
@@ -236,19 +239,15 @@ public:
 				portable_binary_detail::swap_bytes<DataSize>(ptr + i);
 		}
 	}
-
-private:
-	std::istream& itsStream;
-	uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon loading
 };
 
 // ######################################################################
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to portable binary
-template <class T> inline
-typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, T const& t) {
+template <class T>
+inline typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, const T& t) {
 	static_assert(!std::is_floating_point<T>::value ||
 					(std::is_floating_point<T>::value && std::numeric_limits<T>::is_iec559),
 			"Portable binary only supports IEEE 754 standardized floating point");
@@ -256,8 +255,8 @@ CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, T const& t) {
 }
 
 //! Loading for POD types from portable binary
-template <class T> inline
-typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+template <class T>
+inline typename std::enable_if<std::is_arithmetic<T>::value, void>::type
 CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, T& t) {
 	static_assert(!std::is_floating_point<T>::value ||
 					(std::is_floating_point<T>::value && std::numeric_limits<T>::is_iec559),
@@ -266,22 +265,22 @@ CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, T& t) {
 }
 
 //! Serializing NVP types to portable binary
-template <class Archive, class T> inline
-CEREAL_ARCHIVE_RESTRICT(PortableBinaryInputArchive, PortableBinaryOutputArchive)
+template <class Archive, class T>
+inline CEREAL_ARCHIVE_RESTRICT(PortableBinaryInputArchive, PortableBinaryOutputArchive)
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, NameValuePair <T>& t) {
 	ar(t.value);
 }
 
 //! Serializing SizeTags to portable binary
-template <class Archive, class T> inline
-CEREAL_ARCHIVE_RESTRICT(PortableBinaryInputArchive, PortableBinaryOutputArchive)
+template <class Archive, class T>
+inline CEREAL_ARCHIVE_RESTRICT(PortableBinaryInputArchive, PortableBinaryOutputArchive)
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, SizeTag <T>& t) {
 	ar(t.size);
 }
 
 //! Saving binary data to portable binary
-template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, BinaryData <T> const& bd) {
+template <class T>
+inline void CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, BinaryData <T> const& bd) {
 	typedef typename std::remove_pointer<T>::type TT;
 	static_assert(!std::is_floating_point<TT>::value ||
 					(std::is_floating_point<TT>::value && std::numeric_limits<TT>::is_iec559),
@@ -291,8 +290,8 @@ void CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, BinaryData <T> c
 }
 
 //! Loading binary data from portable binary
-template <class T> inline
-void CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, BinaryData <T>& bd) {
+template <class T>
+inline void CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, BinaryData <T>& bd) {
 	typedef typename std::remove_pointer<T>::type TT;
 	static_assert(!std::is_floating_point<TT>::value ||
 					(std::is_floating_point<TT>::value && std::numeric_limits<TT>::is_iec559),

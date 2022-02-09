@@ -123,12 +123,12 @@ public:
 	MemberMinimal() = default;
 
 	template <class Archive>
-	int save_minimal(Archive const&) const {
+	int save_minimal(const Archive&) const {
 		return x;
 	}
 
 	template <class Archive>
-	void load_minimal(Archive const&, int const& str) {
+	void load_minimal(const Archive&, int const& str) {
 		x = str;
 	}
 

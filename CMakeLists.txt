@@ -28,10 +28,9 @@ include(cmake/wish_warning.cmake)
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)
-endif()
+endif ()
 
 set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
-
 
 
 set(CEREAL_THREAD_LIBS)
@@ -47,16 +46,16 @@ endif ()
 
 option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${FORCE_COLORED_OUTPUT})
-	if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-		message(STATUS "Force colored output: GCC")
-		add_compile_options(-fdiagnostics-color=always)
-	elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-		message(STATUS "Force colored output: Clang")
-		add_compile_options(-fcolor-diagnostics)
-	endif()
-else()
-	message(STATUS "Force colored output: False")
-endif()
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        message(STATUS "Force colored output: GCC")
+        add_compile_options(-fdiagnostics-color=always)
+    elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        message(STATUS "Force colored output: Clang")
+        add_compile_options(-fcolor-diagnostics)
+    endif ()
+else ()
+    message(STATUS "Force colored output: False")
+endif ()
 
 
 #if(MSVC)
@@ -95,24 +94,24 @@ wish_warning(
         Clang -Wconversion
 
         GNU -Wall
-#        GNU -Warray-bounds
-#        GNU -Wcast-align=strict
-#        GNU -Wcast-qual
-#        GNU -Wconversion
-#        GNU -Wdelete-non-virtual-dtor
-#        GNU -Wdouble-promotion
-#        GNU -Wduplicated-branches
-#        GNU -Wduplicated-cond
+        #        GNU -Warray-bounds
+        #        GNU -Wcast-align=strict
+        #        GNU -Wcast-qual
+        #        GNU -Wconversion
+        #        GNU -Wdelete-non-virtual-dtor
+        #        GNU -Wdouble-promotion
+        #        GNU -Wduplicated-branches
+        #        GNU -Wduplicated-cond
         GNU -Wextra
-#        GNU -Wlogical-op
-#        GNU -Wmultistatement-macros
-#        GNU -Wnon-virtual-dtor # Causes some false positives with efsw (suppressed)
-#        GNU -Wold-style-cast
+        #        GNU -Wlogical-op
+        #        GNU -Wmultistatement-macros
+        #        GNU -Wnon-virtual-dtor # Causes some false positives with efsw (suppressed)
+        #        GNU -Wold-style-cast
         GNU -Wpedantic
-#        GNU -Wrestrict
-#        GNU -Wshadow-compatible-local
-#        GNU -Wsuggest-override
-#        GNU -Wundef
+        #        GNU -Wrestrict
+        #        GNU -Wshadow-compatible-local
+        #        GNU -Wsuggest-override
+        #        GNU -Wundef
 
         # Warnings that I don't care about
         Clang -Wno-comment

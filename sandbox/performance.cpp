@@ -62,7 +62,7 @@
     @return The ostringstream and the time it took to save the data */
 template <class T>
 std::chrono::nanoseconds
-saveData( T const & data, std::function<void(std::ostringstream &, T const&)> saveFunction, std::ostringstream & os )
+saveData( T const & data, std::function<void(std::ostringstream &, const T&)> saveFunction, std::ostringstream & os )
 {
   auto start = std::chrono::high_resolution_clock::now();
   saveFunction( os, data );

@@ -34,18 +34,18 @@ class MemberMinimal {
 public:
 	MemberMinimal() = default;
 
-	MemberMinimal(std::string const& str) : x(str) {}
+	MemberMinimal(const std::string& str) : x(str) {}
 
 protected:
 	friend class cereal::access;
 
 	template <class Archive>
-	std::string save_minimal(Archive const&) const {
+	std::string save_minimal(const Archive&) const {
 		return x;
 	}
 
 	template <class Archive>
-	void load_minimal(Archive const&, std::string const& str) {
+	void load_minimal(const Archive&, const std::string& str) {
 		x = str;
 	}
 
@@ -63,12 +63,12 @@ protected:
 	friend class cereal::access;
 
 	template <class Archive>
-	double save_minimal(Archive const&, const std::uint32_t) const {
+	double save_minimal(const Archive&, const std::uint32_t) const {
 		return x;
 	}
 
 	template <class Archive>
-	void load_minimal(Archive const&, double const& d, const std::uint32_t) {
+	void load_minimal(const Archive&, double const& d, const std::uint32_t) {
 		x = d;
 	}
 
@@ -85,12 +85,12 @@ struct NonMemberMinimal {
 };
 
 template <class Archive> inline
-std::uint32_t save_minimal(Archive const&, NonMemberMinimal const& nmm) {
+std::uint32_t save_minimal(const Archive&, NonMemberMinimal const& nmm) {
 	return nmm.x;
 }
 
 template <class Archive> inline
-void load_minimal(Archive const&, NonMemberMinimal& nmm, std::uint32_t const& data) {
+void load_minimal(const Archive&, NonMemberMinimal& nmm, std::uint32_t const& data) {
 	nmm.x = data;
 }
 
@@ -103,19 +103,19 @@ struct NonMemberMinimalVersioned {
 };
 
 template <class Archive> inline
-bool save_minimal(Archive const&, NonMemberMinimalVersioned const& nmm, std::uint32_t const) {
+bool save_minimal(const Archive&, NonMemberMinimalVersioned const& nmm, std::uint32_t const) {
 	return nmm.x;
 }
 
 template <class Archive> inline
-void load_minimal(Archive const&, NonMemberMinimalVersioned& nmm, bool const& data, std::uint32_t const) {
+void load_minimal(const Archive&, NonMemberMinimalVersioned& nmm, bool const& data, std::uint32_t const) {
 	nmm.x = data;
 }
 
 struct TestStruct {
 	TestStruct() = default;
 
-	TestStruct(std::string const& s, double d, std::uint32_t u, bool b) :
+	TestStruct(const std::string& s, double d, std::uint32_t u, bool b) :
 			mm(s), mmv(d), nmm(u), nmmv(b) {}
 
 	template <class Archive>
@@ -144,7 +144,7 @@ template <class Archive, cereal::traits::DisableIf<
 		std::is_same<Archive, cereal::PortableBinaryOutputArchive>::value ||
 		std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 			> = cereal::traits::sfinae>
-inline std::string save_minimal(Archive const&, Issue79Struct const& val) {
+inline std::string save_minimal(const Archive&, Issue79Struct const& val) {
 	return std::to_string(val.x);
 }
 
@@ -152,7 +152,7 @@ template <class Archive, cereal::traits::DisableIf<
         std::is_same<Archive, cereal::BinaryInputArchive>::value ||
 		std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 			> = cereal::traits::sfinae>
-inline void load_minimal(Archive const&, Issue79Struct& val, std::string const& str) {
+inline void load_minimal(const Archive&, Issue79Struct& val, const std::string& str) {
 	val.x = std::stoi(str);
 }
 
@@ -162,7 +162,7 @@ template <class Archive, cereal::traits::EnableIf<
 		std::is_same<Archive, cereal::PortableBinaryOutputArchive>::value ||
 		std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 			> = cereal::traits::sfinae>
-inline std::int32_t save_minimal(Archive const&, Issue79Struct const& val) {
+inline std::int32_t save_minimal(const Archive&, Issue79Struct const& val) {
 	return val.x;
 }
 
@@ -170,7 +170,7 @@ template <class Archive, cereal::traits::EnableIf<
         std::is_same<Archive, cereal::BinaryInputArchive>::value ||
 		std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 			> = cereal::traits::sfinae>
-inline void load_minimal(Archive const&, Issue79Struct& val, std::int32_t const& xx) {
+inline void load_minimal(const Archive&, Issue79Struct& val, std::int32_t const& xx) {
 	val.x = xx;
 }
 
@@ -187,7 +187,7 @@ struct Issue79StructInternal {
 			std::is_same<Archive, cereal::PortableBinaryOutputArchive>::value ||
 			std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 				> = cereal::traits::sfinae>
-	inline std::string save_minimal(Archive const&) const {
+	inline std::string save_minimal(const Archive&) const {
 		return std::to_string(x);
 	}
 
@@ -195,7 +195,7 @@ struct Issue79StructInternal {
 			std::is_same<Archive, cereal::BinaryInputArchive>::value ||
 			std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 				> = cereal::traits::sfinae>
-	inline void load_minimal(Archive const&, std::string const& str) {
+	inline void load_minimal(const Archive&, const std::string& str) {
 		x = std::stoi(str);
 	}
 
@@ -205,7 +205,7 @@ struct Issue79StructInternal {
 			std::is_same<Archive, cereal::PortableBinaryOutputArchive>::value ||
 			std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 				> = cereal::traits::sfinae>
-	inline std::int32_t save_minimal(Archive const&) const {
+	inline std::int32_t save_minimal(const Archive&) const {
 		return x;
 	}
 
@@ -213,7 +213,7 @@ struct Issue79StructInternal {
 	        std::is_same<Archive, cereal::BinaryInputArchive>::value ||
 			std::is_same<Archive, cereal::PortableBinaryInputArchive>::value
 				> = cereal::traits::sfinae>
-	inline void load_minimal(Archive const&, std::int32_t const& xx) {
+	inline void load_minimal(const Archive&, std::int32_t const& xx) {
 		x = xx;
 	}
 };

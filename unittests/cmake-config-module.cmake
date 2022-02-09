@@ -1,6 +1,6 @@
-if(CMAKE_VERSION LESS 3.0)
-  message(FATAL_ERROR "Cereal can't be installed with CMake < 3.0")
-endif()
+if (CMAKE_VERSION LESS 3.0)
+    message(FATAL_ERROR "Cereal can't be installed with CMake < 3.0")
+endif ()
 
 get_filename_component(BINARY_DIR ${CMAKE_BINARY_DIR}/build ABSOLUTE)
 get_filename_component(INSTALL_DIR ${CMAKE_BINARY_DIR}/out ABSOLUTE)
@@ -8,27 +8,27 @@ get_filename_component(INSTALL_DIR ${CMAKE_BINARY_DIR}/out ABSOLUTE)
 # cmake configure step for cereal
 file(MAKE_DIRECTORY ${BINARY_DIR}/cereal)
 execute_process(
-  COMMAND ${CMAKE_COMMAND}
-    -DJUST_INSTALL_CEREAL=1
-    -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/..
-  WORKING_DIRECTORY ${BINARY_DIR}/cereal
-  RESULT_VARIABLE result
+        COMMAND ${CMAKE_COMMAND}
+        -DJUST_INSTALL_CEREAL=1
+        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/..
+        WORKING_DIRECTORY ${BINARY_DIR}/cereal
+        RESULT_VARIABLE result
 )
-if(result)
-  message(FATAL_ERROR "Cereal cmake configure-step failed")
-endif()
+if (result)
+    message(FATAL_ERROR "Cereal cmake configure-step failed")
+endif ()
 
 # cmake install cereal
 execute_process(
-  COMMAND ${CMAKE_COMMAND}
-    --build ${BINARY_DIR}/cereal
-    --target install
-  RESULT_VARIABLE result
+        COMMAND ${CMAKE_COMMAND}
+        --build ${BINARY_DIR}/cereal
+        --target install
+        RESULT_VARIABLE result
 )
-if(result)
-  message(FATAL_ERROR "Cereal cmake install-step failed")
-endif()
+if (result)
+    message(FATAL_ERROR "Cereal cmake install-step failed")
+endif ()
 
 # create test project sources
 file(WRITE ${BINARY_DIR}/test_source/CMakeLists.txt "
@@ -90,36 +90,36 @@ file(WRITE ${BINARY_DIR}/test_source/main.cpp "
       ? EXIT_SUCCESS : EXIT_FAILURE;
     }
   }"
-)
+        )
 
 file(MAKE_DIRECTORY ${BINARY_DIR}/test)
 execute_process(
-  COMMAND ${CMAKE_COMMAND}
-    -DCMAKE_PREFIX_PATH=${INSTALL_DIR}
-    ${BINARY_DIR}/test_source
-  WORKING_DIRECTORY ${BINARY_DIR}/test
-  RESULT_VARIABLE result
+        COMMAND ${CMAKE_COMMAND}
+        -DCMAKE_PREFIX_PATH=${INSTALL_DIR}
+        ${BINARY_DIR}/test_source
+        WORKING_DIRECTORY ${BINARY_DIR}/test
+        RESULT_VARIABLE result
 )
-if(result)
-  message(FATAL_ERROR "Test cmake configure-step failed")
-endif()
+if (result)
+    message(FATAL_ERROR "Test cmake configure-step failed")
+endif ()
 
 # cmake install cereal
 execute_process(
-  COMMAND ${CMAKE_COMMAND}
-    --build ${BINARY_DIR}/test
-  RESULT_VARIABLE result
+        COMMAND ${CMAKE_COMMAND}
+        --build ${BINARY_DIR}/test
+        RESULT_VARIABLE result
 )
-if(result)
-  message(FATAL_ERROR "Test cmake build-step failed")
-endif()
+if (result)
+    message(FATAL_ERROR "Test cmake build-step failed")
+endif ()
 
 execute_process(
-  COMMAND ${CMAKE_CTEST_COMMAND}
-  WORKING_DIRECTORY ${BINARY_DIR}/test
-  RESULT_VARIABLE result
+        COMMAND ${CMAKE_CTEST_COMMAND}
+        WORKING_DIRECTORY ${BINARY_DIR}/test
+        RESULT_VARIABLE result
 )
 
-if(result)
-  message(FATAL_ERROR "Test run failed")
-endif()
+if (result)
+    message(FATAL_ERROR "Test run failed")
+endif ()

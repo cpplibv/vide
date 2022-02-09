@@ -84,7 +84,7 @@ inline std::string encode(unsigned const char* bytes_to_encode, size_t in_len) {
 	return ret;
 }
 
-inline std::string decode(std::string const& encoded_string) {
+inline std::string decode(const std::string& encoded_string) {
 	size_t in_len = encoded_string.size();
 	size_t i = 0;
 	size_t j = 0;

@@ -64,6 +64,7 @@ inline bool isWhitespace(char c) {
 }
 
 class XMLOutputArchive;
+
 class XMLInputArchive;
 
 // ######################################################################
@@ -96,6 +97,42 @@ class XMLInputArchive;
 	to its parent field.
 	\ingroup Archives */
 class XMLOutputArchive : public OutputArchive<XMLOutputArchive>, public traits::TextArchive {
+protected:
+	//! A struct that contains metadata about a node
+	struct NodeInfo {
+		rapidxml::xml_node<>* node; //!< A pointer to this node
+		size_t counter;              //!< The counter for naming child nodes
+		const char* name;           //!< The name for the next child node
+
+		explicit NodeInfo(rapidxml::xml_node<>* n = nullptr,
+				const char* nm = nullptr) :
+				node(n),
+				counter(0),
+				name(nm) {}
+
+		//! Gets the name for the next child node created from this node
+		/*! The name will be automatically generated using the counter if
+			a name has not been previously set.  If a name has been previously
+			set, that name will be returned only once */
+		std::string getValueName() {
+			if (name) {
+				auto n = name;
+				name = nullptr;
+				return {n};
+			} else
+				return "value" + std::to_string(counter++) + "\0";
+		}
+	}; // NodeInfo
+
+private:
+	std::ostream& itsStream;        //!< The output stream
+	rapidxml::xml_document<> itsXML; //!< The XML document
+	std::stack<NodeInfo> itsNodes;   //!< A stack of nodes added to the document
+	std::ostringstream itsOS;        //!< Used to format strings internally
+	bool itsOutputType;              //!< Controls whether type information is printed
+	bool itsIndent;                  //!< Controls whether indenting is used
+	bool itsSizeAttributes;          //!< Controls whether lists have a size attribute
+
 public:
 	/*! @name Common Functionality
 		Common use cases for directly interacting with an XMLOutputArchive */
@@ -263,7 +300,7 @@ public:
 		otherwise it will be given some default delimited value that depends upon
 		the parent node */
 	template <class T> inline
-	void saveValue(T const& value) {
+	void saveValue(const T& value) {
 		itsOS.clear();
 		itsOS.seekp(0, std::ios::beg);
 		itsOS << value << std::ends;
@@ -322,43 +359,7 @@ public:
 
 	bool hasSizeAttributes() const { return itsSizeAttributes; }
 
-protected:
-	//! A struct that contains metadata about a node
-	struct NodeInfo {
-		NodeInfo(rapidxml::xml_node<>* n = nullptr,
-				const char* nm = nullptr) :
-				node(n),
-				counter(0),
-				name(nm) {}
-
-		rapidxml::xml_node<>* node; //!< A pointer to this node
-		size_t counter;              //!< The counter for naming child nodes
-		const char* name;           //!< The name for the next child node
-
-		//! Gets the name for the next child node created from this node
-		/*! The name will be automatically generated using the counter if
-			a name has not been previously set.  If a name has been previously
-			set, that name will be returned only once */
-		std::string getValueName() {
-			if (name) {
-				auto n = name;
-				name = nullptr;
-				return {n};
-			} else
-				return "value" + std::to_string(counter++) + "\0";
-		}
-	}; // NodeInfo
-
 	//! @}
-
-private:
-	std::ostream& itsStream;        //!< The output stream
-	rapidxml::xml_document<> itsXML; //!< The XML document
-	std::stack<NodeInfo> itsNodes;   //!< A stack of nodes added to the document
-	std::ostringstream itsOS;        //!< Used to format strings internally
-	bool itsOutputType;              //!< Controls whether type information is printed
-	bool itsIndent;                  //!< Controls whether indenting is used
-	bool itsSizeAttributes;          //!< Controls whether lists have a size attribute
 }; // XMLOutputArchive
 
 // ######################################################################
@@ -401,6 +402,64 @@ private:
 
 	\ingroup Archives */
 class XMLInputArchive : public InputArchive<XMLInputArchive>, public traits::TextArchive {
+private:
+	//! A struct that contains metadata about a node
+	/*! Keeps track of some top level node, its number of
+		remaining children, and the current active child node */
+	struct NodeInfo {
+		rapidxml::xml_node<>* node;  //!< A pointer to this node
+		rapidxml::xml_node<>* child; //!< A pointer to its current child
+		size_t size;                  //!< The remaining number of children for this node
+		const char* name;            //!< The NVP name for next child node
+
+		explicit NodeInfo(rapidxml::xml_node<>* n = nullptr) :
+				node(n),
+				child(n->first_node()),
+				size(XMLInputArchive::getNumChildren(n)),
+				name(nullptr) {}
+
+		//! Advances to the next sibling node of the child
+		/*! If this is the last sibling child will be null after calling */
+		void advance() {
+			if (size > 0) {
+				--size;
+				child = child->next_sibling();
+			}
+		}
+
+		//! Searches for a child with the given name in this node
+		/*! @param searchName The name to search for (must be null terminated)
+			@return The node if found, nullptr otherwise */
+		rapidxml::xml_node<>* search(const char* searchName) {
+			if (searchName) {
+				size_t new_size = XMLInputArchive::getNumChildren(node);
+				const size_t name_size = rapidxml::internal::measure(searchName);
+
+				for (auto new_child = node->first_node(); new_child != nullptr; new_child = new_child->next_sibling()) {
+					if (rapidxml::internal::compare(new_child->name(), new_child->name_size(), searchName, name_size, true)) {
+						size = new_size;
+						child = new_child;
+
+						return new_child;
+					}
+					--new_size;
+				}
+			}
+
+			return nullptr;
+		}
+
+		//! Returns the actual name of the next child node, if it exists
+		const char* getChildName() const {
+			return child ? child->name() : nullptr;
+		}
+	}; // NodeInfo
+
+private:
+	std::vector<char> itsData;       //!< The raw data loaded
+	rapidxml::xml_document<> itsXML; //!< The XML document
+	std::stack<NodeInfo> itsNodes;   //!< A stack of nodes read from the document
+
 public:
 	/*! @name Common Functionality
 		Common use cases for directly interacting with an XMLInputArchive */
@@ -661,64 +720,7 @@ protected:
 		return size;
 	}
 
-	//! A struct that contains metadata about a node
-	/*! Keeps track of some top level node, its number of
-		remaining children, and the current active child node */
-	struct NodeInfo {
-		NodeInfo(rapidxml::xml_node<>* n = nullptr) :
-				node(n),
-				child(n->first_node()),
-				size(XMLInputArchive::getNumChildren(n)),
-				name(nullptr) {}
-
-		//! Advances to the next sibling node of the child
-		/*! If this is the last sibling child will be null after calling */
-		void advance() {
-			if (size > 0) {
-				--size;
-				child = child->next_sibling();
-			}
-		}
-
-		//! Searches for a child with the given name in this node
-		/*! @param searchName The name to search for (must be null terminated)
-			@return The node if found, nullptr otherwise */
-		rapidxml::xml_node<>* search(const char* searchName) {
-			if (searchName) {
-				size_t new_size = XMLInputArchive::getNumChildren(node);
-				const size_t name_size = rapidxml::internal::measure(searchName);
-
-				for (auto new_child = node->first_node(); new_child != nullptr; new_child = new_child->next_sibling()) {
-					if (rapidxml::internal::compare(new_child->name(), new_child->name_size(), searchName, name_size, true)) {
-						size = new_size;
-						child = new_child;
-
-						return new_child;
-					}
-					--new_size;
-				}
-			}
-
-			return nullptr;
-		}
-
-		//! Returns the actual name of the next child node, if it exists
-		const char* getChildName() const {
-			return child ? child->name() : nullptr;
-		}
-
-		rapidxml::xml_node<>* node;  //!< A pointer to this node
-		rapidxml::xml_node<>* child; //!< A pointer to its current child
-		size_t size;                  //!< The remaining number of children for this node
-		const char* name;            //!< The NVP name for next child node
-	}; // NodeInfo
-
 	//! @}
-
-private:
-	std::vector<char> itsData;       //!< The raw data loaded
-	rapidxml::xml_document<> itsXML; //!< The XML document
-	std::stack<NodeInfo> itsNodes;   //!< A stack of nodes read from the document
 };
 
 // ######################################################################
@@ -793,9 +795,10 @@ void epilogue(XMLInputArchive&, SizeTag<T> const&) {}
 	that may be given data by the type about to be archived
 
 	Minimal types do not start or end nodes */
-template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value ||
-		traits::has_minimal_output_serialization<T, XMLOutputArchive>::value> = traits::sfinae> inline
-void prologue(XMLOutputArchive& ar, T const&) {
+template <class T, traits::DisableIf<
+		traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value ||
+				traits::has_minimal_output_serialization<T, XMLOutputArchive>::value> = traits::sfinae> inline
+void prologue(XMLOutputArchive& ar, const T&) {
 	ar.startNode();
 	ar.insertType<T>();
 }
@@ -803,7 +806,7 @@ void prologue(XMLOutputArchive& ar, T const&) {
 //! Prologue for all other types for XML input archives (except minimal types)
 template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, XMLInputArchive>::value ||
 		traits::has_minimal_input_serialization<T, XMLInputArchive>::value> = traits::sfinae> inline
-void prologue(XMLInputArchive& ar, T const&) {
+void prologue(XMLInputArchive& ar, const T&) {
 	ar.startNode();
 }
 
@@ -814,14 +817,14 @@ void prologue(XMLInputArchive& ar, T const&) {
 	Minimal types do not start or end nodes */
 template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value ||
 		traits::has_minimal_output_serialization<T, XMLOutputArchive>::value> = traits::sfinae> inline
-void epilogue(XMLOutputArchive& ar, T const&) {
+void epilogue(XMLOutputArchive& ar, const T&) {
 	ar.finishNode();
 }
 
 //! Epilogue for all other types other for XML output archives (except minimal types)
 template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, XMLInputArchive>::value ||
 		traits::has_minimal_input_serialization<T, XMLInputArchive>::value> = traits::sfinae> inline
-void epilogue(XMLInputArchive& ar, T const&) {
+void epilogue(XMLInputArchive& ar, const T&) {
 	ar.finishNode();
 }
 
@@ -857,7 +860,7 @@ void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, SizeTag<T>& st) {
 // ######################################################################
 //! Saving for POD types to xml
 template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, T const& t) {
+void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, const T& t) {
 	ar.saveValue(t);
 }
 

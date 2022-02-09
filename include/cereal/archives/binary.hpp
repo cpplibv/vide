@@ -50,6 +50,9 @@ namespace cereal {
 
 	\ingroup Archives */
 class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
+private:
+	std::ostream& itsStream;
+
 public:
 	//! Construct, outputting to the provided stream
 	/*! @param stream The stream to output to.  Can be a stringstream, a file stream, or
@@ -66,9 +69,6 @@ public:
 		if (writtenSize != size)
 			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
 	}
-
-private:
-	std::ostream& itsStream;
 };
 
 // ######################################################################
@@ -83,6 +83,9 @@ private:
 
 	\ingroup Archives */
 class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP> {
+private:
+	std::istream& itsStream;
+
 public:
 	//! Construct, loading from the provided stream
 	explicit BinaryInputArchive(std::istream& stream) :
@@ -97,51 +100,48 @@ public:
 		if (readSize != size)
 			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
 	}
-
-private:
-	std::istream& itsStream;
 };
 
 // ######################################################################
 // Common BinaryArchive serialization functions
 
 //! Saving for POD types to binary
-template <class T> inline
-typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive& ar, T const& t) {
+template <class T>
+inline typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive& ar, const T& t) {
 	ar.saveBinary(std::addressof(t), sizeof(t));
 }
 
 //! Loading for POD types from binary
-template <class T> inline
-typename std::enable_if<std::is_arithmetic<T>::value, void>::type
+template <class T>
+inline typename std::enable_if<std::is_arithmetic<T>::value, void>::type
 CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive& ar, T& t) {
 	ar.loadBinary(std::addressof(t), sizeof(t));
 }
 
 //! Serializing NVP types to binary
-template <class Archive, class T> inline
-CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
+template <class Archive, class T>
+inline CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, NameValuePair <T>& t) {
 	ar(t.value);
 }
 
 //! Serializing SizeTags to binary
-template <class Archive, class T> inline
-CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
+template <class Archive, class T>
+inline CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, SizeTag <T>& t) {
 	ar(t.size);
 }
 
 //! Saving binary data
-template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive& ar, BinaryData <T> const& bd) {
+template <class T>
+inline void CEREAL_SAVE_FUNCTION_NAME(BinaryOutputArchive& ar, BinaryData <T> const& bd) {
 	ar.saveBinary(bd.data, static_cast<std::streamsize>( bd.size ));
 }
 
 //! Loading binary data
-template <class T> inline
-void CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive& ar, BinaryData <T>& bd) {
+template <class T>
+inline void CEREAL_LOAD_FUNCTION_NAME(BinaryInputArchive& ar, BinaryData <T>& bd) {
 	ar.loadBinary(bd.data, static_cast<std::streamsize>( bd.size ));
 }
 } // namespace cereal

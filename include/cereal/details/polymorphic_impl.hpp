@@ -142,13 +142,13 @@ struct PolymorphicCasters {
 	static std::pair<bool, std::vector<PolymorphicCaster const*> const&>
 	lookup_if_exists(std::type_index const& baseIndex, std::type_index const& derivedIndex) {
 		// First phase of lookup - match base type index
-		auto const& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
+		const auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
 		auto baseIter = baseMap.find(baseIndex);
 		if (baseIter == baseMap.end())
 			return {false, {}};
 
 		// Second phase - find a match from base to derived
-		auto const& derivedMap = baseIter->second;
+		const auto& derivedMap = baseIter->second;
 		auto derivedIter = derivedMap.find(derivedIndex);
 		if (derivedIter == derivedMap.end())
 			return {false, {}};
@@ -164,13 +164,13 @@ struct PolymorphicCasters {
 	template <class F> inline
 	static std::vector<PolymorphicCaster const*> const& lookup(std::type_index const& baseIndex, std::type_index const& derivedIndex, F&& exceptionFunc) {
 		// First phase of lookup - match base type index
-		auto const& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
+		const auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
 		auto baseIter = baseMap.find(baseIndex);
 		if (baseIter == baseMap.end())
 			exceptionFunc();
 
 		// Second phase - find a match from base to derived
-		auto const& derivedMap = baseIter->second;
+		const auto& derivedMap = baseIter->second;
 		auto derivedIter = derivedMap.find(derivedIndex);
 		if (derivedIter == derivedMap.end())
 			exceptionFunc();
@@ -180,8 +180,8 @@ struct PolymorphicCasters {
 
 	//! Performs a downcast to the derived type using a registered mapping
 	template <class Derived> inline
-	static const Derived* downcast(const void* dptr, std::type_info const& baseInfo) {
-		auto const& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(save) });
+	static const Derived* downcast(const void* dptr, const std::type_info& baseInfo) {
+		const auto& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(save) });
 
 		for (auto const* dmap : mapping)
 			dptr = dmap->downcast(dptr);
@@ -193,8 +193,8 @@ struct PolymorphicCasters {
 	/*! The return is untyped because the final casting to the base type must happen in the polymorphic
 		serialization function, where the type is known at compile time */
 	template <class Derived> inline
-	static void* upcast(Derived* const dptr, std::type_info const& baseInfo) {
-		auto const& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) });
+	static void* upcast(Derived* const dptr, const std::type_info& baseInfo) {
+		const auto& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) });
 
 		void* uptr = dptr;
 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
@@ -205,8 +205,8 @@ struct PolymorphicCasters {
 
 	//! Upcasts for shared pointers
 	template <class Derived> inline
-	static std::shared_ptr<void> upcast(std::shared_ptr<Derived> const& dptr, std::type_info const& baseInfo) {
-		auto const& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) });
+	static std::shared_ptr<void> upcast(std::shared_ptr<Derived> const& dptr, const std::type_info& baseInfo) {
+		const auto& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) });
 
 		std::shared_ptr<void> uptr = dptr;
 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
@@ -261,7 +261,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 					std::pair<size_t, std::vector<PolymorphicCaster const*> const&> {
 				auto result = PolymorphicCasters::lookup_if_exists(parentInfo, childInfo);
 				if (result.first) {
-					auto const& path = result.second;
+					const auto& path = result.second;
 					return {path.size(), path};
 				} else
 					return {(std::numeric_limits<size_t>::max)(), {}};
@@ -293,14 +293,14 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 				parentStack.pop();
 
 				// Update paths to all children marked dirty
-				for (auto const& childPair : baseMap[parent]) {
+				for (const auto& childPair : baseMap[parent]) {
 					const auto child = childPair.first;
 					if (isDirty(child) && baseMap.count(child)) {
 						auto parentChildPath = checkRelation(parent, child);
 
 						// Search all paths from the child to its own children (finalChild),
 						// looking for a shorter parth from parent to finalChild
-						for (auto const& finalChildPair : baseMap[child]) {
+						for (const auto& finalChildPair : baseMap[child]) {
 							const auto finalChild = finalChildPair.first;
 
 							auto parentFinalChildPath = checkRelation(parent, finalChild);
@@ -339,7 +339,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 				} // end loop over children
 
 				// Insert chained relations
-				for (auto const& it : unregisteredRelations) {
+				for (const auto& it : unregisteredRelations) {
 					auto& derivedMap = baseMap.find(it.first)->second;
 					derivedMap[it.second.first] = it.second.second;
 					CEREAL_EMPLACE_MAP(reverseMap, it.second.first, it.first);
@@ -420,7 +420,7 @@ struct OutputBindingMap {
 		a pointer to actual data (contents of smart_ptr's get() function)
 		as their second parameter, and the type info of the owning smart_ptr
 		as their final parameter */
-	typedef std::function<void(void*, const void*, std::type_info const&)> Serializer;
+	typedef std::function<void(void*, const void*, const std::type_info&)> Serializer;
 
 	//! Struct containing the serializer functions for all pointer types
 	struct Serializers {
@@ -448,9 +448,9 @@ struct InputBindingMap {
 		a shared_ptr (or unique_ptr for the unique case) of any base
 		type, and the type id of said base type as the third parameter.
 		Internally it will properly be loaded and cast to the correct type. */
-	typedef std::function<void(void*, std::shared_ptr<void>&, std::type_info const&)> SharedSerializer;
+	typedef std::function<void(void*, std::shared_ptr<void>&, const std::type_info&)> SharedSerializer;
 	//! Unique ptr serializer function
-	typedef std::function<void(void*, std::unique_ptr<void, EmptyDeleter<void>>&, std::type_info const&)> UniqueSerializer;
+	typedef std::function<void(void*, std::unique_ptr<void, EmptyDeleter<void>>&, const std::type_info&)> UniqueSerializer;
 
 	//! Struct containing the serializer functions for all pointer types
 	struct Serializers {
@@ -488,7 +488,7 @@ template <class Archive, class T> struct InputBindingCreator {
 		typename InputBindingMap<Archive>::Serializers serializers;
 
 		serializers.shared_ptr =
-				[](void* arptr, std::shared_ptr<void>& dptr, std::type_info const& baseInfo) {
+				[](void* arptr, std::shared_ptr<void>& dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					std::shared_ptr<T> ptr;
 
@@ -598,7 +598,7 @@ template <class Archive, class T> struct OutputBindingCreator {
 		typename OutputBindingMap<Archive>::Serializers serializers;
 
 		serializers.shared_ptr =
-				[&](void* arptr, const void* dptr, std::type_info const& baseInfo) {
+				[&](void* arptr, const void* dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 
@@ -612,7 +612,7 @@ template <class Archive, class T> struct OutputBindingCreator {
 				};
 
 		serializers.unique_ptr =
-				[&](void* arptr, const void* dptr, std::type_info const& baseInfo) {
+				[&](void* arptr, const void* dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 

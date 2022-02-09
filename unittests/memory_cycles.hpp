@@ -24,68 +24,62 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TEST_MEMORY_CYCLES_H_
-#define CEREAL_TEST_MEMORY_CYCLES_H_
+
+#pargma once
+
 #include "common.hpp"
 
-struct MemoryCycle
-{
-  MemoryCycle() = default;
 
-  MemoryCycle( int v ) :
-    value( v )
-  { }
+struct MemoryCycle {
+	MemoryCycle() = default;
 
-  int value;
-  std::weak_ptr<MemoryCycle> ptr;
+	MemoryCycle(int v) :
+			value(v) {}
 
-  bool operator==( MemoryCycle const & other ) const
-  {
-    return value == other.value && ptr.lock() == other.ptr.lock();
-  }
+	int value;
+	std::weak_ptr<MemoryCycle> ptr;
 
-  template <class Archive>
-  void serialize( Archive & ar )
-  {
-    ar( value, ptr );
-  }
+	bool operator==(MemoryCycle const& other) const {
+		return value == other.value && ptr.lock() == other.ptr.lock();
+	}
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(value, ptr);
+	}
 };
 
-std::ostream& operator<<(std::ostream& os, MemoryCycle const & s)
-{
-  os << "[value: " << s.value << " ptr: " << s.ptr.lock() << "]";
-  return os;
+std::ostream& operator<<(std::ostream& os, MemoryCycle const& s) {
+	os << "[value: " << s.value << " ptr: " << s.ptr.lock() << "]";
+	return os;
 }
 
 template <class IArchive, class OArchive> inline
-void test_memory_cycles()
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
+void test_memory_cycles() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
 
-  for(int ii=0; ii<100; ++ii)
-  {
-    auto o_ptr1 = std::make_shared<MemoryCycle>( random_value<int>(gen) );
-    o_ptr1->ptr = o_ptr1;
+	for (int ii = 0; ii < 100; ++ii) {
+		auto o_ptr1 = std::make_shared<MemoryCycle>(random_value<int>(gen));
+		o_ptr1->ptr = o_ptr1;
 
-    std::ostringstream os;
-    {
-      OArchive oar(os);
+		std::ostringstream os;
+		{
+			OArchive oar(os);
 
-      oar( o_ptr1 );
-    }
+			oar(o_ptr1);
+		}
 
-    decltype(o_ptr1) i_ptr1;
+		decltype(o_ptr1) i_ptr1;
 
-    std::istringstream is(os.str());
-    {
-      IArchive iar(is);
+		std::istringstream is(os.str());
+		{
+			IArchive iar(is);
 
-      iar( i_ptr1 );
-    }
+			iar(i_ptr1);
+		}
 
-    CHECK_EQ( o_ptr1->value, i_ptr1->value );
-    CHECK_EQ( i_ptr1.get(), i_ptr1->ptr.lock().get() );
-  }
+		CHECK_EQ(o_ptr1->value, i_ptr1->value);
+		CHECK_EQ(i_ptr1.get(), i_ptr1->ptr.lock().get());
+	}
 }
-#endif // CEREAL_TEST_MEMORY_CYCLES_H_

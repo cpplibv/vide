@@ -1,6 +1,6 @@
 **VaderY/cereal** - Fork
 
-This fork is experimental and wishes to alter the core functionality of the library and therefore no longer compatible with the upstream!
+This fork is experimental and wishes to alter multiple core functionality of the library and therefore no longer compatible with the upstream!
 
 - Remove some legacy compiler support
 - Bump required versions to C++23, GCC 11.2, CMake 3.20

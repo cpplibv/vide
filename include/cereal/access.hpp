@@ -65,7 +65,7 @@ public:
 	static auto member_serialize(Archive& ar, T& t) -> decltype(t.CEREAL_SERIALIZE_FUNCTION_NAME(ar)) { return t.CEREAL_SERIALIZE_FUNCTION_NAME(ar); }
 
 	template <class Archive, class T> inline
-	static auto member_save(Archive& ar, T const& t) -> decltype(t.CEREAL_SAVE_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_FUNCTION_NAME(ar); }
+	static auto member_save(Archive& ar, const T& t) -> decltype(t.CEREAL_SAVE_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_FUNCTION_NAME(ar); }
 
 	template <class Archive, class T> inline
 	static auto member_save_non_const(Archive& ar, T& t) -> decltype(t.CEREAL_SAVE_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_FUNCTION_NAME(ar); }
@@ -74,20 +74,20 @@ public:
 	static auto member_load(Archive& ar, T& t) -> decltype(t.CEREAL_LOAD_FUNCTION_NAME(ar)) { return t.CEREAL_LOAD_FUNCTION_NAME(ar); }
 
 	template <class Archive, class T> inline
-	static auto member_save_minimal(Archive const& ar, T const& t) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar); }
+	static auto member_save_minimal(const Archive& ar, const T& t) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar); }
 
 	template <class Archive, class T> inline
-	static auto member_save_minimal_non_const(Archive const& ar, T& t) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar); }
+	static auto member_save_minimal_non_const(const Archive& ar, T& t) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar); }
 
 	template <class Archive, class T, class U> inline
-	static auto member_load_minimal(Archive const& ar, T& t, U&& u) -> decltype(t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u))) { return t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u)); }
+	static auto member_load_minimal(const Archive& ar, T& t, U&& u) -> decltype(t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u))) { return t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u)); }
 
 	// ####### Versioned Serialization #######################################
 	template <class Archive, class T> inline
 	static auto member_serialize(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.CEREAL_SERIALIZE_FUNCTION_NAME(ar, version)) { return t.CEREAL_SERIALIZE_FUNCTION_NAME(ar, version); }
 
 	template <class Archive, class T> inline
-	static auto member_save(Archive& ar, T const& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_FUNCTION_NAME(ar, version); }
+	static auto member_save(Archive& ar, const T& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_FUNCTION_NAME(ar, version); }
 
 	template <class Archive, class T> inline
 	static auto member_save_non_const(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_FUNCTION_NAME(ar, version); }
@@ -96,13 +96,13 @@ public:
 	static auto member_load(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.CEREAL_LOAD_FUNCTION_NAME(ar, version)) { return t.CEREAL_LOAD_FUNCTION_NAME(ar, version); }
 
 	template <class Archive, class T> inline
-	static auto member_save_minimal(Archive const& ar, T const& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version); }
+	static auto member_save_minimal(const Archive& ar, const T& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version); }
 
 	template <class Archive, class T> inline
-	static auto member_save_minimal_non_const(Archive const& ar, T& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version); }
+	static auto member_save_minimal_non_const(const Archive& ar, T& t, const std::uint32_t version) -> decltype(t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version)) { return t.CEREAL_SAVE_MINIMAL_FUNCTION_NAME(ar, version); }
 
 	template <class Archive, class T, class U> inline
-	static auto member_load_minimal(Archive const& ar, T& t, U&& u, const std::uint32_t version) -> decltype(t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u), version)) { return t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u), version); }
+	static auto member_load_minimal(const Archive& ar, T& t, U&& u, const std::uint32_t version) -> decltype(t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u), version)) { return t.CEREAL_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u), version); }
 
 	// ####### Other Functionality ##########################################
 	// for detecting inheritance from enable_shared_from_this

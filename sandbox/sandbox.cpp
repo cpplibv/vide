@@ -793,26 +793,6 @@ int main()
     assert( e.x == 32 );
   }
 
-#ifdef CEREAL_FUTURE_EXPERIMENTAL
-  {
-    // Any testing
-    int x = 32;
-    int * xx = &x;
-    std::string y("hello");
-    cereal::detail::Any a(xx);
-    auto b = a;
-
-    std::cout << *((int *)a) << std::endl;
-    *((int*)a) = 44;
-    std::cout << *((int *)b) << std::endl;
-    std::cout << *((int *)a) << std::endl;
-
-    a = cereal::detail::Any(y);
-    std::string a_out = a;
-    std::cout << a_out << std::endl;
-  }
-#endif // CEREAL_FUTURE_EXPERIMENTAL
-
   return 0;
 }
 

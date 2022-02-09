@@ -20,6 +20,7 @@ This fork is experimental and wishes to alter the core functionality of the libr
 - Remove `load_and_construct`
 - Remove pointer to derived in archive bases (just use this with CRTP)
 - Make archives movable
+- Remove the experimental UserDataAdapter (A better solution will come)
 
 
 Planned:

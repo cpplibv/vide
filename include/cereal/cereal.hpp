@@ -261,7 +261,7 @@ public:
 
 	template <typename T>
 	static constexpr bool could_serialize = not requires(ArchiveType& ar, const T& t) {
-		{ ar.processImpl(t) } -> std::same_as<unserializable_type_tag>;
+		{ ar.processImpl(ar, t) } -> std::same_as<unserializable_type_tag>;
 	};
 
 private:
@@ -394,35 +394,45 @@ public:
 			return id->second;
 	}
 
+public:
+	//! Alternative process function to use a different wrapper type for hierarchy traversal
+	template <class As, class T>
+	inline void process_as(As& as, T&& var) {
+		prologue(self(), var);
+		self().processImpl(as, var);
+		epilogue(self(), var);
+	}
+
 private:
 	//! Serializes data after calling prologue, then calls epilogue
 	template <class T>
 	inline void process(T&& var) {
 		prologue(self(), var);
-		self().processImpl(var);
+		self().processImpl(self(), var);
 		epilogue(self(), var);
 	}
 
 	//! Serialization of a virtual_base_class wrapper
 	/*! \sa virtual_base_class */
-	template <class T>
-	inline void processImpl(virtual_base_class<T> const& b) {
+	template <class As, class T>
+	inline void processImpl(As& as, virtual_base_class<T> const& b) {
 		traits::detail::base_class_id id(b.base_ptr);
 		if (itsBaseClassSet.count(id) == 0) {
 			itsBaseClassSet.insert(id);
-			self().processImpl(*b.base_ptr);
+			self().processImpl(as, *b.base_ptr);
 		}
 	}
 
 	//! Serialization of a base_class wrapper
 	/*! \sa base_class */
-	template <class T>
-	inline void processImpl(base_class<T> const& b) {
-		self().processImpl(*b.base_ptr);
+	template <class As, class T>
+	inline void processImpl(As& as, base_class<T> const& b) {
+		self().processImpl(as, *b.base_ptr);
 	}
 
-	template <class T>
-	inline void processImpl(DeferredData<T> const& d) {
+	template <class As, class T>
+	inline void processImpl(As& as, DeferredData<T> const& d) {
+		(void) as;
 		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
 	}
@@ -442,57 +452,59 @@ private:
                          !traits::is_specialized<T, ArchiveType>::value))> = traits::sfinae
 
 	//! Member serialization
-	template <class T, PROCESS_IF(member_serialize)>
-	inline void processImpl(const T& t) {
-		access::member_serialize(self(), const_cast<T&>(t));
+	template <class As, class T, PROCESS_IF(member_serialize)>
+	inline void processImpl(As& as, const T& t) {
+		access::member_serialize(as, const_cast<T&>(t));
 	}
 
 	//! Non member serialization
-	template <class T, PROCESS_IF(non_member_serialize)>
-	inline void processImpl(const T& t) {
-		CEREAL_SERIALIZE_FUNCTION_NAME(self(), const_cast<T&>(t));
+	template <class As, class T, PROCESS_IF(non_member_serialize)>
+	inline void processImpl(As& as, const T& t) {
+		CEREAL_SERIALIZE_FUNCTION_NAME(as, const_cast<T&>(t));
 	}
 
 	//! Member split (save)
-	template <class T, PROCESS_IF(member_save)>
-	inline void processImpl(const T& t) {
-		access::member_save(self(), t);
+	template <class As, class T, PROCESS_IF(member_save)>
+	inline void processImpl(As& as, const T& t) {
+		access::member_save(as, t);
 	}
 
 	//! Non member split (save)
-	template <class T, PROCESS_IF(non_member_save)>
-	inline void processImpl(const T& t) {
-		CEREAL_SAVE_FUNCTION_NAME(self(), t);
+	template <class As, class T, PROCESS_IF(non_member_save)>
+	inline void processImpl(As& as, const T& t) {
+		CEREAL_SAVE_FUNCTION_NAME(as, t);
 	}
 
 	//! Member split (save_minimal)
-	template <class T, PROCESS_IF(member_save_minimal)>
-	inline void processImpl(const T& t) {
-		self().process(access::member_save_minimal(self(), t));
+	template <class As, class T, PROCESS_IF(member_save_minimal)>
+	inline void processImpl(As& as, const T& t) {
+		self().process(access::member_save_minimal(as, t));
 	}
 
 	//! Non member split (save_minimal)
-	template <class T, PROCESS_IF(non_member_save_minimal)>
-	inline void processImpl(const T& t) {
-		self().process(CEREAL_SAVE_MINIMAL_FUNCTION_NAME(self(), t));
+	template <class As, class T, PROCESS_IF(non_member_save_minimal)>
+	inline void processImpl(As& as, const T& t) {
+		self().process(CEREAL_SAVE_MINIMAL_FUNCTION_NAME(as, t));
 	}
 
 	//! Empty class specialization
-	template <class T, traits::EnableIf<(Flags & AllowEmptyClassElision),
+	template <class As, class T, traits::EnableIf<(Flags & AllowEmptyClassElision),
 			!traits::is_output_serializable<T, ArchiveType>::value,
 			std::is_empty<T>::value> = traits::sfinae>
-	inline void processImpl(const T&) {
+	inline void processImpl(As&, const T&) {
 	}
 
 	//! No matching serialization
 	/*! Invalid if we have invalid output versioning or
 		we are not output serializable, and either
 		don't allow empty class ellision or allow it but are not serializing an empty class */
-	template <class T, traits::EnableIf<traits::has_invalid_output_versioning<T, ArchiveType>::value ||
+	template <class As, class T, traits::EnableIf<traits::has_invalid_output_versioning<T, ArchiveType>::value ||
 			(!traits::is_output_serializable<T, ArchiveType>::value &&
 					(!(Flags & AllowEmptyClassElision) || ((Flags & AllowEmptyClassElision) && !std::is_empty<T>::value)))> = traits::sfinae>
 	//	void processImpl(const T&) {
-	inline unserializable_type_tag processImpl(const T&) {
+	inline unserializable_type_tag processImpl(As& as, const T&) {
+		(void) as;
+
 		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value != 0,
 				"cereal could not find any output serialization functions for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
@@ -534,44 +546,44 @@ private:
 
 	//! Member serialization
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(member_versioned_serialize)>
-	inline void processImpl(const T& t) {
-		access::member_serialize(self(), const_cast<T&>(t), registerClassVersion<T>());
+	template <class As, class T, PROCESS_IF(member_versioned_serialize)>
+	inline void processImpl(As& as, const T& t) {
+		access::member_serialize(as, const_cast<T&>(t), registerClassVersion<T>());
 	}
 
 	//! Non member serialization
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(non_member_versioned_serialize)>
-	inline void processImpl(const T& t) {
-		CEREAL_SERIALIZE_FUNCTION_NAME(self(), const_cast<T&>(t), registerClassVersion<T>());
+	template <class As, class T, PROCESS_IF(non_member_versioned_serialize)>
+	inline void processImpl(As& as, const T& t) {
+		CEREAL_SERIALIZE_FUNCTION_NAME(as, const_cast<T&>(t), registerClassVersion<T>());
 	}
 
 	//! Member split (save)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(member_versioned_save)>
-	inline void processImpl(const T& t) {
-		access::member_save(self(), t, registerClassVersion<T>());
+	template <class As, class T, PROCESS_IF(member_versioned_save)>
+	inline void processImpl(As& as, const T& t) {
+		access::member_save(as, t, registerClassVersion<T>());
 	}
 
 	//! Non member split (save)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(non_member_versioned_save)>
-	inline void processImpl(const T& t) {
-		CEREAL_SAVE_FUNCTION_NAME(self(), t, registerClassVersion<T>());
+	template <class As, class T, PROCESS_IF(non_member_versioned_save)>
+	inline void processImpl(As& as, const T& t) {
+		CEREAL_SAVE_FUNCTION_NAME(as, t, registerClassVersion<T>());
 	}
 
 	//! Member split (save_minimal)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(member_versioned_save_minimal)>
-	inline void processImpl(const T& t) {
-		self().process(access::member_save_minimal(self(), t, registerClassVersion<T>()));
+	template <class As, class T, PROCESS_IF(member_versioned_save_minimal)>
+	inline void processImpl(As& as, const T& t) {
+		self().process(access::member_save_minimal(as, t, registerClassVersion<T>()));
 	}
 
 	//! Non member split (save_minimal)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(non_member_versioned_save_minimal)>
-	inline void processImpl(const T& t) {
-		self().process(CEREAL_SAVE_MINIMAL_FUNCTION_NAME(self(), t, registerClassVersion<T>()));
+	template <class As, class T, PROCESS_IF(non_member_versioned_save_minimal)>
+	inline void processImpl(As& as, const T& t) {
+		self().process(CEREAL_SAVE_MINIMAL_FUNCTION_NAME(as, t, registerClassVersion<T>()));
 	}
 
 #undef PROCESS_IF
@@ -601,7 +613,7 @@ public:
 
 	template <typename T>
 	static constexpr bool could_serialize = not requires(ArchiveType& ar, T& t) {
-		{ ar.processImpl(t) } -> std::same_as<unserializable_type_tag>;
+		{ ar.processImpl(ar, t) } -> std::same_as<unserializable_type_tag>;
 	};
 
 private:
@@ -737,35 +749,45 @@ public:
 		itsPolymorphicTypeMap.insert({stripped_id, name});
 	}
 
+public:
+	//! Alternative process function to use a different wrapper type for hierarchy traversal
+	template <class As, class T>
+	inline void process_as(As& as, T&& var) {
+		prologue(self(), var);
+		self().processImpl(as, var);
+		epilogue(self(), var);
+	}
+
 private:
 	//! Serializes data after calling prologue, then calls epilogue
 	template <class T>
 	inline void process(T&& var) {
 		prologue(self(), var);
-		self().processImpl(var);
+		self().processImpl(self(), var);
 		epilogue(self(), var);
 	}
 
 	//! Serialization of a virtual_base_class wrapper
 	/*! \sa virtual_base_class */
-	template <class T>
-	inline void processImpl(virtual_base_class<T>& b) {
+	template <class As, class T>
+	inline void processImpl(As& as, virtual_base_class<T>& b) {
 		traits::detail::base_class_id id(b.base_ptr);
 		if (itsBaseClassSet.count(id) == 0) {
 			itsBaseClassSet.insert(id);
-			self().processImpl(*b.base_ptr);
+			self().processImpl(as, *b.base_ptr);
 		}
 	}
 
 	//! Serialization of a base_class wrapper
 	/*! \sa base_class */
-	template <class T>
-	inline void processImpl(base_class<T>& b) {
-		self().processImpl(*b.base_ptr);
+	template <class As, class T>
+	inline void processImpl(As& as, base_class<T>& b) {
+		self().processImpl(as, *b.base_ptr);
 	}
 
-	template <class T>
-	inline void processImpl(DeferredData<T> const& d) {
+	template <class As, class T>
+	inline void processImpl(As& as, DeferredData<T> const& d) {
+		(void) as;
 		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
 	}
@@ -785,60 +807,63 @@ private:
                          !traits::is_specialized<T, ArchiveType>::value))> = traits::sfinae
 
 	//! Member serialization
-	template <class T, PROCESS_IF(member_serialize)>
-	inline void processImpl(T& t) {
-		access::member_serialize(self(), t);
+	template <class As, class T, PROCESS_IF(member_serialize)>
+	inline void processImpl(As& as, T& t) {
+		access::member_serialize(as, t);
 	}
 
 	//! Non member serialization
-	template <class T, PROCESS_IF(non_member_serialize)>
-	inline void processImpl(T& t) {
-		CEREAL_SERIALIZE_FUNCTION_NAME(self(), t);
+	template <class As, class T, PROCESS_IF(non_member_serialize)>
+	inline void processImpl(As& as, T& t) {
+		CEREAL_SERIALIZE_FUNCTION_NAME(as, t);
 	}
 
 	//! Member split (load)
-	template <class T, PROCESS_IF(member_load)>
-	inline void processImpl(T& t) {
-		access::member_load(self(), t);
+	template <class As, class T, PROCESS_IF(member_load)>
+	inline void processImpl(As& as, T& t) {
+		access::member_load(as, t);
 	}
 
 	//! Non member split (load)
-	template <class T, PROCESS_IF(non_member_load)>
-	inline void processImpl(T& t) {
-		CEREAL_LOAD_FUNCTION_NAME(self(), t);
+	template <class As, class T, PROCESS_IF(non_member_load)>
+	inline void processImpl(As& as, T& t) {
+		CEREAL_LOAD_FUNCTION_NAME(as, t);
 	}
 
 	//! Member split (load_minimal)
-	template <class T, PROCESS_IF(member_load_minimal)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(member_load_minimal)>
+	inline void processImpl(As& as, T& t) {
 		traits::get_member_save_minimal_type<ArchiveType, T> value;
 		self().process(value);
-		access::member_load_minimal(self(), t, value);
+		access::member_load_minimal(as, t, value);
 	}
 
 	//! Non member split (load_minimal)
-	template <class T, PROCESS_IF(non_member_load_minimal)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(non_member_load_minimal)>
+	inline void processImpl(As& as, T& t) {
 		traits::get_non_member_save_minimal_type<ArchiveType, T> value;
 		self().process(value);
-		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(self(), t, value);
+		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(as, t, value);
 	}
 
 	//! Empty class specialization
-	template <class T, traits::EnableIf<(Flags & AllowEmptyClassElision),
+	template <class As, class T, traits::EnableIf<(Flags & AllowEmptyClassElision),
 			!traits::is_input_serializable<T, ArchiveType>::value,
 			std::is_empty<T>::value> = traits::sfinae>
-	inline void processImpl(const T&) {
+	inline void processImpl(As& as, const T&) {
+		(void) as;
 	}
 
 	//! No matching serialization
 	/*! Invalid if we have invalid input versioning or
 		we are not input serializable, and either
 		don't allow empty class ellision or allow it but are not serializing an empty class */
-	template <class T, traits::EnableIf<traits::has_invalid_input_versioning<T, ArchiveType>::value ||
+	template <class As, class T, traits::EnableIf<traits::has_invalid_input_versioning<T, ArchiveType>::value ||
 			(!traits::is_input_serializable<T, ArchiveType>::value &&
 					(!(Flags & AllowEmptyClassElision) || ((Flags & AllowEmptyClassElision) && !std::is_empty<T>::value)))> = traits::sfinae>
-	inline unserializable_type_tag processImpl(const T&) {
+	inline unserializable_type_tag processImpl(As& as, const T&) {
+		(void) as;
+
 		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value != 0,
 				"cereal could not find any input serialization functions for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
@@ -884,54 +909,54 @@ private:
 
 	//! Member serialization
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(member_versioned_serialize)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(member_versioned_serialize)>
+	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
-		access::member_serialize(self(), t, version);
+		access::member_serialize(as, t, version);
 	}
 
 	//! Non member serialization
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(non_member_versioned_serialize)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(non_member_versioned_serialize)>
+	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
-		CEREAL_SERIALIZE_FUNCTION_NAME(self(), t, version);
+		CEREAL_SERIALIZE_FUNCTION_NAME(as, t, version);
 	}
 
 	//! Member split (load)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(member_versioned_load)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(member_versioned_load)>
+	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
-		access::member_load(self(), t, version);
+		access::member_load(as, t, version);
 	}
 
 	//! Non member split (load)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(non_member_versioned_load)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(non_member_versioned_load)>
+	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
-		CEREAL_LOAD_FUNCTION_NAME(self(), t, version);
+		CEREAL_LOAD_FUNCTION_NAME(as, t, version);
 	}
 
 	//! Member split (load_minimal)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(member_versioned_load_minimal)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(member_versioned_load_minimal)>
+	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
 		traits::get_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self().process(value);
-		access::member_load_minimal(self(), t, value, version);
+		access::member_load_minimal(as, t, value, version);
 	}
 
 	//! Non member split (load_minimal)
 	/*! Versioning implementation */
-	template <class T, PROCESS_IF(non_member_versioned_load_minimal)>
-	inline void processImpl(T& t) {
+	template <class As, class T, PROCESS_IF(non_member_versioned_load_minimal)>
+	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
 		traits::get_non_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self().process(value);
-		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(self(), t, value, version);
+		CEREAL_LOAD_MINIMAL_FUNCTION_NAME(as, t, value, version);
 	}
 
 #undef PROCESS_IF

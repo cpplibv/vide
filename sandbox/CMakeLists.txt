@@ -6,6 +6,9 @@ target_link_libraries(sandbox ${CEREAL_THREAD_LIBS})
 add_executable(sandbox_json sandbox_json.cpp)
 target_link_libraries(sandbox_json ${CEREAL_THREAD_LIBS})
 
+add_executable(sandbox_as sandbox_as.cpp)
+target_link_libraries(sandbox_as ${CEREAL_THREAD_LIBS})
+
 add_executable(sandbox_rtti sandbox_rtti.cpp)
 target_link_libraries(sandbox_rtti ${CEREAL_THREAD_LIBS})
 

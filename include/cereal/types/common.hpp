@@ -35,7 +35,7 @@ struct enum_underlying_type : std::false_type {};
 /*! Specialization for when we actually have an enum
 	@internal */
 template <class T>
-struct enum_underlying_type<T, true> { using type = typename std::underlying_type<T>::type; };
+struct enum_underlying_type<T, true> { using type = typename std::underlying_type_t<T>; };
 
 } // namespace -------------------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ struct enum_underlying_type<T, true> { using type = typename std::underlying_typ
 template <class T>
 class is_enum {
 private:
-	using DecayedT = typename std::decay<T>::type;
+	using DecayedT = typename std::decay_t<T>;
 	using StrippedT = typename ::cereal::traits::strip_minimal<DecayedT>::type;
 
 public:
@@ -79,19 +79,19 @@ CEREAL_LOAD_MINIMAL_FUNCTION_NAME(const Archive&, T&& t,
 
 //! Serialization for raw pointers
 /*! This exists only to throw a static_assert to let users know we don't support raw pointers. */
-template <class Archive, class T> inline
-void CEREAL_SERIALIZE_FUNCTION_NAME(Archive&, T*&) {
+template <class Archive, class T>
+inline void CEREAL_SERIALIZE_FUNCTION_NAME(Archive&, T*&) {
 	static_assert(cereal::traits::detail::delay_static_assert<T>::value,
 			"Cereal does not support serializing raw pointers - please use a smart pointer");
 }
 
 //! Serialization for C style arrays
-template <class Archive, class T> inline
-typename std::enable_if<std::is_array<T>::value, void>::type
+template <class Archive, class T>
+inline typename std::enable_if<std::is_array_v<T>, void>::type
 CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, T& array) {
 	common_detail::serializeArray(ar, array,
 			std::integral_constant<bool, traits::is_output_serializable<BinaryData<T>, Archive>::value &&
-					std::is_arithmetic<typename std::remove_all_extents<T>::type>::value>());
+					std::is_arithmetic_v<typename std::remove_all_extents<T>::type>>());
 }
 
 // -------------------------------------------------------------------------------------------------

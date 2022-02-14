@@ -30,6 +30,7 @@
 #define CEREAL_ARCHIVES_JSON_HPP_
 
 #include <cereal/cereal.hpp>
+#include <cereal/concept.hpp>
 #include <cereal/details/util.hpp>
 
 
@@ -263,7 +264,7 @@ public:
 	void saveValue(double d) { itsWriter.Double(d); }
 
 	//! Saves a string to the current node
-	void saveValue(std::string const& s) { itsWriter.String(s.c_str(), static_cast<CEREAL_RAPIDJSON_NAMESPACE::SizeType>( s.size())); }
+	void saveValue(const std::string& s) { itsWriter.String(s.c_str(), static_cast<CEREAL_RAPIDJSON_NAMESPACE::SizeType>( s.size())); }
 
 	//! Saves a const char * to the current node
 	void saveValue(const char* s) { itsWriter.String(s); }
@@ -373,6 +374,62 @@ public:
 	}
 
 	//! @}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
+
+public:
+	// NVPs do not start or finish nodes - they just set up the names
+	template <class T> inline void prologue(const NameValuePair<T>&) {}
+	template <class T> inline void epilogue(const NameValuePair<T>&) {}
+
+	// Do nothing for the defer wrapper
+	template <class T> inline void prologue(const DeferredData<T>&) {}
+	template <class T> inline void epilogue(const DeferredData<T>&) {}
+
+	template <class T> inline void prologue(const SizeTag<T>&) {
+		// SizeTags are ignored, they just indicate that the current node should be made into an array
+		makeArray();
+	}
+	template <class T> inline void epilogue(const SizeTag<T>&) {}
+
+	inline void prologue(const std::nullptr_t&) {
+		writeName();
+	}
+	inline void epilogue(const std::nullptr_t&) {}
+
+	inline void prologue(const arithmetic auto&) {
+		writeName();
+	}
+	inline void epilogue(const arithmetic auto&) {}
+
+	template <class CharT, class Traits, class Alloc>
+	inline void prologue(const std::basic_string<CharT, Traits, Alloc>&) {
+		writeName();
+	}
+	template <class CharT, class Traits, class Alloc>
+	inline void epilogue(const std::basic_string<CharT, Traits, Alloc>&) {}
+
+	/// Prologue for all node types
+	/// Starts a new node, named either automatically or by some NVP,
+	/// hat may be given data by the type about to be archived
+	/// Minimal types do not start or finish nodes
+	template <class T> inline void prologue(const T&) {
+		if constexpr(
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONOutputArchive>::value &&
+				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
+			startNode();
+	}
+
+	/// Epilogue for all node types
+	/// Finishes the node created in the prologue
+	/// Minimal types do not start or finish nodes
+	template <class T> inline void epilogue(const T&) {
+		if constexpr (
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONOutputArchive>::value &&
+				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
+			finishNode();
+	}
+
 }; // JSONOutputArchive
 
 // ######################################################################
@@ -724,13 +781,13 @@ public:
 
 private:
 	//! Convert a string to a long long
-	void stringToNumber(std::string const& str, long long& val) { val = std::stoll(str); }
+	void stringToNumber(const std::string& str, long long& val) { val = std::stoll(str); }
 
 	//! Convert a string to an unsigned long long
-	void stringToNumber(std::string const& str, unsigned long long& val) { val = std::stoull(str); }
+	void stringToNumber(const std::string& str, unsigned long long& val) { val = std::stoull(str); }
 
 	//! Convert a string to a long double
-	void stringToNumber(std::string const& str, long double& val) { val = std::stold(str); }
+	void stringToNumber(const std::string& str, long double& val) { val = std::stold(str); }
 
 public:
 	//! Loads a value from the current node - long double and long long overloads
@@ -755,203 +812,72 @@ public:
 	}
 
 	//! @}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
+
+public:
+	template <class T> inline void prologue(const NameValuePair<T>&) {}
+	template <class T> inline void epilogue(const NameValuePair<T>&) {}
+
+	template <class T> inline void prologue(const DeferredData<T>&) {}
+	template <class T> inline void epilogue(const DeferredData<T>&) {}
+
+	template <class T> inline void prologue(const SizeTag<T>&) {}
+	template <class T> inline void epilogue(const SizeTag<T>&) {}
+
+	inline void prologue(const std::nullptr_t&) {}
+	inline void epilogue(const std::nullptr_t&) {}
+
+	inline void prologue(const arithmetic auto&) {}
+	inline void epilogue(const arithmetic auto&) {}
+
+	template <class CharT, class Traits, class Alloc>
+	inline void prologue(const std::basic_string<CharT, Traits, Alloc>&) {}
+	template <class CharT, class Traits, class Alloc>
+	inline void epilogue(const std::basic_string<CharT, Traits, Alloc>&) {}
+
+	/// Prologue for all node types
+	/// Minimal types do not start or finish nodes
+	template <class T> inline void prologue(const T&) {
+		if constexpr(
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
+				!traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
+			startNode();
+	}
+
+	/// Epilogue for all node types
+	/// Minimal types do not start or finish nodes
+	template <class T> inline void epilogue(const T&) {
+		if constexpr (
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
+				!traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
+			finishNode();
+	}
 };
 
-// ######################################################################
-// JSONArchive prologue and epilogue functions
-// ######################################################################
-
-// ######################################################################
-//! Prologue for NVPs for JSON archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void prologue(JSONOutputArchive&, NameValuePair<T> const&) {}
-
-//! Prologue for NVPs for JSON archives
-template <class T> inline
-void prologue(JSONInputArchive&, NameValuePair<T> const&) {}
-
-// ######################################################################
-//! Epilogue for NVPs for JSON archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void epilogue(JSONOutputArchive&, NameValuePair<T> const&) {}
-
-//! Epilogue for NVPs for JSON archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void epilogue(JSONInputArchive&, NameValuePair<T> const&) {}
-
-// ######################################################################
-//! Prologue for deferred data for JSON archives
-/*! Do nothing for the defer wrapper */
-template <class T> inline
-void prologue(JSONOutputArchive&, DeferredData<T> const&) {}
-
-//! Prologue for deferred data for JSON archives
-template <class T> inline
-void prologue(JSONInputArchive&, DeferredData<T> const&) {}
-
-// ######################################################################
-//! Epilogue for deferred for JSON archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void epilogue(JSONOutputArchive&, DeferredData<T> const&) {}
-
-//! Epilogue for deferred for JSON archives
-/*! Do nothing for the defer wrapper */
-template <class T> inline
-void epilogue(JSONInputArchive&, DeferredData<T> const&) {}
-
-// ######################################################################
-//! Prologue for SizeTags for JSON archives
-/*! SizeTags are strictly ignored for JSON, they just indicate
-	that the current node should be made into an array */
-template <class T> inline
-void prologue(JSONOutputArchive& ar, SizeTag<T> const&) {
-	ar.makeArray();
-}
-
-//! Prologue for SizeTags for JSON archives
-template <class T> inline
-void prologue(JSONInputArchive&, SizeTag<T> const&) {}
-
-// ######################################################################
-//! Epilogue for SizeTags for JSON archives
-/*! SizeTags are strictly ignored for JSON */
-template <class T> inline
-void epilogue(JSONOutputArchive&, SizeTag<T> const&) {}
-
-//! Epilogue for SizeTags for JSON archives
-template <class T> inline
-void epilogue(JSONInputArchive&, SizeTag<T> const&) {}
-
-// ######################################################################
-//! Prologue for all other types for JSON archives (except minimal types)
-/*! Starts a new node, named either automatically or by some NVP,
-	that may be given data by the type about to be archived
-
-	Minimal types do not start or finish nodes */
-template <class T, traits::EnableIf<!std::is_arithmetic<T>::value,
-		!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, JSONOutputArchive>::value,
-		!traits::has_minimal_output_serialization<T, JSONOutputArchive>::value> = traits::sfinae>
-inline void prologue(JSONOutputArchive& ar, const T&) {
-	ar.startNode();
-}
-
-//! Prologue for all other types for JSON archives
-template <class T, traits::EnableIf<!std::is_arithmetic<T>::value,
-		!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value,
-		!traits::has_minimal_input_serialization<T, JSONInputArchive>::value> = traits::sfinae>
-inline void prologue(JSONInputArchive& ar, const T&) {
-	ar.startNode();
-}
-
-// ######################################################################
-//! Epilogue for all other types other for JSON archives (except minimal types)
-/*! Finishes the node created in the prologue
-
-	Minimal types do not start or finish nodes */
-template <class T, traits::EnableIf<!std::is_arithmetic<T>::value,
-		!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, JSONOutputArchive>::value,
-		!traits::has_minimal_output_serialization<T, JSONOutputArchive>::value> = traits::sfinae>
-inline void epilogue(JSONOutputArchive& ar, const T&) {
-	ar.finishNode();
-}
-
-//! Epilogue for all other types other for JSON archives
-template <class T, traits::EnableIf<!std::is_arithmetic<T>::value,
-		!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value,
-		!traits::has_minimal_input_serialization<T, JSONInputArchive>::value> = traits::sfinae>
-inline void epilogue(JSONInputArchive& ar, const T&) {
-	ar.finishNode();
-}
-
-// ######################################################################
-//! Prologue for arithmetic types for JSON archives
-inline
-void prologue(JSONOutputArchive& ar, std::nullptr_t const&) {
-	ar.writeName();
-}
-
-//! Prologue for arithmetic types for JSON archives
-inline
-void prologue(JSONInputArchive&, std::nullptr_t const&) {}
-
-// ######################################################################
-//! Epilogue for arithmetic types for JSON archives
-inline
-void epilogue(JSONOutputArchive&, std::nullptr_t const&) {}
-
-//! Epilogue for arithmetic types for JSON archives
-inline
-void epilogue(JSONInputArchive&, std::nullptr_t const&) {}
-
-// ######################################################################
-//! Prologue for arithmetic types for JSON archives
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void prologue(JSONOutputArchive& ar, const T&) {
-	ar.writeName();
-}
-
-//! Prologue for arithmetic types for JSON archives
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void prologue(JSONInputArchive&, const T&) {}
-
-// ######################################################################
-//! Epilogue for arithmetic types for JSON archives
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void epilogue(JSONOutputArchive&, const T&) {}
-
-//! Epilogue for arithmetic types for JSON archives
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void epilogue(JSONInputArchive&, const T&) {}
-
-// ######################################################################
-//! Prologue for strings for JSON archives
-template <class CharT, class Traits, class Alloc> inline
-void prologue(JSONOutputArchive& ar, std::basic_string<CharT, Traits, Alloc> const&) {
-	ar.writeName();
-}
-
-//! Prologue for strings for JSON archives
-template <class CharT, class Traits, class Alloc> inline
-void prologue(JSONInputArchive&, std::basic_string<CharT, Traits, Alloc> const&) {}
-
-// ######################################################################
-//! Epilogue for strings for JSON archives
-template <class CharT, class Traits, class Alloc> inline
-void epilogue(JSONOutputArchive&, std::basic_string<CharT, Traits, Alloc> const&) {}
-
-//! Epilogue for strings for JSON archives
-template <class CharT, class Traits, class Alloc> inline
-void epilogue(JSONInputArchive&, std::basic_string<CharT, Traits, Alloc> const&) {}
-
-// ######################################################################
+// =================================================================================================
 // Common JSONArchive serialization functions
-// ######################################################################
+
 //! Serializing NVP types to JSON
-template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, NameValuePair<T> const& t) {
+template <class T>
+inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, NameValuePair<T> const& t) {
 	ar.setNextName(t.name);
 	ar(t.value);
 }
 
-template <class T> inline
-void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, NameValuePair<T>& t) {
+template <class T>
+inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, NameValuePair<T>& t) {
 	ar.setNextName(t.name);
 	ar(t.value);
 }
 
 //! Saving for nullptr to JSON
-inline
-void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, std::nullptr_t const& t) {
+inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const std::nullptr_t& t) {
 	ar.saveValue(t);
 }
 
 //! Loading arithmetic from JSON
-inline
-void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::nullptr_t& t) {
+inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::nullptr_t& t) {
 	ar.loadValue(t);
 }
 
@@ -969,7 +895,7 @@ void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, T& t) {
 
 //! saving string to JSON
 template <class CharT, class Traits, class Alloc> inline
-void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, std::basic_string<CharT, Traits, Alloc> const& str) {
+void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const std::basic_string<CharT, Traits, Alloc>& str) {
 	ar.saveValue(str);
 }
 

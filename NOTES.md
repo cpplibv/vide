@@ -3,7 +3,7 @@
 
 
 Type files that still have to be cleaned from cereal/cereal.hpp include:
-bitset
-base_class
-common
-polymorphic
+    common
+    polymorphic
+    base_class
+    bitset

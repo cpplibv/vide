@@ -10,6 +10,7 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/utility.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/bitset.hpp>
 
 #include <sstream>
 #include <fstream>
@@ -18,6 +19,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <bitset>
 
 
 //// ###################################
@@ -260,6 +262,9 @@
 //};
 
 // =================================================================================================
+enum class EnumType {
+	v0, v1, v2,
+};
 
 struct TestType0 {
 	int a = 0;
@@ -273,9 +278,18 @@ struct TestType0 {
 	std::string helloA = "Hello World A!";
 	std::string helloB = "Hello World B!";
 
+	std::bitset<21> bits0{42 * 1024};
+	std::bitset<21> bits1{42 * 1024 + 1};
+
+	std::complex<float> complex0{3.f, 4.f};
+	std::complex<float> complex1{5.f, 6.f};
+
+	EnumType enum0;
+	EnumType enum1;
+
 	template <class Archive>
 	void serialize(Archive& ar) {
-		a += ar.my_user_data;
+//		a += ar.my_user_data;
 
 		ar(CEREAL_NVP(a));
 		ar(b);
@@ -286,7 +300,13 @@ struct TestType0 {
 		ar(vecA);
 		ar(CEREAL_NVP(vecB));
 		ar(helloA);
-//		ar(CEREAL_NVP(helloB));
+		ar(CEREAL_NVP(helloB));
+		ar(bits0);
+		ar(CEREAL_NVP(bits1));
+		ar(complex0);
+		ar(CEREAL_NVP(complex1));
+		ar(enum0);
+		ar(CEREAL_NVP(enum1));
 	}
 };
 
@@ -423,7 +443,8 @@ int main() {
 		UserContextedArchive<cereal::JSONOutputArchive> ctxar(oar);
 
 		TestType0 t0;
-		ctxar(t0);
+//		ctxar(t0);
+		oar(t0);
 //		ctxar.template operator()<int>(t0.b);
 	}
 

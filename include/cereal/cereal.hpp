@@ -107,22 +107,6 @@ inline DeferredData<T> defer(T&& value) {
 }
 
 // ######################################################################
-//! Called before a type is serialized to set up any special archive state
-//! for processing some type
-/*! If designing a serializer that needs to set up any kind of special
-	state or output extra information for a type, specialize this function
-	for the archive type and the types that require the extra information.
-	@ingroup Internal */
-template <class Archive, class T>
-inline void prologue(Archive& /* archive */, const T& /* data */) {}
-
-//! Called after a type is serialized to tear down any special archive state
-//! for processing some type
-/*! @ingroup Internal */
-template <class Archive, class T>
-inline void epilogue(Archive& /* archive */, const T& /* data */) {}
-
-// ######################################################################
 //! Special flags for archives
 /*! AllowEmptyClassElision
 	  This allows for empty classes to be serialized even if they do not provide
@@ -394,22 +378,33 @@ public:
 			return id->second;
 	}
 
+protected:
+	//! Called before a type is serialized to set up any special archive state
+	//! for processing some type
+	template <class T>
+	inline void prologue(const T&) {}
+
+	//! Called after a type is serialized to tear down any special archive state
+	//! for processing some type
+	template <class T>
+	inline void epilogue(const T&) {}
+
 public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
 	inline void process_as(As& as, T&& var) {
-		prologue(self(), var);
+		self().prologue(var);
 		self().processImpl(as, var);
-		epilogue(self(), var);
+		self().epilogue(var);
 	}
 
 private:
 	//! Serializes data after calling prologue, then calls epilogue
 	template <class T>
 	inline void process(T&& var) {
-		prologue(self(), var);
+		self().prologue(var);
 		self().processImpl(self(), var);
-		epilogue(self(), var);
+		self().epilogue(var);
 	}
 
 	//! Serialization of a virtual_base_class wrapper
@@ -744,27 +739,38 @@ public:
 		@internal
 		@param id The unique identifier for the polymorphic type
 		@param name The name associated with the tyep */
-	inline void registerPolymorphicName(std::uint32_t const id, std::string const& name) {
+	inline void registerPolymorphicName(std::uint32_t const id, const std::string& name) {
 		std::uint32_t const stripped_id = id & ~detail::msb_32bit;
 		itsPolymorphicTypeMap.insert({stripped_id, name});
 	}
 
 public:
+	//! Called before a type is serialized to set up any special archive state
+	//! for processing some type
+	template <class T>
+	inline void prologue(const T&) {}
+
+	//! Called after a type is serialized to tear down any special archive state
+	//! for processing some type
+	template <class T>
+	inline void epilogue(const T&) {}
+
+public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
 	inline void process_as(As& as, T&& var) {
-		prologue(self(), var);
+		self().prologue(var);
 		self().processImpl(as, var);
-		epilogue(self(), var);
+		self().epilogue(var);
 	}
 
 private:
 	//! Serializes data after calling prologue, then calls epilogue
 	template <class T>
 	inline void process(T&& var) {
-		prologue(self(), var);
+		self().prologue(var);
 		self().processImpl(self(), var);
-		epilogue(self(), var);
+		self().epilogue(var);
 	}
 
 	//! Serialization of a virtual_base_class wrapper

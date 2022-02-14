@@ -360,6 +360,49 @@ public:
 	bool hasSizeAttributes() const { return itsSizeAttributes; }
 
 	//! @}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
+
+public:
+	/*! NVPs do not start or finish nodes - they just set up the names */
+	template <class T> inline void prologue(const NameValuePair<T>&) {}
+	template <class T> inline void epilogue(const NameValuePair<T>&) {}
+
+	/*! Do nothing for the defer wrapper */
+	template <class T> inline void prologue(const DeferredData<T>&) {}
+	template <class T> inline void epilogue(const DeferredData<T>&) {}
+
+	/*! SizeTags do not start or finish nodes */
+	template <class T> inline void prologue(const SizeTag<T>&) {
+		if (hasSizeAttributes()) {
+			appendAttribute("size", "dynamic");
+		}
+	}
+	template <class T> inline void epilogue(const SizeTag<T>&) {}
+
+	/// Prologue for all other types for XML output archives (except minimal types)
+	/*! Starts a new node, named either automatically or by some NVP,
+		that may be given data by the type about to be archived
+		Minimal types do not start or end nodes */
+	template <class T> inline void prologue(const T&) {
+		if constexpr (
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value &&
+				!traits::has_minimal_output_serialization<T, XMLOutputArchive>::value) {
+			startNode();
+			insertType<T>();
+		}
+	}
+
+	/// Epilogue for all other types other for XML output archives (except minimal types)
+	/*! Finishes the node created in the prologue
+		Minimal types do not start or end nodes */
+	template <class T> inline void epilogue(const T&) {
+		if constexpr (
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value &&
+				!traits::has_minimal_output_serialization<T, XMLOutputArchive>::value)
+			finishNode();
+	}
+
 }; // XMLOutputArchive
 
 // ######################################################################
@@ -721,112 +764,41 @@ protected:
 	}
 
 	//! @}
-};
 
-// ######################################################################
-// XMLArchive prologue and epilogue functions
-// ######################################################################
+	// --- prologue / epilogue -------------------------------------------------------------------------
 
-// ######################################################################
-//! Prologue for NVPs for XML output archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void prologue(XMLOutputArchive&, NameValuePair<T> const&) {}
+public:
+	template <class T> inline void prologue(const NameValuePair<T>&) {}
 
-//! Prologue for NVPs for XML input archives
-template <class T> inline
-void prologue(XMLInputArchive&, NameValuePair<T> const&) {}
+	template <class T> inline void epilogue(const NameValuePair<T>&) {}
 
-// ######################################################################
-//! Epilogue for NVPs for XML output archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void epilogue(XMLOutputArchive&, NameValuePair<T> const&) {}
+	//! Prologue for deferred data for XML archives
+	template <class T> inline void prologue(const DeferredData<T>&) {}
 
-//! Epilogue for NVPs for XML input archives
-template <class T> inline
-void epilogue(XMLInputArchive&, NameValuePair<T> const&) {}
+	//! Epilogue for deferred for XML archives
+	/*! Do nothing for the defer wrapper */
+	template <class T> inline void epilogue(const DeferredData<T>&) {}
 
-// ######################################################################
-//! Prologue for deferred data for XML archives
-/*! Do nothing for the defer wrapper */
-template <class T> inline
-void prologue(XMLOutputArchive&, DeferredData<T> const&) {}
+	template <class T> inline void prologue(const SizeTag<T>&) {}
 
-//! Prologue for deferred data for XML archives
-template <class T> inline
-void prologue(XMLInputArchive&, DeferredData<T> const&) {}
+	template <class T> inline void epilogue(const SizeTag<T>&) {}
 
-// ######################################################################
-//! Epilogue for deferred for XML archives
-/*! NVPs do not start or finish nodes - they just set up the names */
-template <class T> inline
-void epilogue(XMLOutputArchive&, DeferredData<T> const&) {}
-
-//! Epilogue for deferred for XML archives
-/*! Do nothing for the defer wrapper */
-template <class T> inline
-void epilogue(XMLInputArchive&, DeferredData<T> const&) {}
-
-// ######################################################################
-//! Prologue for SizeTags for XML output archives
-/*! SizeTags do not start or finish nodes */
-template <class T> inline
-void prologue(XMLOutputArchive& ar, SizeTag<T> const&) {
-	if (ar.hasSizeAttributes()) {
-		ar.appendAttribute("size", "dynamic");
+	//! Prologue for all other types for XML input archives (except minimal types)
+	template <class T> inline void prologue(const T&) {
+		if constexpr (
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLInputArchive>::value &&
+				!traits::has_minimal_output_serialization<T, XMLInputArchive>::value)
+			startNode();
 	}
-}
 
-template <class T> inline
-void prologue(XMLInputArchive&, SizeTag<T> const&) {}
-
-//! Epilogue for SizeTags for XML output archives
-/*! SizeTags do not start or finish nodes */
-template <class T> inline
-void epilogue(XMLOutputArchive&, SizeTag<T> const&) {}
-
-template <class T> inline
-void epilogue(XMLInputArchive&, SizeTag<T> const&) {}
-
-// ######################################################################
-//! Prologue for all other types for XML output archives (except minimal types)
-/*! Starts a new node, named either automatically or by some NVP,
-	that may be given data by the type about to be archived
-
-	Minimal types do not start or end nodes */
-template <class T, traits::DisableIf<
-		traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value ||
-				traits::has_minimal_output_serialization<T, XMLOutputArchive>::value> = traits::sfinae> inline
-void prologue(XMLOutputArchive& ar, const T&) {
-	ar.startNode();
-	ar.insertType<T>();
-}
-
-//! Prologue for all other types for XML input archives (except minimal types)
-template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, XMLInputArchive>::value ||
-		traits::has_minimal_input_serialization<T, XMLInputArchive>::value> = traits::sfinae> inline
-void prologue(XMLInputArchive& ar, const T&) {
-	ar.startNode();
-}
-
-// ######################################################################
-//! Epilogue for all other types other for XML output archives (except minimal types)
-/*! Finishes the node created in the prologue
-
-	Minimal types do not start or end nodes */
-template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value ||
-		traits::has_minimal_output_serialization<T, XMLOutputArchive>::value> = traits::sfinae> inline
-void epilogue(XMLOutputArchive& ar, const T&) {
-	ar.finishNode();
-}
-
-//! Epilogue for all other types other for XML output archives (except minimal types)
-template <class T, traits::DisableIf<traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, XMLInputArchive>::value ||
-		traits::has_minimal_input_serialization<T, XMLInputArchive>::value> = traits::sfinae> inline
-void epilogue(XMLInputArchive& ar, const T&) {
-	ar.finishNode();
-}
+	//! Epilogue for all other types other for XML output archives (except minimal types)
+	template <class T> inline void epilogue(const T&) {
+		if constexpr (
+				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, XMLInputArchive>::value &&
+				!traits::has_minimal_input_serialization<T, XMLInputArchive>::value)
+			finishNode();
+	}
+};
 
 // ######################################################################
 // Common XMLArchive serialization functions
@@ -834,7 +806,7 @@ void epilogue(XMLInputArchive& ar, const T&) {
 
 //! Saving NVP types to XML
 template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, NameValuePair<T> const& t) {
+void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, const NameValuePair<T>& t) {
 	ar.setNextName(t.name);
 	ar(t.value);
 }
@@ -849,7 +821,7 @@ void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, NameValuePair<T>& t) {
 // ######################################################################
 //! Saving SizeTags to XML
 template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive&, SizeTag<T> const&) {}
+void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive&, const SizeTag<T>&) {}
 
 //! Loading SizeTags from XML
 template <class T> inline

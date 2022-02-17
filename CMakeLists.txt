@@ -138,6 +138,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
 
 elseif (CMAKE_BUILD_TYPE STREQUAL "DEV")
     add_compile_options(-O3)
+#    add_compile_options(-ftemplate-backtrace-limit=0)
 
 else ()
     message(WARNING "Failed to identify [${CMAKE_BUILD_TYPE}] as a build type")

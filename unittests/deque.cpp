@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("deque");
 
-TEST_CASE("binary_dequeue")
-{
-  test_deque<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_dequeue")
-{
-  test_deque<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("deque", test_deque)
 
-TEST_CASE("xml_dequeue")
-{
-  test_deque<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_dequeue")
-{
-  test_deque<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

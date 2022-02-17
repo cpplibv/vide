@@ -26,13 +26,14 @@ This fork is experimental and wishes to alter multiple core functionality of the
   - Pro: Alternative syntax are more clear and has same number of character, and has better auto formatting
   - Pro: More clear evaluation order, less variadic template
   - Con: More breakage
+- Add proxy archives (A way to inject context information into the serialization chain)
+  - NOTE: polymorphic serialization will fall back to the underlying archives and not use the proxy
 
 
 Planned:
 - Add safe/unsafe data serialization support
   - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
 - Improved compile time performance
-- Add context wrapped archives
 - Maybe: Context variables passed as additional function arguments
 - Change name to cerealv or cev to indicate the incompatibility with upstream
 

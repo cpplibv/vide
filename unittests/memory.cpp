@@ -29,44 +29,9 @@
 
 TEST_SUITE_BEGIN("memory");
 
-TEST_CASE("binary_memory")
-{
-  test_memory<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_memory")
-{
-  test_memory<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("memory", test_memory)
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("default_construction", test_default_construction)
 
-TEST_CASE("xml_memory")
-{
-  test_memory<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_memory")
-{
-  test_memory<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
-
-TEST_CASE("binary_default_construction")
-{
-  test_default_construction<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
-
-TEST_CASE("portable_binary_default_construction")
-{
-  test_default_construction<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
-
-TEST_CASE("xml_default_construction")
-{
-  test_default_construction<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_default_construction")
-{
-  test_default_construction<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

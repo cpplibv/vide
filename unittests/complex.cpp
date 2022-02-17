@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("complex");
 
-TEST_CASE("binary_complex")
-{
-  test_complex<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_complex")
-{
-  test_complex<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("complex", test_complex)
 
-TEST_CASE("xml_complex")
-{
-  test_complex<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_complex")
-{
-  test_complex<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

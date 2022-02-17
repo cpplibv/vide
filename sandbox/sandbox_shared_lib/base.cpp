@@ -4,6 +4,6 @@
 #include "base.hpp"
 
 template void Base::serialize<cereal::XMLOutputArchive>
-    ( cereal::XMLOutputArchive & ar, std::uint32_t const version );
+    ( cereal::XMLOutputArchive & ar, const std::uint32_t version );
 template void Base::serialize<cereal::XMLInputArchive>
-    ( cereal::XMLInputArchive & ar, std::uint32_t const version );
+    ( cereal::XMLInputArchive & ar, const std::uint32_t version );

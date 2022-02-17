@@ -32,7 +32,6 @@
 #include <utility>
 
 #include <cereal/access_fwd.hpp>
-#include <cereal/construct_fwd.hpp>
 #include <cereal/macros.hpp>
 
 

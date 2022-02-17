@@ -25,147 +25,124 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include "basic_string.hpp"
+
 
 TEST_SUITE_BEGIN("basic_string");
 
-TEST_CASE("binary_string")
-{
-  test_string_all<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_string")
-{
-  test_string_all<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("string_basic", test_string_basic)
 
-TEST_CASE("xml_string_basic")
-{
-  test_string_basic<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_string_basic")
-{
-  test_string_basic<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 template <class IArchive, class OArchive, class Out, class In = Out>
-void test_ws_in_out(Out const & o_value_with_ws)
-{
-  std::ostringstream os;
-  {
-    OArchive oar(os);
-    oar(o_value_with_ws);
-  }
+void test_ws_in_out(Out const& o_value_with_ws) {
+	std::ostringstream os;
+	{
+		OArchive oar(os);
+		oar(o_value_with_ws);
+	}
 
-  In i_value_with_ws;
+	In i_value_with_ws;
 
-  std::istringstream is(os.str());
-  {
-    IArchive iar(is);
-    iar(i_value_with_ws);
-  }
+	std::istringstream is(os.str());
+	{
+		IArchive iar(is);
+		iar(i_value_with_ws);
+	}
 
-  CHECK(i_value_with_ws == o_value_with_ws);
+	CHECK(i_value_with_ws == o_value_with_ws);
 }
 
 TEST_CASE("xml_string_issue109")
 {
-  char strings[][20] = {
-    "some text",
-    "some text ",
-    " some text",
-    " some text ",
-    "  ",
-    "    text    ",
-    " ]]> ",
-    " &gt; > ]]> ",
-    " < <]>] &lt; ",
-    " &amp; &   "
-  };
+	char strings[][20] = {
+			"some text",
+			"some text ",
+			" some text",
+			" some text ",
+			"  ",
+			"    text    ",
+			" ]]> ",
+			" &gt; > ]]> ",
+			" < <]>] &lt; ",
+			" &amp; &   "
+	};
 
-  for( size_t i=0; i<( sizeof( strings ) / sizeof( strings[0] ) ); ++i )
-  {
-    std::basic_string<char> o_string = strings[i];
+	for (size_t i = 0; i < (sizeof(strings) / sizeof(strings[0])); ++i) {
+		std::basic_string<char> o_string = strings[i];
 
-    test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>( o_string );
-  }
+		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(o_string);
+	}
 }
 
 TEST_CASE("xml_char_issue109")
 {
-  uint8_t chars[] = {
-    ' ',
-    '\t',
-    '\n',
-    '\r',
-    '&',
-    '>',
-    '<',
-    '\'',
-    '"',
-    '!',
-    '|'
-  };
+	uint8_t chars[] = {
+			' ',
+			'\t',
+			'\n',
+			'\r',
+			'&',
+			'>',
+			'<',
+			'\'',
+			'"',
+			'!',
+			'|'
+	};
 
-  for( size_t i=0; i<( sizeof( chars ) / sizeof( chars[0] ) ); ++i )
-  {
-    test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>( chars[i] );
-  }
+	for (size_t i = 0; i < (sizeof(chars) / sizeof(chars[0])); ++i) {
+		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(chars[i]);
+	}
 
-  for( size_t i=0; i<( sizeof( chars ) / sizeof( chars[0] ) ); ++i )
-  {
-    test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>( int8_t( chars[i] ) );
-  }
+	for (size_t i = 0; i < (sizeof(chars) / sizeof(chars[0])); ++i) {
+		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(int8_t(chars[i]));
+	}
 
-  for( size_t i=0; i<( sizeof( chars ) / sizeof( chars[0] ) ); ++i )
-  {
-    test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>( char( chars[i] ) );
-  }
+	for (size_t i = 0; i < (sizeof(chars) / sizeof(chars[0])); ++i) {
+		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(char(chars[i]));
+	}
 }
 
 template <class IArchive, class OArchive, class Out, size_t Nb, class In = Out>
-void test_ws_in_out_array(Out const (&o_a_value_with_ws)[Nb])
-{
-    std::ostringstream os;
-    {
-        OArchive oar(os);
-        for (const auto& o_value_with_ws : o_a_value_with_ws)
-        {
-            oar(o_value_with_ws);
-        }
-    }
+void test_ws_in_out_array(Out const (& o_a_value_with_ws)[Nb]) {
+	std::ostringstream os;
+	{
+		OArchive oar(os);
+		for (const auto& o_value_with_ws : o_a_value_with_ws) {
+			oar(o_value_with_ws);
+		}
+	}
 
-    In i_a_value_with_ws[Nb];
+	In i_a_value_with_ws[Nb];
 
-    std::istringstream is(os.str());
-    {
-        IArchive iar(is);
-        for (In& i_value_with_ws : i_a_value_with_ws)
-        {
-            iar(i_value_with_ws);
-        }
-    }
+	std::istringstream is(os.str());
+	{
+		IArchive iar(is);
+		for (In& i_value_with_ws : i_a_value_with_ws) {
+			iar(i_value_with_ws);
+		}
+	}
 
-    for (size_t uiIndex = 0; uiIndex < Nb; ++uiIndex)
-    {
-        CHECK(i_a_value_with_ws[uiIndex] == o_a_value_with_ws[uiIndex]);
-    }
+	for (size_t uiIndex = 0; uiIndex < Nb; ++uiIndex) {
+		CHECK(i_a_value_with_ws[uiIndex] == o_a_value_with_ws[uiIndex]);
+	}
 }
 
 TEST_CASE("xml_string_issue_consecutive_calls")
 {
-    std::string strings[] = {
-        "some text",
-        " some text",
-        " some text ",
-        "Long text without ws at the end",
-        "some text ",
-        " some text",
-        " some text ",
-    };
+	std::string strings[] = {
+			"some text",
+			" some text",
+			" some text ",
+			"Long text without ws at the end",
+			"some text ",
+			" some text",
+			" some text ",
+	};
 
-    test_ws_in_out_array<cereal::XMLInputArchive, cereal::XMLOutputArchive>(strings);
+	test_ws_in_out_array<cereal::XMLInputArchive, cereal::XMLOutputArchive>(strings);
 }
 
 TEST_SUITE_END();

@@ -29,46 +29,12 @@
 
 TEST_SUITE_BEGIN("versioning");
 
-TEST_CASE("binary_versioning")
-{
-  test_versioning<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_versioning")
-{
-  test_versioning<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
-
-TEST_CASE("xml_versioning")
-{
-  test_versioning<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_versioning")
-{
-  test_versioning<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning", test_versioning)
 
 #if CEREAL_THREAD_SAFE
-TEST_CASE("binary_versioning_threading")
-{
-  test_versioning_threading<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
-
-TEST_CASE("portable_binary_versioning_threading")
-{
-  test_versioning_threading<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
-
-TEST_CASE("xml_versioning_threading")
-{
-  test_versioning_threading<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_versioning_threading")
-{
-  test_versioning_threading<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning_threading", test_versioning_threading)
 #endif // CEREAL_THREAD_SAFE
+
 
 TEST_SUITE_END();

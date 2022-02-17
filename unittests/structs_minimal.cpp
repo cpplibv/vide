@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("structs_minimal");
 
-TEST_CASE("binary_structs_minimal")
-{
-  test_structs_minimal<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_structs_minimal")
-{
-  test_structs_minimal<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("structs_minimal", test_structs_minimal)
 
-TEST_CASE("xml_structs_minimal")
-{
-  test_structs_minimal<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_structs_minimal")
-{
-  test_structs_minimal<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

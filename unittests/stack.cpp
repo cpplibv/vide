@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("stack");
 
-TEST_CASE("binary_stack")
-{
-  test_stack<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_stack")
-{
-  test_stack<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("stack", test_stack)
 
-TEST_CASE("xml_stack")
-{
-  test_stack<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_stack")
-{
-  test_stack<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

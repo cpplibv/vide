@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("memory_cycles");
 
-TEST_CASE("binary_memory_cycles")
-{
-  test_memory_cycles<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_memory_cycles")
-{
-  test_memory_cycles<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("memory_cycles", test_memory_cycles)
 
-TEST_CASE("xml_memory_cycles")
-{
-  test_memory_cycles<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_memory_cycles")
-{
-  test_memory_cycles<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

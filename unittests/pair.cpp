@@ -29,23 +29,8 @@
 
 TEST_SUITE_BEGIN("pair");
 
-TEST_CASE("binary_pair")
-{
-  test_pair<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_pair")
-{
-  test_pair<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("pair", test_pair)
 
-TEST_CASE("xml_pair")
-{
-  test_pair<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-TEST_CASE("json_pair")
-{
-  test_pair<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

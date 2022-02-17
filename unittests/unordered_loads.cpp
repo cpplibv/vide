@@ -25,18 +25,26 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include "unordered_loads.hpp"
+
 
 TEST_SUITE_BEGIN("unordered_loads");
 
-TEST_CASE("xml_unordered_loads")
-{
-  test_unordered_loads<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
+TEST_CASE("xml_unordered_loads") {
+	test_unordered_loads<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
 }
 
-TEST_CASE("json_unordered_loads")
-{
-  test_unordered_loads<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
+TEST_CASE("json_unordered_loads") {
+	test_unordered_loads<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
+}
+
+TEST_CASE("proxy xml_unordered_loads") {
+	test_unordered_loads<ProxyTestGroup<cereal::XMLInputArchive>, ProxyTestGroup<cereal::XMLOutputArchive>>();                      \
+}
+
+TEST_CASE("proxy json_unordered_loads") {
+	test_unordered_loads<ProxyTestGroup<cereal::JSONInputArchive>, ProxyTestGroup<cereal::JSONOutputArchive>>();                    \
 }
 
 TEST_SUITE_END();

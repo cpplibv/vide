@@ -1089,16 +1089,6 @@ struct is_same_archive : std::integral_constant<bool,
 #define CEREAL_ARCHIVE_RESTRICT(INTYPE, OUTTYPE) \
     typename std::enable_if<cereal::traits::is_same_archive<Archive, INTYPE>::value || cereal::traits::is_same_archive<Archive, OUTTYPE>::value, void>::type
 
-//! Type traits only struct used to mark an archive as human readable (text based)
-/*! Archives that wish to identify as text based/human readable should inherit from
-	this struct */
-struct TextArchive {};
-
-//! Checks if an archive is a text archive (human readable)
-template <class A>
-struct is_text_archive : std::integral_constant<bool,
-		std::is_base_of<TextArchive, detail::decay_archive<A>>::value> {
-};
 } // namespace traits
 
 } // namespace cereal

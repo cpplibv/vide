@@ -37,6 +37,7 @@
 
 namespace cereal {
 namespace bitset_detail {
+
 //! The type the bitset is encoded with
 /*! @internal */
 enum class type : uint8_t {
@@ -45,7 +46,8 @@ enum class type : uint8_t {
 	string,
 	bits
 };
-}
+
+} // namespace bitset_detail
 
 //! Serializing (save) for std::bitset when BinaryData optimization supported
 template <class Archive, size_t N,

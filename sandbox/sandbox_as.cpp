@@ -2,6 +2,8 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
 
+#include <cereal/archives/proxy_archive.hpp>
+
 #include <cereal/types/array.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/complex.hpp>
@@ -289,10 +291,10 @@ struct TestType0 {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-//		a += ar.my_user_data;
+		a += ar.my_user_data;
 
-		ar(CEREAL_NVP(a));
-		ar(b);
+		ar(a);
+		ar(CEREAL_NVP_("b", b));
 		ar(CEREAL_NVP(c));
 		ar(CEREAL_NVP(d));
 		ar(CEREAL_NVP(nullptr));
@@ -310,128 +312,12 @@ struct TestType0 {
 	}
 };
 
-template <typename CRTP, typename Ar>
-struct ContextedArchive {
-//protected:
-//	using Base = ContextedArchive<CRTP, Ar>;
-
-private:
-	Ar& ar;
-
-public:
-	explicit constexpr inline ContextedArchive(Ar& ar) : ar(ar) {}
-
-public:
-	template <typename T>
-	static constexpr bool could_serialize = Ar::template could_serialize<T>;
-
-public:
-	template <typename As, typename T>
-	inline CRTP& process_as(As& as, T&& var) {
-		ar.process_as(as, var);
-		return static_cast<CRTP&>(*this);
-	}
-
-public:
-	// Default case (traverse with process_as)
-
-	template <typename T>
-	inline CRTP& operator()(T& var) {
-		ar.process_as(static_cast<CRTP&>(*this), var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	template <typename T>
-	inline CRTP& operator()(const T& var) {
-		ar.process_as(static_cast<CRTP&>(*this), var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	// Arithmetic
-
-	template <typename T>
-		requires std::is_arithmetic_v<std::remove_cvref_t<T>>
-	inline CRTP& operator()(T& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	template <typename T>
-		requires std::is_arithmetic_v<std::remove_cvref_t<T>>
-	inline CRTP& operator()(const T& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	// NameValuePair
-
-	template <typename T>
-	inline CRTP& operator()(cereal::NameValuePair<T>& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	template <typename T>
-	inline CRTP& operator()(const cereal::NameValuePair<T>& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	// NameValuePair
-
-	template <typename T>
-	inline CRTP& operator()(cereal::SizeTag<T>& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	template <typename T>
-	inline CRTP& operator()(const cereal::SizeTag<T>& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	// Nullptr
-
-	inline CRTP& operator()(std::nullptr_t& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-	inline CRTP& operator()(const std::nullptr_t& var) {
-		ar(var);
-		return static_cast<CRTP&>(*this);
-	}
-
-//	// String
-//
-//	inline CRTP& operator()(std::nullptr_t& var) {
-//		ar(var);
-//		return static_cast<CRTP&>(*this);
-//	}
-//
-//	inline CRTP& operator()(const std::nullptr_t& var) {
-//		ar(var);
-//		return static_cast<CRTP&>(*this);
-//	}
-//
-//	//
-};
-
 template <typename Ar>
-struct UserContextedArchive : ContextedArchive<UserContextedArchive<Ar>, Ar> {
-	using ContextedArchive<UserContextedArchive<Ar>, Ar>::ContextedArchive;
+struct UserProxyArchive : cereal::ProxyArchive<UserProxyArchive<Ar>, Ar> {
+	using cereal::ProxyArchive<UserProxyArchive<Ar>, Ar>::ProxyArchive;
 
 	int my_user_data = 42;
 };
-
-//template <typename Ar>
-//struct UserContextedArchive : ContextedArchive<UserContextedArchive<Ar>, Ar> {
-//	using ContextedArchive<UserContextedArchive<Ar>, Ar>::ContextedArchive;
-//
-//
-//	int my_user_data = 42;
-//};
 
 // =================================================================================================
 
@@ -440,11 +326,11 @@ int main() {
 
 	{
 		cereal::JSONOutputArchive oar(std::cout);
-		UserContextedArchive<cereal::JSONOutputArchive> ctxar(oar);
+		UserProxyArchive<cereal::JSONOutputArchive> ctxar(oar);
 
 		TestType0 t0;
-//		ctxar(t0);
-		oar(t0);
+		ctxar(t0);
+//		oar(t0);
 //		ctxar.template operator()<int>(t0.b);
 	}
 

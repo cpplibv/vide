@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("priority_queue");
 
-TEST_CASE("binary_priority_queue")
-{
-  test_priority_queue<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_priority_queue")
-{
-  test_priority_queue<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("priority_queue", test_priority_queue)
 
-TEST_CASE("xml_priority_queue")
-{
-  test_priority_queue<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_priority_queue")
-{
-  test_priority_queue<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

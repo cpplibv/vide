@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("queue");
 
-TEST_CASE("binary_queue")
-{
-  test_queue<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_queue")
-{
-  test_queue<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("queue", test_queue)
 
-TEST_CASE("xml_queue")
-{
-  test_queue<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_queue")
-{
-  test_queue<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

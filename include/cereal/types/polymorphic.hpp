@@ -178,8 +178,8 @@ namespace cereal {
 namespace polymorphic_detail {
 //! Error message used for unregistered polymorphic types
 /*! @internal */
-#define UNREGISTERED_POLYMORPHIC_EXCEPTION(LoadSave, Name)                                                                                      \
-      throw cereal::Exception("Trying to " #LoadSave " an unregistered polymorphic type (" + Name + ").\n"                                          \
+#define UNREGISTERED_POLYMORPHIC_EXCEPTION(LoadSave, Name, ArName)                                                                                  \
+      throw cereal::Exception("Trying to " LoadSave " an unregistered polymorphic type: " + Name + " with " + ArName + ".\n"                       \
                               "Make sure your type is registered with CEREAL_REGISTER_TYPE and that the archive "                                   \
                               "you are using was included (and registered with CEREAL_REGISTER_ARCHIVE) prior to calling CEREAL_REGISTER_TYPE.\n"   \
                               "If your type is already registered and you still see this error, you may need to use CEREAL_REGISTER_DYNAMIC_INIT.");
@@ -187,7 +187,7 @@ namespace polymorphic_detail {
 //! Get an input binding from the given archive by deserializing the type meta data
 /*! @internal */
 template <class Archive>
-inline typename ::cereal::detail::InputBindingMap<Archive>::Serializers getInputBinding(Archive& ar, const std::uint32_t nameid) {
+inline typename ::cereal::detail::InputBindingMap<Archive>::Serializers aux_getInputBinding(Archive& ar, const std::uint32_t nameid) {
 	// If the nameid is zero, we serialized a null pointer
 	if (nameid == 0) {
 		typename ::cereal::detail::InputBindingMap<Archive>::Serializers emptySerializers;
@@ -203,12 +203,20 @@ inline typename ::cereal::detail::InputBindingMap<Archive>::Serializers getInput
 	} else
 		name = ar.getPolymorphicName(nameid);
 
-	const auto& bindingMap = detail::StaticObject<detail::InputBindingMap<Archive>>::getInstance().map;
+	const auto& bindingMap = detail::getBindingMapInput<Archive>();
 
 	auto binding = bindingMap.find(name);
 	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION(load, name)
+		UNREGISTERED_POLYMORPHIC_EXCEPTION("load", name, cereal::util::demangle(typeid(ar).name()))
 	return binding->second;
+}
+
+template <class Archive>
+inline auto getInputBinding(Archive& ar, const std::uint32_t nameid) {
+	if constexpr (Archive::is_proxy)
+		return aux_getInputBinding(ar.underlying(), nameid);
+	else
+		return aux_getInputBinding(ar, nameid);
 }
 
 //! Serialize a shared_ptr if the 2nd msb in the nameid is set, and if we can actually construct the pointee
@@ -284,8 +292,6 @@ serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint32_t nameid) 
 } // polymorphic_detail
 
 // =================================================================================================
-
-// ######################################################################
 // Pointer serialization for polymorphic types
 
 //! Saving std::shared_ptr for polymorphic types, abstract
@@ -304,13 +310,13 @@ CEREAL_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
 	// of an abstract object
 	//  this implies we need to do the lookup
 
-	const auto& bindingMap = detail::StaticObject<detail::OutputBindingMap<Archive>>::getInstance().map;
+	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
 	auto binding = bindingMap.find(std::type_index(ptrinfo));
 	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION(save, cereal::util::demangle(ptrinfo.name()))
+		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", cereal::util::demangle(ptrinfo.name()), cereal::util::demangle(typeid(ar).name()))
 
-	binding->second.shared_ptr(&ar, ptr.get(), tinfo);
+	binding->second.shared_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
 }
 
 //! Saving std::shared_ptr for polymorphic types, not abstract
@@ -336,13 +342,13 @@ CEREAL_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
 		return;
 	}
 
-	const auto& bindingMap = detail::StaticObject<detail::OutputBindingMap<Archive>>::getInstance().map;
+	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
 	auto binding = bindingMap.find(std::type_index(ptrinfo));
 	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION(save, cereal::util::demangle(ptrinfo.name()))
+		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", cereal::util::demangle(ptrinfo.name()), cereal::util::demangle(typeid(ar).name()))
 
-	binding->second.shared_ptr(&ar, ptr.get(), tinfo);
+	binding->second.shared_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
 }
 
 //! Loading std::shared_ptr for polymorphic types
@@ -358,7 +364,7 @@ CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::shared_ptr<T>& ptr) {
 
 	auto binding = polymorphic_detail::getInputBinding(ar, nameid);
 	std::shared_ptr<void> result;
-	binding.shared_ptr(&ar, result, typeid(T));
+	binding.shared_ptr(&to_underlying_ar(ar), result, typeid(T));
 	ptr = std::static_pointer_cast<T>(result);
 }
 
@@ -395,13 +401,13 @@ CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	// of an abstract object
 	//  this implies we need to do the lookup
 
-	const auto& bindingMap = detail::StaticObject<detail::OutputBindingMap<Archive>>::getInstance().map;
+	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
 	auto binding = bindingMap.find(std::type_index(ptrinfo));
 	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION(save, cereal::util::demangle(ptrinfo.name()))
+		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", cereal::util::demangle(ptrinfo.name()), cereal::util::demangle(typeid(ar).name()))
 
-	binding->second.unique_ptr(&ar, ptr.get(), tinfo);
+	binding->second.unique_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
 }
 
 //! Saving std::unique_ptr for polymorphic types, not abstract
@@ -427,13 +433,13 @@ CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 		return;
 	}
 
-	const auto& bindingMap = detail::StaticObject<detail::OutputBindingMap<Archive>>::getInstance().map;
+	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
 	auto binding = bindingMap.find(std::type_index(ptrinfo));
 	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION(save, cereal::util::demangle(ptrinfo.name()))
+		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", cereal::util::demangle(ptrinfo.name()), cereal::util::demangle(typeid(ar).name()))
 
-	binding->second.unique_ptr(&ar, ptr.get(), tinfo);
+	binding->second.unique_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
 }
 
 //! Loading std::unique_ptr, case when user provides load_and_construct for polymorphic types
@@ -449,7 +455,7 @@ CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D>& ptr) {
 
 	auto binding = polymorphic_detail::getInputBinding(ar, nameid);
 	std::unique_ptr<void, ::cereal::detail::EmptyDeleter<void>> result;
-	binding.unique_ptr(&ar, result, typeid(T));
+	binding.unique_ptr(&to_underlying_ar(ar), result, typeid(T));
 	ptr.reset(static_cast<T*>(result.release()));
 }
 

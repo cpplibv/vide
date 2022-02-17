@@ -25,28 +25,14 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include "array.hpp"
+
 
 TEST_SUITE_BEGIN("array");
 
-TEST_CASE("binary_array")
-{
-  test_array<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_array")
-{
-  test_array<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("array", test_array)
 
-TEST_CASE("xml_array")
-{
-  test_array<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_array")
-{
-  test_array<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -29,46 +29,12 @@
 
 TEST_SUITE_BEGIN("polymorphic");
 
-TEST_CASE("binary_polymorphic")
-{
-  test_polymorphic<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_polymorphic")
-{
-  test_polymorphic<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
-
-TEST_CASE("xml_polymorphic")
-{
-  test_polymorphic<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_polymorphic")
-{
-  test_polymorphic<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic", test_polymorphic)
 
 #if CEREAL_THREAD_SAFE
-TEST_CASE("binary_polymorphic_threading")
-{
-  test_polymorphic_threading<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
-
-TEST_CASE("portable_binary_polymorphic_threading")
-{
-  test_polymorphic_threading<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
-
-TEST_CASE("xml_polymorphic_threading")
-{
-  test_polymorphic_threading<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_polymorphic_threading")
-{
-  test_polymorphic_threading<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_threading", test_polymorphic_threading)
 #endif // CEREAL_THREAD_SAFE
+
 
 TEST_SUITE_END();

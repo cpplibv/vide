@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("forward_list");
 
-TEST_CASE("binary_forward_list")
-{
-  test_forward_list<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_forward_list")
-{
-  test_forward_list<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("forward_list", test_forward_list)
 
-TEST_CASE("xml_forward_list")
-{
-  test_forward_list<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_forward_list")
-{
-  test_forward_list<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

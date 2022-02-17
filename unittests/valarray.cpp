@@ -29,24 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 TEST_SUITE_BEGIN("valarray");
 
-TEST_CASE("binary_valarray")
-{
-  test_valarray<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_valarray")
-{
-  test_valarray<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("valarray", test_valarray)
 
-TEST_CASE("xml_valarray")
-{
-  test_valarray<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_valarray")
-{
-  test_valarray<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

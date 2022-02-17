@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("unordered_multiset");
 
-TEST_CASE("binary_unordered_multiset")
-{
-  test_unordered_multiset<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_unordered_multiset")
-{
-  test_unordered_multiset<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("unordered_multiset", test_unordered_multiset)
 
-TEST_CASE("xml_unordered_multiset")
-{
-  test_unordered_multiset<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_unordered_multiset")
-{
-  test_unordered_multiset<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("vector");
 
-TEST_CASE("binary_vector")
-{
-  test_vector<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_vector")
-{
-  test_vector<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("vector", test_vector)
 
-TEST_CASE("xml_vector")
-{
-  test_vector<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_vector")
-{
-  test_vector<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -25,28 +25,14 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include "atomic.hpp"
+
 
 TEST_SUITE_BEGIN("atomic");
 
-TEST_CASE("binary_atomic")
-{
-  test_atomic<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_atomic")
-{
-  test_atomic<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("atomic", test_atomic)
 
-TEST_CASE("xml_atomic")
-{
-  test_atomic<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_atomic")
-{
-  test_atomic<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

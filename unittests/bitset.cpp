@@ -25,28 +25,14 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 #include "bitset.hpp"
+
 
 TEST_SUITE_BEGIN("bitset");
 
-TEST_CASE("binary_bitset")
-{
-  test_bitset<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_bitset")
-{
-  test_bitset<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("bitset", test_bitset)
 
-TEST_CASE("xml_bitset")
-{
-  test_bitset<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_bitset")
-{
-  test_bitset<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("list");
 
-TEST_CASE("binary_list")
-{
-  test_list<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_list")
-{
-  test_list<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("list", test_list)
 
-TEST_CASE("xml_list")
-{
-  test_list<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_list")
-{
-  test_list<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("chrono");
 
-TEST_CASE("binary_chrono")
-{
-  test_chrono<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_chrono")
-{
-  test_chrono<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("chrono", test_chrono)
 
-TEST_CASE("xml_chrono")
-{
-  test_chrono<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_chrono")
-{
-  test_chrono<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

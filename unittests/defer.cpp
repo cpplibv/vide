@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("defer");
 
-TEST_CASE("binary_defer")
-{
-  test_defer<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_defer")
-{
-  test_defer<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("defer", test_defer)
 
-TEST_CASE("xml_defer")
-{
-  test_defer<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_defer")
-{
-  test_defer<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

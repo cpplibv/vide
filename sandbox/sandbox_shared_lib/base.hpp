@@ -30,14 +30,14 @@ class Base
     friend class cereal::access;
 
     template < class Archive >
-    void serialize(Archive &, std::uint32_t const) {}
+    void serialize(Archive &, const std::uint32_t) {}
     virtual ~Base() {}
 };
 
 extern template DECLSPECIFIER void Base::serialize<cereal::XMLInputArchive>
-( cereal::XMLInputArchive & ar, std::uint32_t const version );
+( cereal::XMLInputArchive & ar, const std::uint32_t version );
 
 extern template DECLSPECIFIER void Base::serialize<cereal::XMLOutputArchive>
-( cereal::XMLOutputArchive & ar, std::uint32_t const version );
+( cereal::XMLOutputArchive & ar, const std::uint32_t version );
 
 CEREAL_CLASS_VERSION(VersionTest, 1)

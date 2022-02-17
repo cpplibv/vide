@@ -53,6 +53,9 @@
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/archives/xml.hpp>
 #include <cereal/archives/json.hpp>
+
+#include <cereal/archives/proxy_archive.hpp>
+
 #include <limits>
 #include <random>
 
@@ -239,5 +242,72 @@ struct StructHash {
       return h1 ^ ( h2 << 1 );
     }
 };
+
+// -------------------------------------------------------------------------------------------------
+
+template <typename Ar>
+struct UserProxyArchive : cereal::ProxyArchive<UserProxyArchive<Ar>, Ar> {
+	using cereal::ProxyArchive<UserProxyArchive<Ar>, Ar>::ProxyArchive;
+
+	int my_user_data = 42;
+};
+
+template <typename Ar>
+struct ProxyStorage {
+	Ar ar;
+
+	template <typename T>
+	explicit ProxyStorage(T&& ss) : ar(ss) {}
+};
+
+template <typename Ar>
+struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
+	template <typename T>
+	explicit ProxyTestGroup(T&& ss) :
+			ProxyStorage<Ar>(ss),
+			UserProxyArchive<Ar>(ProxyStorage<Ar>::ar) {}
+};
+
+// -------------------------------------------------------------------------------------------------
+
+#define CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function)                                                                \
+	TEST_CASE("binary_" Name) {                                                                                           \
+		Function<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();                                                \
+	}                                                                                                                       \
+                                                                                                                            \
+	TEST_CASE("portable_binary_" Name) {                                                                                  \
+		Function<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();                                \
+	}                                                                                                                       \
+                                                                                                                            \
+	TEST_CASE("xml_" Name) {                                                                                              \
+		Function<cereal::XMLInputArchive, cereal::XMLOutputArchive>();                                                      \
+	}                                                                                                                       \
+                                                                                                                            \
+	TEST_CASE("json_" Name) {                                                                                             \
+		Function<cereal::JSONInputArchive, cereal::JSONOutputArchive>();                                                    \
+	}
+
+#define CREATE_TEST_CASES_FOR_PROXY_ARCHIVE(Name, Function)                                                                 \
+	TEST_CASE("proxy binary_" Name) {                                                                                     \
+		Function<ProxyTestGroup<cereal::BinaryInputArchive>, ProxyTestGroup<cereal::BinaryOutputArchive>>();                \
+	}                                                                                                                       \
+	                                                                                                                        \
+	TEST_CASE("proxy portable_binary_" Name) {                                                                            \
+		Function<ProxyTestGroup<cereal::PortableBinaryInputArchive>, ProxyTestGroup<cereal::PortableBinaryOutputArchive>>();\
+	}                                                                                                                       \
+	                                                                                                                        \
+	TEST_CASE("proxy xml_" Name) {                                                                                        \
+		Function<ProxyTestGroup<cereal::XMLInputArchive>, ProxyTestGroup<cereal::XMLOutputArchive>>();                      \
+	}                                                                                                                       \
+	                                                                                                                        \
+	TEST_CASE("proxy json_" Name) {                                                                                       \
+		Function<ProxyTestGroup<cereal::JSONInputArchive>, ProxyTestGroup<cereal::JSONOutputArchive>>();                    \
+	}
+
+#define CREATE_TEST_CASES_FOR_ALL_ARCHIVE(Name, Function) \
+	CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function)  \
+	CREATE_TEST_CASES_FOR_PROXY_ARCHIVE(Name, Function)
+
+// -------------------------------------------------------------------------------------------------
 
 #endif // CEREAL_TEST_COMMON_H_

@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("tuple");
 
-TEST_CASE("binary_tuple")
-{
-  test_tuple<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_tuple")
-{
-  test_tuple<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("tuple", test_tuple)
 
-TEST_CASE("xml_tuple")
-{
-  test_tuple<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_tuple")
-{
-  test_tuple<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

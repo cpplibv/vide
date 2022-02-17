@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("unordered_map");
 
-TEST_CASE("binary_unordered_map")
-{
-  test_unordered_map<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_unordered_map")
-{
-  test_unordered_map<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("unordered_map", test_unordered_map)
 
-TEST_CASE("xml_unordered_map")
-{
-  test_unordered_map<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_unordered_map")
-{
-  test_unordered_map<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

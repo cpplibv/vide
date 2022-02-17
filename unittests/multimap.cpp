@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("multimap");
 
-TEST_CASE("binary_multimap")
-{
-  test_multimap<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_multimap")
-{
-  test_multimap<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multimap", test_multimap)
 
-TEST_CASE("xml_multimap")
-{
-  test_multimap<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_multimap")
-{
-  test_multimap<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

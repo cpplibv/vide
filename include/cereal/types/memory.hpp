@@ -46,7 +46,7 @@ namespace memory_detail {
 	@internal */
 template <class T>
 struct PtrWrapper {
-	PtrWrapper(T&& p) : ptr(std::forward<T>(p)) {}
+	explicit PtrWrapper(T&& p) : ptr(std::forward<T>(p)) {}
 
 	T& ptr;
 
@@ -58,7 +58,7 @@ struct PtrWrapper {
 /*! @internal */
 template <class T> inline
 PtrWrapper<T> make_ptr_wrapper(T&& t) {
-	return {std::forward<T>(t)};
+	return PtrWrapper<T>{std::forward<T>(t)};
 }
 
 //! A helper struct for saving and restoring the state of types that derive from
@@ -147,7 +147,7 @@ private:
 //! Saving std::shared_ptr for non polymorphic types
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::shared_ptr<T> const& ptr) {
+CEREAL_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
 	ar(CEREAL_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 }
 
@@ -195,7 +195,7 @@ CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D>& ptr) {
 //! Saving std::shared_ptr (wrapper implementation)
 /*! @internal */
 template <class Archive, class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<std::shared_ptr<T> const&> const& wrapper) {
+void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<const std::shared_ptr<T>&> const& wrapper) {
 	auto& ptr = wrapper.ptr;
 
 	uint32_t id = ar.registerSharedPointer(ptr);

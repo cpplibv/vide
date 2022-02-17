@@ -47,6 +47,7 @@
 
 #include <cereal/details/polymorphic_impl_fwd.hpp>
 #include <cereal/details/static_object.hpp>
+#include <cereal/traits/underlying_archive.hpp>
 #include <cereal/types/memory.hpp>
 #include <cereal/types/string.hpp>
 #include <functional>
@@ -420,12 +421,12 @@ struct OutputBindingMap {
 		a pointer to actual data (contents of smart_ptr's get() function)
 		as their second parameter, and the type info of the owning smart_ptr
 		as their final parameter */
-	typedef std::function<void(void*, const void*, const std::type_info&)> Serializer;
+	using Serializer = void(*)(void*, const void*, const std::type_info&);
 
 	//! Struct containing the serializer functions for all pointer types
 	struct Serializers {
-		Serializer shared_ptr, //!< Serializer function for shared/weak pointers
-		unique_ptr; //!< Serializer function for unique pointers
+		Serializer shared_ptr; //!< Serializer function for shared/weak pointers
+		Serializer unique_ptr; //!< Serializer function for unique pointers
 	};
 
 	//! A map of serializers for pointers of all registered types
@@ -448,9 +449,9 @@ struct InputBindingMap {
 		a shared_ptr (or unique_ptr for the unique case) of any base
 		type, and the type id of said base type as the third parameter.
 		Internally it will properly be loaded and cast to the correct type. */
-	typedef std::function<void(void*, std::shared_ptr<void>&, const std::type_info&)> SharedSerializer;
+	using SharedSerializer = void(*)(void*, std::shared_ptr<void>&, const std::type_info&);
 	//! Unique ptr serializer function
-	typedef std::function<void(void*, std::unique_ptr<void, EmptyDeleter<void>>&, const std::type_info&)> UniqueSerializer;
+	using UniqueSerializer = void(*)(void*, std::unique_ptr<void, EmptyDeleter<void>>&, const std::type_info&);
 
 	//! Struct containing the serializer functions for all pointer types
 	struct Serializers {
@@ -462,9 +463,18 @@ struct InputBindingMap {
 	std::map<std::string, Serializers> map;
 };
 
+template <typename Archive>
+auto& getBindingMapOutput() {
+	return detail::StaticObject<detail::OutputBindingMap<underlying_archive_t<Archive>>>::getInstance().map;
+}
+
+template <typename Archive>
+auto& getBindingMapInput() {
+	return detail::StaticObject<detail::InputBindingMap<underlying_archive_t<Archive>>>::getInstance().map;
+}
+
 // forward decls for archives from cereal.hpp
 class InputArchiveBase;
-
 class OutputArchiveBase;
 
 //! Creates a binding (map entry) between an input archive type and a polymorphic type
@@ -475,9 +485,9 @@ class OutputArchiveBase;
 template <class Archive, class T> struct InputBindingCreator {
 	//! Initialize the binding
 	InputBindingCreator() {
-		auto& map = StaticObject<InputBindingMap < Archive>>
+		auto& map = StaticObject<InputBindingMap<Archive>>
 		::getInstance().map;
-		auto lock = StaticObject<InputBindingMap < Archive>>
+		auto lock = StaticObject<InputBindingMap<Archive>>
 		::lock();
 		auto key = std::string(binding_name<T>::name());
 		auto lb = map.lower_bound(key);
@@ -488,7 +498,7 @@ template <class Archive, class T> struct InputBindingCreator {
 		typename InputBindingMap<Archive>::Serializers serializers;
 
 		serializers.shared_ptr =
-				[](void* arptr, std::shared_ptr<void>& dptr, const std::type_info& baseInfo) {
+				+[](void* arptr, std::shared_ptr<void>& dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					std::shared_ptr<T> ptr;
 
@@ -498,7 +508,7 @@ template <class Archive, class T> struct InputBindingCreator {
 				};
 
 		serializers.unique_ptr =
-				[](void* arptr, std::unique_ptr<void, EmptyDeleter < void>> & dptr, std::type_info const &baseInfo)
+				+[](void* arptr, std::unique_ptr<void, EmptyDeleter<void>> & dptr, std::type_info const &baseInfo)
 		{
 			Archive& ar = *static_cast<Archive*>(arptr);
 			std::unique_ptr<T> ptr;
@@ -549,14 +559,14 @@ template <class Archive, class T> struct OutputBindingCreator {
 			count in a polymorphic type that inherits from std::enable_shared_from_this.
 
 			@param dptr A void pointer to the contents of the shared_ptr to serialize */
-		PolymorphicSharedPointerWrapper(T const* dptr) : refCount(), wrappedPtr(refCount, dptr) {}
+		explicit PolymorphicSharedPointerWrapper(const T* dptr) : refCount(), wrappedPtr(refCount, dptr) {}
 
 		//! Get the wrapped shared_ptr */
-		inline std::shared_ptr<T const> const& operator()() const { return wrappedPtr; }
+		inline const std::shared_ptr<const T>& operator()() const { return wrappedPtr; }
 
 	private:
 		std::shared_ptr<void> refCount;      //!< The ownership pointer
-		std::shared_ptr<T const> wrappedPtr; //!< The wrapped pointer
+		std::shared_ptr<const T> wrappedPtr; //!< The wrapped pointer
 	};
 
 	//! Does the actual work of saving a polymorphic shared_ptr
@@ -598,21 +608,17 @@ template <class Archive, class T> struct OutputBindingCreator {
 		typename OutputBindingMap<Archive>::Serializers serializers;
 
 		serializers.shared_ptr =
-				[&](void* arptr, const void* dptr, const std::type_info& baseInfo) {
+				+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 
 					auto ptr = PolymorphicCasters::template downcast<T>(dptr, baseInfo);
 
-#if defined(_MSC_VER) && _MSC_VER < 1916 && !defined(__clang__)
-					savePolymorphicSharedPtr( ar, ptr, ::cereal::traits::has_shared_from_this<T>::type() ); // MSVC doesn't like typename here
-#else // not _MSC_VER
 					savePolymorphicSharedPtr(ar, ptr, typename::cereal::traits::has_shared_from_this<T>::type());
-#endif // _MSC_VER
 				};
 
 		serializers.unique_ptr =
-				[&](void* arptr, const void* dptr, const std::type_info& baseInfo) {
+				+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 

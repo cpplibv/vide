@@ -29,44 +29,9 @@
 
 TEST_SUITE_BEGIN("map");
 
-TEST_CASE("binary_map")
-{
-  test_map<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_map")
-{
-  test_map<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("map", test_map)
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("map_memory", test_map_memory)
 
-TEST_CASE("xml_map")
-{
-  test_map<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_map")
-{
-  test_map<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
-
-TEST_CASE("binary_map_memory")
-{
-  test_map_memory<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
-
-TEST_CASE("portable_binary_map_memory")
-{
-  test_map_memory<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
-
-TEST_CASE("xml_map_memory")
-{
-  test_map_memory<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_map_memory")
-{
-  test_map_memory<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

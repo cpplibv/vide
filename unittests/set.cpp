@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("set");
 
-TEST_CASE("binary_set")
-{
-  test_set<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_set")
-{
-  test_set<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("set", test_set)
 
-TEST_CASE("xml_set")
-{
-  test_set<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_set")
-{
-  test_set<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -108,7 +108,7 @@ class JSONInputArchive;
 	that the container is variable sized and may be edited.
 
 	\ingroup Archives */
-class JSONOutputArchive : public OutputArchive<JSONOutputArchive>, public traits::TextArchive {
+class JSONOutputArchive : public OutputArchive<JSONOutputArchive, cereal::TextArchive> {
 private:
 	enum class NodeType { StartObject, InObject, StartArray, InArray };
 
@@ -375,8 +375,23 @@ public:
 
 	//! @}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
+	// --- process_as remapping ------------------------------------------------------------------------
+public:
+	using OutputArchive::process_as;
 
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
+		(void) as; // Unpack string from the AsArchive to handle it internally
+		OutputArchive::process_as(*this, str);
+	}
+
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As& as, const std::basic_string<CharT, Traits, Alloc>& str) {
+		(void) as; // Unpack string from the AsArchive to handle it internally
+		OutputArchive::process_as(*this, str);
+	}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
 public:
 	// NVPs do not start or finish nodes - they just set up the names
 	template <class T> inline void prologue(const NameValuePair<T>&) {}
@@ -470,7 +485,7 @@ public:
 	@endcode
 
 	\ingroup Archives */
-class JSONInputArchive : public InputArchive<JSONInputArchive>, public traits::TextArchive {
+class JSONInputArchive : public InputArchive<JSONInputArchive, cereal::TextArchive> {
 private:
 	using ReadStream = CEREAL_RAPIDJSON_NAMESPACE::IStreamWrapper;
 	typedef CEREAL_RAPIDJSON_NAMESPACE::GenericValue<CEREAL_RAPIDJSON_NAMESPACE::UTF8<>> JSONValue;
@@ -813,8 +828,18 @@ public:
 
 	//! @}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
+	// --- process_as remapping ------------------------------------------------------------------------
+public:
+	using InputArchive::process_as;
 
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
+
+		(void) as; // Unpack string from the AsArchive to handle it internally
+		InputArchive::process_as(*this, str);
+	}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
 public:
 	template <class T> inline void prologue(const NameValuePair<T>&) {}
 	template <class T> inline void epilogue(const NameValuePair<T>&) {}
@@ -860,7 +885,7 @@ public:
 
 //! Serializing NVP types to JSON
 template <class T>
-inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, NameValuePair<T> const& t) {
+inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const NameValuePair<T>& t) {
 	ar.setNextName(t.name);
 	ar(t.value);
 }
@@ -882,39 +907,39 @@ inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::nullptr_t& t) {
 }
 
 //! Saving for arithmetic to JSON
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const T& t) {
+template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae>
+inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const T& t) {
 	ar.saveValue(t);
 }
 
 //! Loading arithmetic from JSON
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, T& t) {
+template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae>
+inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, T& t) {
 	ar.loadValue(t);
 }
 
 //! saving string to JSON
-template <class CharT, class Traits, class Alloc> inline
-void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const std::basic_string<CharT, Traits, Alloc>& str) {
+template <class CharT, class Traits, class Alloc>
+inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const std::basic_string<CharT, Traits, Alloc>& str) {
 	ar.saveValue(str);
 }
 
 //! loading string from JSON
-template <class CharT, class Traits, class Alloc> inline
-void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
+template <class CharT, class Traits, class Alloc>
+inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
 	ar.loadValue(str);
 }
 
 // ######################################################################
 //! Saving SizeTags to JSON
-template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive&, SizeTag<T> const&) {
+template <class T>
+inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive&, const SizeTag<T>&) {
 	// nothing to do here, we don't explicitly save the size
 }
 
 //! Loading SizeTags from JSON
-template <class T> inline
-void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, SizeTag<T>& st) {
+template <class T>
+inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, SizeTag<T>& st) {
 	ar.loadSize(st.size);
 }
 } // namespace cereal

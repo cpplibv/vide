@@ -29,24 +29,8 @@
 
 TEST_SUITE_BEGIN("structs");
 
-TEST_CASE("binary_structs")
-{
-  test_structs<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();
-}
 
-TEST_CASE("portable_binary_structs")
-{
-  test_structs<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();
-}
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("structs", test_structs)
 
-TEST_CASE("xml_structs")
-{
-  test_structs<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
-}
-
-TEST_CASE("json_structs")
-{
-  test_structs<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
-}
 
 TEST_SUITE_END();

@@ -63,10 +63,6 @@ inline bool isWhitespace(char c) {
 }
 }
 
-class XMLOutputArchive;
-
-class XMLInputArchive;
-
 // ######################################################################
 //! An output archive designed to save data to XML
 /*! This archive uses RapidXML to build an in memory XML tree of the
@@ -96,7 +92,7 @@ class XMLInputArchive;
 	is accomplished through the cereal::SizeTag object, which will also add an attribute
 	to its parent field.
 	\ingroup Archives */
-class XMLOutputArchive : public OutputArchive<XMLOutputArchive>, public traits::TextArchive {
+class XMLOutputArchive : public OutputArchive<XMLOutputArchive, cereal::TextArchive> {
 protected:
 	//! A struct that contains metadata about a node
 	struct NodeInfo {
@@ -361,8 +357,23 @@ public:
 
 	//! @}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
+	// --- process_as remapping ------------------------------------------------------------------------
+public:
+	using OutputArchive::process_as;
 
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
+		(void) as; // Unpack string from the AsArchive to handle it internally
+		OutputArchive::process_as(*this, str);
+	}
+
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As& as, const std::basic_string<CharT, Traits, Alloc>& str) {
+		(void) as; // Unpack string from the AsArchive to handle it internally
+		OutputArchive::process_as(*this, str);
+	}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
 public:
 	/*! NVPs do not start or finish nodes - they just set up the names */
 	template <class T> inline void prologue(const NameValuePair<T>&) {}
@@ -444,7 +455,7 @@ public:
 	@endcode
 
 	\ingroup Archives */
-class XMLInputArchive : public InputArchive<XMLInputArchive>, public traits::TextArchive {
+class XMLInputArchive : public InputArchive<XMLInputArchive, cereal::TextArchive> {
 private:
 	//! A struct that contains metadata about a node
 	/*! Keeps track of some top level node, its number of
@@ -765,8 +776,18 @@ protected:
 
 	//! @}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
+	// --- process_as remapping ------------------------------------------------------------------------
+public:
+	using InputArchive::process_as;
 
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
+
+		(void) as; // Unpack string from the AsArchive to handle it internally
+		InputArchive::process_as(*this, str);
+	}
+
+	// --- prologue / epilogue -------------------------------------------------------------------------
 public:
 	template <class T> inline void prologue(const NameValuePair<T>&) {}
 

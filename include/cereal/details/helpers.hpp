@@ -43,20 +43,14 @@
 
 
 namespace cereal {
+
 // ######################################################################
 //! An exception class thrown when things go wrong at runtime
 /*! @ingroup Utility */
 struct Exception : public std::runtime_error {
 	explicit Exception(const std::string& what_) : std::runtime_error(what_) {}
-
 	explicit Exception(const char* what_) : std::runtime_error(what_) {}
 };
-
-
-// forward decls
-class BinaryOutputArchive;
-
-class BinaryInputArchive;
 
 // ######################################################################
 
@@ -95,7 +89,7 @@ public:
 				 only pass r-values in cases where this makes sense, such as the result of some
 				 size() call.
 		@internal */
-	DeferredData(T&& v) : value(std::forward<T>(v)) {}
+	explicit DeferredData(T&& v) : value(std::forward<T>(v)) {}
 
 	Type value;
 };

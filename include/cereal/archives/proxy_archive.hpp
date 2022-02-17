@@ -40,14 +40,12 @@ public:
 public:
 	template <typename T>
 	inline CRTP& operator()(T&& var) {
-		ar.process_as(static_cast<CRTP&>(*this), var);
-		return static_cast<CRTP&>(*this);
+		return process_as(static_cast<CRTP&>(*this), std::forward<T>(var));
 	}
 
 	template <typename T>
 	inline CRTP& operator&(T&& var) {
-		ar.process_as(static_cast<CRTP&>(*this), var);
-		return static_cast<CRTP&>(*this);
+		return process_as(static_cast<CRTP&>(*this), std::forward<T>(var));
 	}
 
 public:
@@ -80,6 +78,16 @@ public:
 			return ar.underlying();
 		else
 			return ar;
+	}
+
+	template <class T>
+	inline void prologue(T&& t) {
+		ar.prologue(std::forward<T>(t));
+	}
+
+	template <class T>
+	inline void epilogue(T&& t) {
+		ar.epilogue(std::forward<T>(t));
 	}
 };
 

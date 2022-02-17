@@ -33,7 +33,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -41,10 +40,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include <cereal/binary_data.hpp>
 #include <cereal/details/bits.hpp>
 #include <cereal/details/helpers.hpp>
 #include <cereal/details/traits.hpp>
-#include <cereal/binary_data.hpp>
 #include <cereal/macros.hpp>
 #include <cereal/nvp.hpp>
 #include <cereal/size_tag.hpp>
@@ -248,8 +247,9 @@ public:
 	static constexpr bool is_text_archive = (Flags & cereal::TextArchive) != 0;
 
 	template <typename T>
-	static constexpr bool could_serialize = not requires(ArchiveType& ar, const T& t) {
-		{ ar.processImpl(ar, t) } -> std::same_as<unserializable_type_tag>;
+	static constexpr bool could_serialize = requires(ArchiveType& ar, const T& t) {
+		// unserializable_type_tag is returned on the fault branch
+		{ ar.processImpl(ar, t) } -> std::same_as<void>;
 	};
 
 private:
@@ -304,13 +304,6 @@ public:
 		return self();
 	}
 
-	//! Serializes any data marked for deferment using defer
-	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
-	void serializeDeferments() {
-		for (auto& deferment : itsDeferments)
-			deferment();
-	}
-
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
 		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
@@ -338,6 +331,13 @@ public:
 
 	//! @}
 
+	//! Serializes any data marked for deferment using defer
+	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
+	void serializeDeferments() {
+		for (auto& deferment : itsDeferments)
+			deferment();
+	}
+
 	//! Registers a shared pointer with the archive
 	/*! This function is used to track shared pointer targets to prevent
 		unnecessary saves from taking place if multiple shared pointers
@@ -352,7 +352,8 @@ public:
 		const void* addr = sharedPointer.get();
 
 		// Handle null pointers by just returning 0
-		if (addr == nullptr) return 0;
+		if (addr == nullptr)
+			return 0;
 		itsSharedPointerStorage.push_back(sharedPointer);
 
 		auto id = itsSharedPointerMap.find(addr);
@@ -382,7 +383,7 @@ public:
 			return id->second;
 	}
 
-protected:
+public:
 	//! Called before a type is serialized to set up any special archive state
 	//! for processing some type
 	template <class T>
@@ -396,24 +397,22 @@ protected:
 public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
-	inline void process_as(As& as, T&& var) {
-		self().prologue(var);
+	inline void process_as(As& as, const T& var) {
+		as.prologue(var);
 
 		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
 			self().processImpl(self(), var);
 		else
 			self().processImpl(as, var);
 
-		self().epilogue(var);
+		as.epilogue(var);
 	}
 
 private:
-	//! Serializes data after calling prologue, then calls epilogue
+	//! Serializes data
 	template <class T>
 	inline void process(T&& var) {
-		self().prologue(var);
-		self().processImpl(self(), var);
-		self().epilogue(var);
+		self().process_as(self(), var);
 	}
 
 	//! Serialization of a virtual_base_class wrapper
@@ -621,8 +620,9 @@ public:
 	static constexpr bool is_text_archive = (Flags & cereal::TextArchive) != 0;
 
 	template <typename T>
-	static constexpr bool could_serialize = not requires(ArchiveType& ar, T& t) {
-		{ ar.processImpl(ar, t) } -> std::same_as<unserializable_type_tag>;
+	static constexpr bool could_serialize = requires(ArchiveType& ar, T& t) {
+		// unserializable_type_tag is returned on the fault branch
+		{ ar.processImpl(ar, t) } -> std::same_as<void>;
 	};
 
 private:
@@ -667,13 +667,6 @@ public:
 		return self();
 	}
 
-	//! Serializes any data marked for deferment using defer
-	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
-	void serializeDeferments() {
-		for (auto& deferment : itsDeferments)
-			deferment();
-	}
-
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
 		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
@@ -701,6 +694,13 @@ public:
 
 	//! @}
 
+	//! Serializes any data marked for deferment using defer
+	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
+	void serializeDeferments() {
+		for (auto& deferment : itsDeferments)
+			deferment();
+	}
+
 	//! Retrieves a shared pointer given a unique key for it
 	/*! This is used to retrieve a previously registered shared_ptr
 		which has already been loaded.
@@ -710,7 +710,8 @@ public:
 		@return A shared pointer to the data
 		@throw Exception if the id does not exist */
 	inline std::shared_ptr<void> getSharedPointer(const std::uint32_t id) {
-		if (id == 0) return std::shared_ptr<void>(nullptr);
+		if (id == 0)
+			return std::shared_ptr<void>(nullptr);
 
 		auto iter = itsSharedPointerMap.find(id);
 		if (iter == itsSharedPointerMap.end())
@@ -772,24 +773,22 @@ public:
 public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
-	inline void process_as(As& as, T&& var) {
-		self().prologue(var);
+	inline void process_as(As& as, T& var) {
+		as.prologue(var);
 
 		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
 			self().processImpl(self(), var);
 		else
 			self().processImpl(as, var);
 
-		self().epilogue(var);
+		as.epilogue(var);
 	}
 
 private:
-	//! Serializes data after calling prologue, then calls epilogue
+	//! Serializes data
 	template <class T>
 	inline void process(T&& var) {
-		self().prologue(var);
-		self().processImpl(self(), var);
-		self().epilogue(var);
+		self().process_as(self(), var);
 	}
 
 	//! Serialization of a virtual_base_class wrapper

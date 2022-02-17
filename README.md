@@ -26,6 +26,7 @@ This fork is experimental and wishes to alter multiple core functionality of the
   - Pro: Alternative syntax are more clear and has same number of character, and has better auto formatting
   - Pro: More clear evaluation order, less variadic template
   - Con: More breakage
+- Move prologue and epilogue functions inside the archives
 - Add proxy archives (A way to inject context information into the serialization chain)
   - NOTE: polymorphic serialization will fall back to the underlying archives and not use the proxy
 

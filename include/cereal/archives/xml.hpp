@@ -30,6 +30,7 @@
 #define CEREAL_ARCHIVES_XML_HPP_
 
 #include <cereal/cereal.hpp>
+#include <cereal/concept.hpp>
 #include <cereal/details/util.hpp>
 
 #include <cereal/external/rapidxml/rapidxml.hpp>
@@ -63,7 +64,8 @@ inline bool isWhitespace(char c) {
 }
 }
 
-// ######################################################################
+// =================================================================================================
+
 //! An output archive designed to save data to XML
 /*! This archive uses RapidXML to build an in memory XML tree of the
 	data it serializes before outputting it to its stream upon destruction.
@@ -361,16 +363,33 @@ public:
 public:
 	using OutputArchive::process_as;
 
-	template <class As, class CharT, class Traits, class Alloc>
-	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
-		(void) as; // Unpack string from the AsArchive to handle it internally
-		OutputArchive::process_as(*this, str);
+	template <class As, typename T>
+	inline void process_as(As& as, const NameValuePair<T>& t) {
+		prologue(t);
+		setNextName(t.name);
+		as(t.value);
+		epilogue(t);
+	}
+
+	template <class As, class T>
+	inline void process_as(As&, const SizeTag<T>& t) {
+		prologue(t);
+		// nothing to do here, we don't explicitly save the size
+		epilogue(t);
+	}
+
+	template <class As, arithmetic T>
+	inline void process_as(As&, const T& t) {
+		prologue(t);
+		saveValue(t);
+		epilogue(t);
 	}
 
 	template <class As, class CharT, class Traits, class Alloc>
-	inline void process_as(As& as, const std::basic_string<CharT, Traits, Alloc>& str) {
-		(void) as; // Unpack string from the AsArchive to handle it internally
-		OutputArchive::process_as(*this, str);
+	inline void process_as(As&, const std::basic_string<CharT, Traits, Alloc>& str) {
+		prologue(str);
+		saveValue(str);
+		epilogue(str);
 	}
 
 	// --- prologue / epilogue -------------------------------------------------------------------------
@@ -416,7 +435,8 @@ public:
 
 }; // XMLOutputArchive
 
-// ######################################################################
+// =================================================================================================
+
 //! An output archive designed to load data from XML
 /*! This archive uses RapidXML to build an in memory XML tree of the
 	data in the stream it is given before loading any types serialized.
@@ -780,11 +800,33 @@ protected:
 public:
 	using InputArchive::process_as;
 
-	template <class As, class CharT, class Traits, class Alloc>
-	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
+	template <class As, typename T>
+	inline void process_as(As& as, NameValuePair<T>& t) {
+		prologue(t);
+		setNextName(t.name);
+		as(t.value);
+		epilogue(t);
+	}
 
-		(void) as; // Unpack string from the AsArchive to handle it internally
-		InputArchive::process_as(*this, str);
+	template <class As, class T>
+	inline void process_as(As&, SizeTag<T>& t) {
+		prologue(t);
+		loadSize(t.size);
+		epilogue(t);
+	}
+
+	template <class As, arithmetic T>
+	inline void process_as(As&, T& t) {
+		prologue(t);
+		loadValue(t);
+		epilogue(t);
+	}
+
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As&, std::basic_string<CharT, Traits, Alloc>& str) {
+		prologue(str);
+		loadValue(str);
+		epilogue(str);
 	}
 
 	// --- prologue / epilogue -------------------------------------------------------------------------
@@ -821,60 +863,8 @@ public:
 	}
 };
 
-// ######################################################################
-// Common XMLArchive serialization functions
-// ######################################################################
+// =================================================================================================
 
-//! Saving NVP types to XML
-template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, const NameValuePair<T>& t) {
-	ar.setNextName(t.name);
-	ar(t.value);
-}
-
-//! Loading NVP types from XML
-template <class T> inline
-void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, NameValuePair<T>& t) {
-	ar.setNextName(t.name);
-	ar(t.value);
-}
-
-// ######################################################################
-//! Saving SizeTags to XML
-template <class T> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive&, const SizeTag<T>&) {}
-
-//! Loading SizeTags from XML
-template <class T> inline
-void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, SizeTag<T>& st) {
-	ar.loadSize(st.size);
-}
-
-// ######################################################################
-//! Saving for POD types to xml
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, const T& t) {
-	ar.saveValue(t);
-}
-
-//! Loading for POD types from xml
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae> inline
-void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, T& t) {
-	ar.loadValue(t);
-}
-
-// ######################################################################
-//! saving string to xml
-template <class CharT, class Traits, class Alloc> inline
-void CEREAL_SAVE_FUNCTION_NAME(XMLOutputArchive& ar, std::basic_string<CharT, Traits, Alloc> const& str) {
-	ar.saveValue(str);
-}
-
-//! loading string from xml
-template <class CharT, class Traits, class Alloc> inline
-void CEREAL_LOAD_FUNCTION_NAME(XMLInputArchive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
-	ar.loadValue(str);
-}
 } // namespace cereal
 
 // register archives for polymorphic support

@@ -30,11 +30,14 @@
 #define CEREAL_ARCHIVES_PORTABLE_BINARY_HPP_
 
 #include <cereal/cereal.hpp>
+#include <cereal/concept.hpp>
 #include <sstream>
 #include <limits>
 
 
 namespace cereal {
+
+// -------------------------------------------------------------------------------------------------
 
 namespace portable_binary_detail {
 //! Returns true if the current machine is little endian
@@ -55,7 +58,8 @@ inline void swap_bytes(std::uint8_t* data) {
 }
 } // end namespace portable_binary_detail
 
-// ######################################################################
+// =================================================================================================
+
 //! An output archive designed to save data in a compact binary representation portable over different architectures
 /*! This archive outputs data to a stream in an extremely compact binary
 	representation with as little extra metadata as possible.
@@ -140,9 +144,50 @@ public:
 		if (writtenSize != size)
 			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
 	}
+
+	// --- process_as remapping ------------------------------------------------------------------------
+public:
+	using OutputArchive::process_as;
+
+	template <class As, typename T>
+	inline void process_as(As& as, const NameValuePair<T>& t) {
+		prologue(t);
+		as(t.value);
+		epilogue(t);
+	}
+
+	template <class As, typename T>
+	inline void process_as(As& as, const SizeTag<T>& t) {
+		prologue(t);
+		as(t.size);
+		epilogue(t);
+	}
+
+	template <class As, arithmetic T>
+	inline void process_as(As&, const T& t) {
+		static_assert(!std::is_floating_point_v<T> || std::numeric_limits<T>::is_iec559,
+				"Portable binary only supports IEEE 754 standardized floating point");
+
+		prologue(t);
+		saveBinary<sizeof(T)>(std::addressof(t), sizeof(t));
+		epilogue(t);
+	}
+
+	template <class As, class T>
+	inline void process_as(As&, const BinaryData<T>& t) {
+		using TT = std::remove_pointer_t<T>;
+
+		static_assert(!std::is_floating_point_v<TT> || std::numeric_limits<TT>::is_iec559,
+				"Portable binary only supports IEEE 754 standardized floating point");
+
+		prologue(t);
+		saveBinary<sizeof(TT)>(t.data, static_cast<std::streamsize>(t.size));
+		epilogue(t);
+	}
 };
 
-// ######################################################################
+// =================================================================================================
+
 //! An input archive designed to load data saved using PortableBinaryOutputArchive
 /*! This archive outputs data to a stream in an extremely compact binary
 	representation with as little extra metadata as possible.
@@ -239,66 +284,50 @@ public:
 				portable_binary_detail::swap_bytes<DataSize>(ptr + i);
 		}
 	}
+
+	// --- process_as remapping ------------------------------------------------------------------------
+public:
+	using InputArchive::process_as;
+
+	template <class As, typename T>
+	inline void process_as(As& as, NameValuePair<T>& t) {
+		prologue(t);
+		as(t.value);
+		epilogue(t);
+	}
+
+	template <class As, typename T>
+	inline void process_as(As& as, SizeTag<T>& t) {
+		prologue(t);
+		as(t.size);
+		epilogue(t);
+	}
+
+	template <class As, arithmetic T>
+	inline void process_as(As&, T& t) {
+		static_assert(!std::is_floating_point_v<T> || std::numeric_limits<T>::is_iec559,
+				"Portable binary only supports IEEE 754 standardized floating point");
+
+		prologue(t);
+		loadBinary<sizeof(T)>(std::addressof(t), sizeof(t));
+		epilogue(t);
+	}
+
+	template <class As, class T>
+	inline void process_as(As&, BinaryData<T>& t) {
+		using TT = std::remove_pointer_t<T>;
+
+		static_assert(!std::is_floating_point_v<TT> || std::numeric_limits<TT>::is_iec559,
+				"Portable binary only supports IEEE 754 standardized floating point");
+
+		prologue(t);
+		loadBinary<sizeof(TT)>(t.data, static_cast<std::streamsize>(t.size));
+		epilogue(t);
+	}
 };
 
-// ######################################################################
-// Common BinaryArchive serialization functions
+// =================================================================================================
 
-//! Saving for POD types to portable binary
-template <class T>
-inline typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, const T& t) {
-	static_assert(!std::is_floating_point<T>::value ||
-					(std::is_floating_point<T>::value && std::numeric_limits<T>::is_iec559),
-			"Portable binary only supports IEEE 754 standardized floating point");
-	ar.template saveBinary<sizeof(T)>(std::addressof(t), sizeof(t));
-}
-
-//! Loading for POD types from portable binary
-template <class T>
-inline typename std::enable_if<std::is_arithmetic<T>::value, void>::type
-CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, T& t) {
-	static_assert(!std::is_floating_point<T>::value ||
-					(std::is_floating_point<T>::value && std::numeric_limits<T>::is_iec559),
-			"Portable binary only supports IEEE 754 standardized floating point");
-	ar.template loadBinary<sizeof(T)>(std::addressof(t), sizeof(t));
-}
-
-//! Serializing NVP types to portable binary
-template <class Archive, class T>
-inline CEREAL_ARCHIVE_RESTRICT(PortableBinaryInputArchive, PortableBinaryOutputArchive)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, NameValuePair <T>& t) {
-	ar(t.value);
-}
-
-//! Serializing SizeTags to portable binary
-template <class Archive, class T>
-inline CEREAL_ARCHIVE_RESTRICT(PortableBinaryInputArchive, PortableBinaryOutputArchive)
-CEREAL_SERIALIZE_FUNCTION_NAME(Archive& ar, SizeTag <T>& t) {
-	ar(t.size);
-}
-
-//! Saving binary data to portable binary
-template <class T>
-inline void CEREAL_SAVE_FUNCTION_NAME(PortableBinaryOutputArchive& ar, BinaryData <T> const& bd) {
-	typedef typename std::remove_pointer<T>::type TT;
-	static_assert(!std::is_floating_point<TT>::value ||
-					(std::is_floating_point<TT>::value && std::numeric_limits<TT>::is_iec559),
-			"Portable binary only supports IEEE 754 standardized floating point");
-
-	ar.template saveBinary<sizeof(TT)>(bd.data, static_cast<std::streamsize>( bd.size ));
-}
-
-//! Loading binary data from portable binary
-template <class T>
-inline void CEREAL_LOAD_FUNCTION_NAME(PortableBinaryInputArchive& ar, BinaryData <T>& bd) {
-	typedef typename std::remove_pointer<T>::type TT;
-	static_assert(!std::is_floating_point<TT>::value ||
-					(std::is_floating_point<TT>::value && std::numeric_limits<TT>::is_iec559),
-			"Portable binary only supports IEEE 754 standardized floating point");
-
-	ar.template loadBinary<sizeof(TT)>(bd.data, static_cast<std::streamsize>( bd.size ));
-}
 } // namespace cereal
 
 // register archives for polymorphic support

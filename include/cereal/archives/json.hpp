@@ -379,16 +379,40 @@ public:
 public:
 	using OutputArchive::process_as;
 
-	template <class As, class CharT, class Traits, class Alloc>
-	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
-		(void) as; // Unpack string from the AsArchive to handle it internally
-		OutputArchive::process_as(*this, str);
+	template <class As, typename T>
+	inline void process_as(As& as, const NameValuePair<T>& t) {
+		prologue(t);
+		setNextName(t.name);
+		as(t.value);
+		epilogue(t);
+	}
+
+	template <class As, class T>
+	inline void process_as(As&, const SizeTag<T>& t) {
+		prologue(t);
+		// nothing to do here, we don't explicitly save the size
+		epilogue(t);
+	}
+
+	template <class As>
+	inline void process_as(As&, const std::nullptr_t& t) {
+		prologue(t);
+		saveValue(t);
+		epilogue(t);
+	}
+
+	template <class As, arithmetic T>
+	inline void process_as(As&, const T& t) {
+		prologue(t);
+		saveValue(t);
+		epilogue(t);
 	}
 
 	template <class As, class CharT, class Traits, class Alloc>
-	inline void process_as(As& as, const std::basic_string<CharT, Traits, Alloc>& str) {
-		(void) as; // Unpack string from the AsArchive to handle it internally
-		OutputArchive::process_as(*this, str);
+	inline void process_as(As&, const std::basic_string<CharT, Traits, Alloc>& str) {
+		prologue(str);
+		saveValue(str);
+		epilogue(str);
 	}
 
 	// --- prologue / epilogue -------------------------------------------------------------------------
@@ -444,7 +468,6 @@ public:
 				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
 			finishNode();
 	}
-
 }; // JSONOutputArchive
 
 // ######################################################################
@@ -832,11 +855,40 @@ public:
 public:
 	using InputArchive::process_as;
 
-	template <class As, class CharT, class Traits, class Alloc>
-	inline void process_as(As& as, std::basic_string<CharT, Traits, Alloc>& str) {
+	template <class As, typename T>
+	inline void process_as(As& as, NameValuePair<T>& t) {
+		prologue(t);
+		setNextName(t.name);
+		as(t.value);
+		epilogue(t);
+	}
 
-		(void) as; // Unpack string from the AsArchive to handle it internally
-		InputArchive::process_as(*this, str);
+	template <class As, class T>
+	inline void process_as(As&, SizeTag<T>& t) {
+		prologue(t);
+		loadSize(t.size);
+		epilogue(t);
+	}
+
+	template <class As>
+	inline void process_as(As&, std::nullptr_t& t) {
+		prologue(t);
+		loadValue(t);
+		epilogue(t);
+	}
+
+	template <class As, arithmetic T>
+	inline void process_as(As&, T& t) {
+		prologue(t);
+		loadValue(t);
+		epilogue(t);
+	}
+
+	template <class As, class CharT, class Traits, class Alloc>
+	inline void process_as(As&, std::basic_string<CharT, Traits, Alloc>& str) {
+		prologue(str);
+		loadValue(str);
+		epilogue(str);
 	}
 
 	// --- prologue / epilogue -------------------------------------------------------------------------
@@ -881,67 +933,7 @@ public:
 };
 
 // =================================================================================================
-// Common JSONArchive serialization functions
 
-//! Serializing NVP types to JSON
-template <class T>
-inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const NameValuePair<T>& t) {
-	ar.setNextName(t.name);
-	ar(t.value);
-}
-
-template <class T>
-inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, NameValuePair<T>& t) {
-	ar.setNextName(t.name);
-	ar(t.value);
-}
-
-//! Saving for nullptr to JSON
-inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const std::nullptr_t& t) {
-	ar.saveValue(t);
-}
-
-//! Loading arithmetic from JSON
-inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::nullptr_t& t) {
-	ar.loadValue(t);
-}
-
-//! Saving for arithmetic to JSON
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae>
-inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const T& t) {
-	ar.saveValue(t);
-}
-
-//! Loading arithmetic from JSON
-template <class T, traits::EnableIf<std::is_arithmetic<T>::value> = traits::sfinae>
-inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, T& t) {
-	ar.loadValue(t);
-}
-
-//! saving string to JSON
-template <class CharT, class Traits, class Alloc>
-inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive& ar, const std::basic_string<CharT, Traits, Alloc>& str) {
-	ar.saveValue(str);
-}
-
-//! loading string from JSON
-template <class CharT, class Traits, class Alloc>
-inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
-	ar.loadValue(str);
-}
-
-// ######################################################################
-//! Saving SizeTags to JSON
-template <class T>
-inline void CEREAL_SAVE_FUNCTION_NAME(JSONOutputArchive&, const SizeTag<T>&) {
-	// nothing to do here, we don't explicitly save the size
-}
-
-//! Loading SizeTags from JSON
-template <class T>
-inline void CEREAL_LOAD_FUNCTION_NAME(JSONInputArchive& ar, SizeTag<T>& st) {
-	ar.loadSize(st.size);
-}
 } // namespace cereal
 
 // register archives for polymorphic support

@@ -329,7 +329,8 @@ int main() {
 		UserProxyArchive<cereal::JSONOutputArchive> ctxar(oar);
 
 		TestType0 t0;
-		ctxar(t0);
+//		ctxar(t0);
+		ctxar(cereal::make_nvp("t1", t0));
 //		oar(t0);
 //		ctxar.template operator()<int>(t0.b);
 	}

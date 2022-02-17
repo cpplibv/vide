@@ -1065,30 +1065,6 @@ struct is_same_archive : std::integral_constant<bool,
 		std::is_same<detail::decay_archive<ArchiveT>, CerealArchiveT>::value> {
 };
 
-// ######################################################################
-//! A macro to use to restrict which types of archives your function will work for.
-/*! This requires you to have a template class parameter named Archive and replaces the void return
-	type for your function.
-
-	INTYPE refers to the input archive type you wish to restrict on.
-	OUTTYPE refers to the output archive type you wish to restrict on.
-
-	For example, if we want to limit a serialize to only work with binary serialization:
-
-	@code{.cpp}
-	template <class Archive>
-	CEREAL_ARCHIVE_RESTRICT(BinaryInputArchive, BinaryOutputArchive)
-	serialize( Archive & ar, MyCoolType & m )
-	{
-	  ar & m;
-	}
-	@endcode
-
-	If you need to do more restrictions in your enable_if, you will need to do this by hand.
- */
-#define CEREAL_ARCHIVE_RESTRICT(INTYPE, OUTTYPE) \
-    typename std::enable_if<cereal::traits::is_same_archive<Archive, INTYPE>::value || cereal::traits::is_same_archive<Archive, OUTTYPE>::value, void>::type
-
 } // namespace traits
 
 } // namespace cereal

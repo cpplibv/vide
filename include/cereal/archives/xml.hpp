@@ -361,72 +361,63 @@ public:
 
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
-	using OutputArchive::process_as;
-
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
-		prologue(t);
 		setNextName(t.name);
 		as(t.value);
-		epilogue(t);
+	}
+
+	template <class As, typename T>
+	inline void process_as(As& as, const DeferredData<T>& t) {
+		OutputArchive::process_as(as, t);
 	}
 
 	template <class As, class T>
-	inline void process_as(As&, const SizeTag<T>& t) {
-		prologue(t);
-		// nothing to do here, we don't explicitly save the size
-		epilogue(t);
+	inline void process_as(As&, const SizeTag<T>&) {
+		if (hasSizeAttributes())
+			appendAttribute("size", "dynamic");
+	}
+
+	template <class As>
+	inline void process_as(As&, const std::nullptr_t&) {
+		// saveValue(t);
 	}
 
 	template <class As, arithmetic T>
 	inline void process_as(As&, const T& t) {
-		prologue(t);
+		startNode();
 		saveValue(t);
-		epilogue(t);
+		finishNode();
 	}
 
 	template <class As, class CharT, class Traits, class Alloc>
 	inline void process_as(As&, const std::basic_string<CharT, Traits, Alloc>& str) {
-		prologue(str);
+		using T = std::basic_string<CharT, Traits, Alloc>;
+
+		startNode();
+		insertType<T>();
 		saveValue(str);
-		epilogue(str);
+		finishNode();
 	}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
-public:
-	/*! NVPs do not start or finish nodes - they just set up the names */
-	template <class T> inline void prologue(const NameValuePair<T>&) {}
-	template <class T> inline void epilogue(const NameValuePair<T>&) {}
-
-	/*! Do nothing for the defer wrapper */
-	template <class T> inline void prologue(const DeferredData<T>&) {}
-	template <class T> inline void epilogue(const DeferredData<T>&) {}
-
-	/*! SizeTags do not start or finish nodes */
-	template <class T> inline void prologue(const SizeTag<T>&) {
-		if (hasSizeAttributes()) {
-			appendAttribute("size", "dynamic");
-		}
-	}
-	template <class T> inline void epilogue(const SizeTag<T>&) {}
-
-	/// Prologue for all other types for XML output archives (except minimal types)
-	/*! Starts a new node, named either automatically or by some NVP,
-		that may be given data by the type about to be archived
-		Minimal types do not start or end nodes */
-	template <class T> inline void prologue(const T&) {
+	template <class As, class T>
+	inline void process_as(As& as, const T& t) {
+		/// Prologue for all other types for XML output archives (except minimal types)
+		/*! Starts a new node, named either automatically or by some NVP,
+			that may be given data by the type about to be archived
+			Minimal types do not start or end nodes */
 		if constexpr (
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value &&
 				!traits::has_minimal_output_serialization<T, XMLOutputArchive>::value) {
 			startNode();
 			insertType<T>();
 		}
-	}
 
-	/// Epilogue for all other types other for XML output archives (except minimal types)
-	/*! Finishes the node created in the prologue
-		Minimal types do not start or end nodes */
-	template <class T> inline void epilogue(const T&) {
+		OutputArchive::process_as(as, t);
+
+		/// Epilogue for all other types other for XML output archives (except minimal types)
+		/*! Finishes the node created in the prologue
+			Minimal types do not start or end nodes */
 		if constexpr (
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLOutputArchive>::value &&
 				!traits::has_minimal_output_serialization<T, XMLOutputArchive>::value)
@@ -798,64 +789,52 @@ protected:
 
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
-	using InputArchive::process_as;
-
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
-		prologue(t);
 		setNextName(t.name);
 		as(t.value);
-		epilogue(t);
+	}
+
+	template <class As, typename T>
+	inline void process_as(As& as, DeferredData<T>& t) {
+		InputArchive::process_as(as, t);
 	}
 
 	template <class As, class T>
 	inline void process_as(As&, SizeTag<T>& t) {
-		prologue(t);
 		loadSize(t.size);
-		epilogue(t);
+	}
+
+	template <class As>
+	inline void process_as(As&, std::nullptr_t&) {
+		// loadValue(t);
 	}
 
 	template <class As, arithmetic T>
 	inline void process_as(As&, T& t) {
-		prologue(t);
+		startNode();
 		loadValue(t);
-		epilogue(t);
+		finishNode();
 	}
 
 	template <class As, class CharT, class Traits, class Alloc>
 	inline void process_as(As&, std::basic_string<CharT, Traits, Alloc>& str) {
-		prologue(str);
+		startNode();
 		loadValue(str);
-		epilogue(str);
+		finishNode();
 	}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
-public:
-	template <class T> inline void prologue(const NameValuePair<T>&) {}
-
-	template <class T> inline void epilogue(const NameValuePair<T>&) {}
-
-	//! Prologue for deferred data for XML archives
-	template <class T> inline void prologue(const DeferredData<T>&) {}
-
-	//! Epilogue for deferred for XML archives
-	/*! Do nothing for the defer wrapper */
-	template <class T> inline void epilogue(const DeferredData<T>&) {}
-
-	template <class T> inline void prologue(const SizeTag<T>&) {}
-
-	template <class T> inline void epilogue(const SizeTag<T>&) {}
-
-	//! Prologue for all other types for XML input archives (except minimal types)
-	template <class T> inline void prologue(const T&) {
+	template <class As, class T>
+	inline void process_as(As& as, T& t) {
+		//! Prologue for all other types for XML input archives (except minimal types)
 		if constexpr (
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_output_serialization, XMLInputArchive>::value &&
 				!traits::has_minimal_output_serialization<T, XMLInputArchive>::value)
 			startNode();
-	}
 
-	//! Epilogue for all other types other for XML output archives (except minimal types)
-	template <class T> inline void epilogue(const T&) {
+		InputArchive::process_as(as, t);
+
+		//! Epilogue for all other types other for XML output archives (except minimal types)
 		if constexpr (
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, XMLInputArchive>::value &&
 				!traits::has_minimal_input_serialization<T, XMLInputArchive>::value)

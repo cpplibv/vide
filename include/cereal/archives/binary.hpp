@@ -78,30 +78,22 @@ public:
 
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
-		prologue(t);
 		as(t.value);
-		epilogue(t);
 	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, const SizeTag<T>& t) {
-		prologue(t);
 		as(t.size);
-		epilogue(t);
 	}
 
 	template <class As, arithmetic T>
 	inline void process_as(As&, const T& t) {
-		prologue(t);
 		saveBinary(std::addressof(t), sizeof(t));
-		epilogue(t);
 	}
 
 	template <class As, class T>
 	inline void process_as(As&, const BinaryData<T>& t) {
-		prologue(t);
 		saveBinary(t.data, static_cast<std::streamsize>(t.size));
-		epilogue(t);
 	}
 };
 
@@ -142,30 +134,22 @@ public:
 
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
-		prologue(t);
 		as(t.value);
-		epilogue(t);
 	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, SizeTag<T>& t) {
-		prologue(t);
 		as(t.size);
-		epilogue(t);
 	}
 
 	template <class As, arithmetic T>
 	inline void process_as(As&, T& t) {
-		prologue(t);
 		loadBinary(std::addressof(t), sizeof(t));
-		epilogue(t);
 	}
 
 	template <class As, class T>
 	inline void process_as(As&, BinaryData<T>& t) {
-		prologue(t);
 		loadBinary(t.data, static_cast<std::streamsize>(t.size));
-		epilogue(t);
 	}
 };
 

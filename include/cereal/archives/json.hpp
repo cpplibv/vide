@@ -377,97 +377,66 @@ public:
 
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
-	using OutputArchive::process_as;
+//	using OutputArchive::process_as;
 
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
-		prologue(t);
+		// NVPs do not start or finish nodes - they just set up the names
 		setNextName(t.name);
 		as(t.value);
-		epilogue(t);
+	}
+
+	template <class As, typename T>
+	inline void process_as(As& as, const DeferredData<T>& t) {
+		OutputArchive::process_as(as, t);
 	}
 
 	template <class As, class T>
-	inline void process_as(As&, const SizeTag<T>& t) {
-		prologue(t);
-		// nothing to do here, we don't explicitly save the size
-		epilogue(t);
+	inline void process_as(As&, const SizeTag<T>&) {
+		// SizeTags are ignored, they just indicate that the current node should be made into an array
+		makeArray();
 	}
 
 	template <class As>
 	inline void process_as(As&, const std::nullptr_t& t) {
-		prologue(t);
+		writeName();
 		saveValue(t);
-		epilogue(t);
 	}
 
 	template <class As, arithmetic T>
 	inline void process_as(As&, const T& t) {
-		prologue(t);
+		writeName();
 		saveValue(t);
-		epilogue(t);
 	}
 
 	template <class As, class CharT, class Traits, class Alloc>
 	inline void process_as(As&, const std::basic_string<CharT, Traits, Alloc>& str) {
-		prologue(str);
+		writeName();
 		saveValue(str);
-		epilogue(str);
 	}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
-public:
-	// NVPs do not start or finish nodes - they just set up the names
-	template <class T> inline void prologue(const NameValuePair<T>&) {}
-	template <class T> inline void epilogue(const NameValuePair<T>&) {}
-
-	// Do nothing for the defer wrapper
-	template <class T> inline void prologue(const DeferredData<T>&) {}
-	template <class T> inline void epilogue(const DeferredData<T>&) {}
-
-	template <class T> inline void prologue(const SizeTag<T>&) {
-		// SizeTags are ignored, they just indicate that the current node should be made into an array
-		makeArray();
-	}
-	template <class T> inline void epilogue(const SizeTag<T>&) {}
-
-	inline void prologue(const std::nullptr_t&) {
-		writeName();
-	}
-	inline void epilogue(const std::nullptr_t&) {}
-
-	inline void prologue(const arithmetic auto&) {
-		writeName();
-	}
-	inline void epilogue(const arithmetic auto&) {}
-
-	template <class CharT, class Traits, class Alloc>
-	inline void prologue(const std::basic_string<CharT, Traits, Alloc>&) {
-		writeName();
-	}
-	template <class CharT, class Traits, class Alloc>
-	inline void epilogue(const std::basic_string<CharT, Traits, Alloc>&) {}
-
-	/// Prologue for all node types
-	/// Starts a new node, named either automatically or by some NVP,
-	/// hat may be given data by the type about to be archived
-	/// Minimal types do not start or finish nodes
-	template <class T> inline void prologue(const T&) {
+	template <class As, class T>
+	inline void process_as(As& as, const T& t) {
+		/// Prologue for all node types
+		/// Starts a new node, named either automatically or by some NVP,
+		/// hat may be given data by the type about to be archived
+		/// Minimal types do not start or finish nodes
 		if constexpr(
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONOutputArchive>::value &&
 				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
 			startNode();
-	}
 
-	/// Epilogue for all node types
-	/// Finishes the node created in the prologue
-	/// Minimal types do not start or finish nodes
-	template <class T> inline void epilogue(const T&) {
+		OutputArchive::process_as(as, t);
+
+		/// Epilogue for all node types
+		/// Finishes the node created in the prologue
+		/// Minimal types do not start or finish nodes
 		if constexpr (
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONOutputArchive>::value &&
 				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
 			finishNode();
 	}
+
 }; // JSONOutputArchive
 
 // ######################################################################
@@ -853,78 +822,50 @@ public:
 
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
-	using InputArchive::process_as;
-
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
-		prologue(t);
 		setNextName(t.name);
 		as(t.value);
-		epilogue(t);
+	}
+
+	template <class As, typename T>
+	inline void process_as(As& as, DeferredData<T>& t) {
+		InputArchive::process_as(as, t);
 	}
 
 	template <class As, class T>
 	inline void process_as(As&, SizeTag<T>& t) {
-		prologue(t);
 		loadSize(t.size);
-		epilogue(t);
 	}
 
 	template <class As>
 	inline void process_as(As&, std::nullptr_t& t) {
-		prologue(t);
 		loadValue(t);
-		epilogue(t);
 	}
 
 	template <class As, arithmetic T>
 	inline void process_as(As&, T& t) {
-		prologue(t);
 		loadValue(t);
-		epilogue(t);
 	}
 
 	template <class As, class CharT, class Traits, class Alloc>
 	inline void process_as(As&, std::basic_string<CharT, Traits, Alloc>& str) {
-		prologue(str);
 		loadValue(str);
-		epilogue(str);
 	}
 
-	// --- prologue / epilogue -------------------------------------------------------------------------
-public:
-	template <class T> inline void prologue(const NameValuePair<T>&) {}
-	template <class T> inline void epilogue(const NameValuePair<T>&) {}
-
-	template <class T> inline void prologue(const DeferredData<T>&) {}
-	template <class T> inline void epilogue(const DeferredData<T>&) {}
-
-	template <class T> inline void prologue(const SizeTag<T>&) {}
-	template <class T> inline void epilogue(const SizeTag<T>&) {}
-
-	inline void prologue(const std::nullptr_t&) {}
-	inline void epilogue(const std::nullptr_t&) {}
-
-	inline void prologue(const arithmetic auto&) {}
-	inline void epilogue(const arithmetic auto&) {}
-
-	template <class CharT, class Traits, class Alloc>
-	inline void prologue(const std::basic_string<CharT, Traits, Alloc>&) {}
-	template <class CharT, class Traits, class Alloc>
-	inline void epilogue(const std::basic_string<CharT, Traits, Alloc>&) {}
-
-	/// Prologue for all node types
-	/// Minimal types do not start or finish nodes
-	template <class T> inline void prologue(const T&) {
+	template <class As, class T>
+	inline void process_as(As& as, T& t) {
+		/// Prologue for all node types
+		/// Minimal types do not start or finish nodes
 		if constexpr(
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
 				!traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
 			startNode();
-	}
 
-	/// Epilogue for all node types
-	/// Minimal types do not start or finish nodes
-	template <class T> inline void epilogue(const T&) {
+		InputArchive::process_as(as, t);
+
+		/// Epilogue for all node types
+		/// Minimal types do not start or finish nodes
 		if constexpr (
 				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
 				!traits::has_minimal_input_serialization<T, JSONInputArchive>::value)

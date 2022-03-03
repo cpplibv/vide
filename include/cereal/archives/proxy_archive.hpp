@@ -79,16 +79,6 @@ public:
 		else
 			return ar;
 	}
-
-	template <class T>
-	inline void prologue(T&& t) {
-		ar.prologue(std::forward<T>(t));
-	}
-
-	template <class T>
-	inline void epilogue(T&& t) {
-		ar.epilogue(std::forward<T>(t));
-	}
 };
 
 // -------------------------------------------------------------------------------------------------

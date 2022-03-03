@@ -1,6 +1,7 @@
 #include <cereal/cereal.hpp>
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
+#include <cereal/archives/xml.hpp>
 
 #include <cereal/archives/proxy_archive.hpp>
 
@@ -264,6 +265,7 @@
 //};
 
 // =================================================================================================
+
 enum class EnumType {
 	v0, v1, v2,
 };
@@ -327,6 +329,8 @@ int main() {
 	{
 		cereal::JSONOutputArchive oar(std::cout);
 		UserProxyArchive<cereal::JSONOutputArchive> ctxar(oar);
+//		cereal::XMLOutputArchive oar(std::cout);
+//		UserProxyArchive<cereal::XMLOutputArchive> ctxar(oar);
 
 		TestType0 t0;
 //		ctxar(t0);
@@ -334,131 +338,6 @@ int main() {
 //		oar(t0);
 //		ctxar.template operator()<int>(t0.b);
 	}
-
-//	{
-//		std::ofstream os("file.json");
-//		cereal::JSONOutputArchive oar(os);
-//
-//		//auto f = std::make_shared<Fixture>();
-//		//auto f2 = f;
-//		//oar( f );
-//		//oar( f2 );
-//		Stuff s;
-//		s.fillData();
-//		oar(cereal::make_nvp("best data ever", s));
-//	}
-//
-//	{
-//		std::ifstream is("file.json");
-//		std::string str((std::istreambuf_iterator<char>(is)), std::istreambuf_iterator<char>());
-//		std::cout << "---------------------" << std::endl << str << std::endl << "---------------------" << std::endl;
-//	}
-//
-//	// playground
-//	{
-//		cereal::JSONOutputArchive archive(std::cout);
-//		bool arr[] = {true, false};
-//		std::vector<int> vec = {1, 2, 3, 4, 5};
-//		archive(CEREAL_NVP(vec));
-//		archive(arr);
-//		auto f = std::make_shared<Fixture>();
-//		auto f2 = f;
-//		archive(f);
-//		archive(f2);
-//	}
-//
-//	// test out of order
-//	std::stringstream oos;
-//	{
-//		cereal::JSONOutputArchive ar(oos);
-//		cereal::JSONOutputArchive ar2(std::cout,
-//				cereal::JSONOutputArchive::Options(2, cereal::JSONOutputArchive::Options::IndentChar::space, 2));
-//
-//		ar(cereal::make_nvp("1", 1));
-//		ar(cereal::make_nvp("2", 2));
-//		ar(3);
-//		ar(0); // unused
-//		ar(cereal::make_nvp("4", 4));
-//		ar(cereal::make_nvp("5", 5));
-//
-//		int x = 33;
-//		ar.saveBinaryValue(&x, sizeof(int), "bla");
-//
-//		ar2(cereal::make_nvp("1", 1));
-//		ar2(cereal::make_nvp("2", 2));
-//		ar2(3);
-//		ar2(0); // unused
-//		ar2(cereal::make_nvp("4", 4));
-//		ar2(cereal::make_nvp("5", 5));
-//		ar2.saveBinaryValue(&x, sizeof(int), "bla");
-//
-//		OOJson oo(1, 2, true, 4.2);
-//		ar(CEREAL_NVP(oo));
-//		ar2(CEREAL_NVP(oo));
-//
-//		// boost stuff
-//		ar & cereal::make_nvp("usingop&", oo) & 6;
-//		ar << 5 << 4 << 3;
-//
-//		ar2 & cereal::make_nvp("usingop&", oo) & 6;
-//		ar2 << 5 << 4 << 3;
-//
-//		long double ld = std::numeric_limits<long double>::max();
-//		long long ll = std::numeric_limits<long long>::max();
-//		unsigned long long ull = std::numeric_limits<unsigned long long>::max();
-//
-//		ar(CEREAL_NVP(ld));
-//		ar(CEREAL_NVP(ll));
-//		ar(CEREAL_NVP(ull));
-//
-//		ar2(CEREAL_NVP(ld));
-//		ar2(CEREAL_NVP(ll));
-//		ar2(CEREAL_NVP(ull));
-//	}
-//
-//	{
-//		cereal::JSONInputArchive ar(oos);
-//		int i1, i2, i3, i4, i5, x;
-//
-//		ar(i1);
-//		ar(cereal::make_nvp("2", i2))(i3);
-//		ar(cereal::make_nvp("4", i4))(i5);
-//
-//		ar.loadBinaryValue(&x, sizeof(int));
-//
-//		OOJson ii;
-//		ar(cereal::make_nvp("oo", ii));
-//		ar(cereal::make_nvp("2", i2));
-//
-//		std::cout << i1 << " " << i2 << " " << i3 << " " << i4 << " " << i5 << std::endl;
-//		std::cout << x << std::endl;
-//		std::cout << ii.a << " " << ii.b << " " << ii.c.first << " " << ii.c.second << " ";
-//		for (auto z : ii.d)
-//			std::cout << z << " ";
-//		std::cout << std::endl;
-//
-//		OOJson oo;
-//		ar >> cereal::make_nvp("usingop&", oo);
-//		std::cout << oo.a << " " << oo.b << " " << oo.c.first << " " << oo.c.second << " ";
-//		for (auto z : oo.d)
-//			std::cout << z << " ";
-//
-//		int aa, a, b, c;
-//		ar & aa & a & b & c;
-//		std::cout << aa << " " << a << " " << b << " " << c << std::endl;
-//
-//		long double ld;
-//		long long ll;
-//		unsigned long long ull;
-//
-//		ar(CEREAL_NVP(ld));
-//		ar(CEREAL_NVP(ll));
-//		ar(CEREAL_NVP(ull));
-//
-//		std::cout << (ld == std::numeric_limits<long double>::max()) << std::endl;
-//		std::cout << (ll == std::numeric_limits<long long>::max()) << std::endl;
-//		std::cout << (ull == std::numeric_limits<unsigned long long>::max()) << std::endl;
-//	}
 
 	return 0;
 }

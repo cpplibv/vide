@@ -384,28 +384,13 @@ public:
 	}
 
 public:
-	//! Called before a type is serialized to set up any special archive state
-	//! for processing some type
-	template <class T>
-	inline void prologue(const T&) {}
-
-	//! Called after a type is serialized to tear down any special archive state
-	//! for processing some type
-	template <class T>
-	inline void epilogue(const T&) {}
-
-public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
 	inline void process_as(As& as, const T& var) {
-		as.prologue(var);
-
 		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
 			self().processImpl(self(), var);
 		else
 			self().processImpl(as, var);
-
-		as.epilogue(var);
 	}
 
 private:
@@ -760,28 +745,13 @@ public:
 	}
 
 public:
-	//! Called before a type is serialized to set up any special archive state
-	//! for processing some type
-	template <class T>
-	inline void prologue(const T&) {}
-
-	//! Called after a type is serialized to tear down any special archive state
-	//! for processing some type
-	template <class T>
-	inline void epilogue(const T&) {}
-
-public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
 	inline void process_as(As& as, T& var) {
-		as.prologue(var);
-
 		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
 			self().processImpl(self(), var);
 		else
 			self().processImpl(as, var);
-
-		as.epilogue(var);
 	}
 
 private:

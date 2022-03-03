@@ -151,16 +151,12 @@ public:
 
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
-		prologue(t);
 		as(t.value);
-		epilogue(t);
 	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, const SizeTag<T>& t) {
-		prologue(t);
 		as(t.size);
-		epilogue(t);
 	}
 
 	template <class As, arithmetic T>
@@ -168,9 +164,7 @@ public:
 		static_assert(!std::is_floating_point_v<T> || std::numeric_limits<T>::is_iec559,
 				"Portable binary only supports IEEE 754 standardized floating point");
 
-		prologue(t);
 		saveBinary<sizeof(T)>(std::addressof(t), sizeof(t));
-		epilogue(t);
 	}
 
 	template <class As, class T>
@@ -180,9 +174,7 @@ public:
 		static_assert(!std::is_floating_point_v<TT> || std::numeric_limits<TT>::is_iec559,
 				"Portable binary only supports IEEE 754 standardized floating point");
 
-		prologue(t);
 		saveBinary<sizeof(TT)>(t.data, static_cast<std::streamsize>(t.size));
-		epilogue(t);
 	}
 };
 
@@ -291,16 +283,12 @@ public:
 
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
-		prologue(t);
 		as(t.value);
-		epilogue(t);
 	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, SizeTag<T>& t) {
-		prologue(t);
 		as(t.size);
-		epilogue(t);
 	}
 
 	template <class As, arithmetic T>
@@ -308,9 +296,7 @@ public:
 		static_assert(!std::is_floating_point_v<T> || std::numeric_limits<T>::is_iec559,
 				"Portable binary only supports IEEE 754 standardized floating point");
 
-		prologue(t);
 		loadBinary<sizeof(T)>(std::addressof(t), sizeof(t));
-		epilogue(t);
 	}
 
 	template <class As, class T>
@@ -320,9 +306,7 @@ public:
 		static_assert(!std::is_floating_point_v<TT> || std::numeric_limits<TT>::is_iec559,
 				"Portable binary only supports IEEE 754 standardized floating point");
 
-		prologue(t);
 		loadBinary<sizeof(TT)>(t.data, static_cast<std::streamsize>(t.size));
-		epilogue(t);
 	}
 };
 

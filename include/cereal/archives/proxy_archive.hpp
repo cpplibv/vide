@@ -32,20 +32,23 @@ public:
 
 public:
 	template <typename As, typename T>
-	inline CRTP& process_as(As& as, T&& var) {
+	inline void process_as(As& as, T&& var) {
 		ar.process_as(as, var);
-		return static_cast<CRTP&>(*this);
 	}
 
 public:
 	template <typename T>
 	inline CRTP& operator()(T&& var) {
-		return process_as(static_cast<CRTP&>(*this), std::forward<T>(var));
+		auto& as = static_cast<CRTP&>(*this);
+		as.process_as(as, std::forward<T>(var));
+		return as;
 	}
 
 	template <typename T>
 	inline CRTP& operator&(T&& var) {
-		return process_as(static_cast<CRTP&>(*this), std::forward<T>(var));
+		auto& as = static_cast<CRTP&>(*this);
+		as.process_as(as, std::forward<T>(var));
+		return as;
 	}
 
 public:

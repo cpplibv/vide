@@ -304,6 +304,11 @@ public:
 		return self();
 	}
 
+	template <typename T>
+	inline ArchiveType& nvp(const char* name, T&& arg) {
+		return (*this)(::cereal::make_nvp(name, std::forward<T>(arg)));
+	}
+
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
 		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
@@ -650,6 +655,11 @@ public:
 	inline ArchiveType& operator()(T&& arg) {
 		self().process(std::forward<T>(arg));
 		return self();
+	}
+
+	template <typename T>
+	inline ArchiveType& nvp(const char* name, T&& arg) {
+		return (*this)(::cereal::make_nvp(name, std::forward<T>(arg)));
 	}
 
 	/*! @name Boost Transition Layer

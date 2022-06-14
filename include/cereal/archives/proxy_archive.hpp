@@ -2,7 +2,10 @@
 
 #pragma once
 
+// std
+#include <utility>
 // pro
+#include <cereal/nvp.hpp>
 #include <cereal/traits/underlying_archive.hpp>
 
 
@@ -49,6 +52,11 @@ public:
 		auto& as = static_cast<CRTP&>(*this);
 		as.process_as(as, std::forward<T>(var));
 		return as;
+	}
+
+	template <typename T>
+	inline CRTP& nvp(const char* name, T&& arg) {
+		return (*this)(::cereal::make_nvp(name, std::forward<T>(arg)));
 	}
 
 public:

@@ -30,6 +30,7 @@ This fork is experimental and wishes to alter multiple core functionality of the
   - NOTE: polymorphic serialization will fall back to the underlying archives and not use the proxy
 - Add process_as customization point for archives to handle special types
 - Remove prologue and epilogue function support (process_as can take care of it)
+- Add `ar.nvp("var", var)` syntax to allow option to not include any header file and really on dependent lookup only
 
 
 Planned:
@@ -38,6 +39,7 @@ Planned:
 - Improved compile time performance
 - Maybe: Context variables passed as additional function arguments
 - Change name to cerealv or cev to indicate the incompatibility with upstream
+- `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 
 
 cereal - A C++11 library for serialization

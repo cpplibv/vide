@@ -10,7 +10,6 @@ Type files that still have to be cleaned from cereal/cereal.hpp include:
     polymorphic
     common (archives will need cereal.hpp anyways, common is included after each archive (not by user), so this one is not that important)
 
-Add ar.nvp("var", var) syntax
 
 rename cereal, name ideas:
     cerealv

@@ -27,15 +27,22 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TYPES_BITSET_HPP_
-#define CEREAL_TYPES_BITSET_HPP_
 
-#include <cereal/cereal.hpp>
-#include <cereal/types/string.hpp>
+#pragma once
+
 #include <bitset>
+
+#include <cereal/binary_data.hpp>
+#include <cereal/details/exception.hpp>
+#include <cereal/macros.hpp>
+#include <cereal/nvp.hpp>
+#include <cereal/types/string.hpp>
 
 
 namespace cereal {
+
+// -------------------------------------------------------------------------------------------------
+
 namespace bitset_detail {
 
 //! The type the bitset is encoded with
@@ -47,65 +54,62 @@ enum class type : uint8_t {
 	bits
 };
 
-} // namespace bitset_detail
+} // namespace bitset_detail -----------------------------------------------------------------------
 
-//! Serializing (save) for std::bitset when BinaryData optimization supported
-template <class Archive, size_t N,
-		traits::EnableIf<traits::is_output_serializable<BinaryData<std::uint32_t>, Archive>::value>
-		= traits::sfinae> inline
-void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::bitset<N> const& bits) {
-	ar(CEREAL_NVP_("type", bitset_detail::type::bits));
+//! Serializing (save) for std::bitset
+template <class Archive, size_t N>
+inline void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, const std::bitset<N>& bits) {
+	constexpr bool serialize_as_binary = Archive::template could_serialize<BinaryData<std::uint32_t>>;
 
-	// Serialize 8 bit chunks
-	std::uint8_t chunk = 0;
-	std::uint8_t mask = 0x80;
+	if constexpr (serialize_as_binary) { // when BinaryData optimization supported
+		ar(CEREAL_NVP_("type", bitset_detail::type::bits));
 
-	// Set each chunk using a rotating mask for the current bit
-	for (std::size_t i = 0; i < N; ++i) {
-		if (bits[i])
-			chunk |= mask;
+		// Serialize 8 bit chunks
+		std::uint8_t chunk = 0;
+		std::uint8_t mask = 0x80;
 
-		mask = static_cast<std::uint8_t>(mask >> 1);
+		// Set each chunk using a rotating mask for the current bit
+		for (std::size_t i = 0; i < N; ++i) {
+			if (bits[i])
+				chunk |= mask;
 
-		// output current chunk when mask is empty (8 bits)
-		if (mask == 0) {
+			mask = static_cast<std::uint8_t>(mask >> 1);
+
+			// output current chunk when mask is empty (8 bits)
+			if (mask == 0) {
+				ar(chunk);
+				chunk = 0;
+				mask = 0x80;
+			}
+		}
+
+		// serialize remainder, if it exists
+		if (mask != 0x80)
 			ar(chunk);
-			chunk = 0;
-			mask = 0x80;
-		}
-	}
 
-	// serialize remainder, if it exists
-	if (mask != 0x80)
-		ar(chunk);
-}
-
-//! Serializing (save) for std::bitset when BinaryData is not supported
-template <class Archive, size_t N,
-		traits::DisableIf<traits::is_output_serializable<BinaryData<std::uint32_t>, Archive>::value>
-		= traits::sfinae> inline
-void CEREAL_SAVE_FUNCTION_NAME(Archive& ar, std::bitset<N> const& bits) {
-	try {
-		auto const b = bits.to_ulong();
-		ar(CEREAL_NVP_("type", bitset_detail::type::ulong));
-		ar(CEREAL_NVP_("data", b));
-	}
-	catch (std::overflow_error const&) {
+	} else { // when BinaryData is not supported
 		try {
-			auto const b = bits.to_ullong();
-			ar(CEREAL_NVP_("type", bitset_detail::type::ullong));
+			auto const b = bits.to_ulong();
+			ar(CEREAL_NVP_("type", bitset_detail::type::ulong));
 			ar(CEREAL_NVP_("data", b));
-		}
-		catch (std::overflow_error const&) {
-			ar(CEREAL_NVP_("type", bitset_detail::type::string));
-			ar(CEREAL_NVP_("data", bits.to_string()));
+
+		} catch (const std::overflow_error&) {
+			try {
+				auto const b = bits.to_ullong();
+				ar(CEREAL_NVP_("type", bitset_detail::type::ullong));
+				ar(CEREAL_NVP_("data", b));
+
+			} catch (const std::overflow_error&) {
+				ar(CEREAL_NVP_("type", bitset_detail::type::string));
+				ar(CEREAL_NVP_("data", bits.to_string()));
+			}
 		}
 	}
 }
 
 //! Serializing (load) for std::bitset
-template <class Archive, size_t N> inline
-void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::bitset<N>& bits) {
+template <class Archive, size_t N>
+inline void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::bitset<N>& bits) {
 	bitset_detail::type t;
 	ar(CEREAL_NVP_("type", t));
 
@@ -155,6 +159,7 @@ void CEREAL_LOAD_FUNCTION_NAME(Archive& ar, std::bitset<N>& bits) {
 		throw Exception("Invalid bitset data representation");
 	}
 }
-} // namespace cereal
 
-#endif // CEREAL_TYPES_BITSET_HPP_
+// -------------------------------------------------------------------------------------------------
+
+} // namespace cereal

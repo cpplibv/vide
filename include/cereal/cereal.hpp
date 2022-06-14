@@ -275,6 +275,8 @@ private:
 	//! Keeps track of classes that have versioning information associated with them
 	std::unordered_set<size_type> itsVersionedTypes;
 
+//	int64_t scope_version_ = 0;
+
 	//! Deferments
 	std::vector<std::function<void(void)>> itsDeferments;
 
@@ -900,8 +902,7 @@ private:
 
 		if (lookupResult != itsVersionedTypes.end()) // already exists
 			return lookupResult->second;
-		else // need to load
-		{
+		else { // need to load
 			std::uint32_t version;
 
 			process(make_nvp<ArchiveType>("cereal_class_version", version));

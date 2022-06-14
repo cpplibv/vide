@@ -1,6 +1,7 @@
-**VaderY/cereal** - Fork
+**VaderY/cereal** - Fork of [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
-This fork is experimental and wishes to alter multiple core functionality of the library and therefore no longer compatible with the upstream!
+This is an experimental fork that wishes to alter multiple core functionality of the library and therefore **is not compatible** with the upstream!
+Neither forward not backward compatibility is guaranteed.
 
 - Remove some legacy compiler support
 - Bump required versions to C++23, GCC 11.2, CMake 3.20
@@ -15,7 +16,7 @@ This fork is experimental and wishes to alter multiple core functionality of the
 - New archive flag `cereal::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
 - Move NVP into its own header
 - Move `cereal::access` into its own header and add access_fwd.hpp header for forward declaration only
-- Move `BinaryData`, `SizeTag`, `MapItem` and `constrcut` into their own header
+- Move `BinaryData`, `SizeTag`, `MapItem` and `construct` into their own header
 - Rework type serializers to only include what is required
 - Remove `load_and_construct`
 - Remove pointer to derived in archive bases (just use this with CRTP)

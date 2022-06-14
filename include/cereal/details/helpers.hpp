@@ -37,22 +37,13 @@
 #include <unordered_map>
 #include <stdexcept>
 
+#include <cereal/details/exception.hpp>
 #include <cereal/details/static_object.hpp>
 #include <cereal/macros.hpp>
 #include <cereal/map_item.hpp>
 
 
 namespace cereal {
-
-// ######################################################################
-//! An exception class thrown when things go wrong at runtime
-/*! @ingroup Utility */
-struct Exception : public std::runtime_error {
-	explicit Exception(const std::string& what_) : std::runtime_error(what_) {}
-	explicit Exception(const char* what_) : std::runtime_error(what_) {}
-};
-
-// ######################################################################
 
 namespace detail {
 struct DeferredDataCore {}; //!< Traits struct for DeferredData

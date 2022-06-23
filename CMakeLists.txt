@@ -20,17 +20,21 @@ include(cmake/wish_warning.cmake)
 #endif ()
 #
 #option(SKIP_PERFORMANCE_COMPARISON "Skip building performance comparison (requires boost)" OFF)
-#
-## TODO: should not be needed! CK
-#if (NOT CMAKE_VERSION VERSION_LESS 3.0) # installing vide requires INTERFACE lib
-#    option(JUST_INSTALL_CEREAL "Don't do anything besides installing the library" OFF)
-#endif ()
+
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)
 endif ()
 
 set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
+
+
+option(BUILD_DOC "Build documentation" ON)
+option(BUILD_SANDBOX "Build sandbox examples" ON)
+option(SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
+option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
+option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+option(JUST_INSTALL_VIDE "Don't do anything besides installing the library" OFF)
 
 
 set(VIDE_THREAD_LIBS)
@@ -43,8 +47,6 @@ if (UNIX)
     endif ()
 endif ()
 
-
-option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         message(STATUS "Force colored output: GCC")
@@ -138,7 +140,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
 
 elseif (CMAKE_BUILD_TYPE STREQUAL "DEV")
     add_compile_options(-O3)
-#    add_compile_options(-ftemplate-backtrace-limit=0)
+    #    add_compile_options(-ftemplate-backtrace-limit=0)
 
 else ()
     message(WARNING "Failed to identify [${CMAKE_BUILD_TYPE}] as a build type")
@@ -147,6 +149,12 @@ endif ()
 add_compile_options(-m64)
 add_compile_options(-std=c++23)
 
+# -------------------------------------------------------------------------------------------------
+
+option(BUILD_DOC "Build documentation" ON)
+option(BUILD_SANDBOX "Build sandbox examples" ON)
+option(SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
+option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
 
 # -------------------------------------------------------------------------------------------------
 
@@ -158,12 +166,8 @@ target_include_directories(vide INTERFACE
         )
 list(APPEND VIDE_THREAD_LIBS vide::vide)
 
-if (NOT CMAKE_VERSION VERSION_LESS 3.8)
-    target_compile_features(vide INTERFACE cxx_std_11)
-endif ()
+target_compile_features(vide INTERFACE cxx_std_23)
 
-
-option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
 if (VIDE_INSTALL)
     include(CMakePackageConfigHelpers)
 
@@ -193,7 +197,7 @@ if (VIDE_INSTALL)
 endif ()
 
 
-if (JUST_INSTALL_CEREAL)
+if (JUST_INSTALL_VIDE)
     return()
 endif ()
 
@@ -210,6 +214,10 @@ if (BUILD_TESTS)
     add_subdirectory(unittests)
 endif ()
 
-add_subdirectory(sandbox)
+if (BUILD_SANDBOX)
+    add_subdirectory(sandbox)
+endif ()
 
-add_subdirectory(doc)
+if (BUILD_DOC)
+    add_subdirectory(doc)
+endif ()

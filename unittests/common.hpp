@@ -270,15 +270,16 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
 
 // -------------------------------------------------------------------------------------------------
 
-#define CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function)                                                                \
+#define CREATE_TEST_CASES_FOR_BINARY_ARCHIVE(Name, Function)                                                                \
 	TEST_CASE("binary_" Name) {                                                                                           \
 		Function<vide::BinaryInputArchive, vide::BinaryOutputArchive>();                                                \
 	}                                                                                                                       \
                                                                                                                             \
 	TEST_CASE("portable_binary_" Name) {                                                                                  \
 		Function<vide::PortableBinaryInputArchive, vide::PortableBinaryOutputArchive>();                                \
-	}                                                                                                                       \
-                                                                                                                            \
+	}
+
+#define CREATE_TEST_CASES_FOR_TEXT_ARCHIVE(Name, Function)                                                                \
 	TEST_CASE("xml_" Name) {                                                                                              \
 		Function<vide::XMLInputArchive, vide::XMLOutputArchive>();                                                      \
 	}                                                                                                                       \
@@ -286,6 +287,10 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
 	TEST_CASE("json_" Name) {                                                                                             \
 		Function<vide::JSONInputArchive, vide::JSONOutputArchive>();                                                    \
 	}
+
+#define CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function) \
+	CREATE_TEST_CASES_FOR_BINARY_ARCHIVE(Name, Function)     \
+	CREATE_TEST_CASES_FOR_TEXT_ARCHIVE(Name, Function)
 
 #define CREATE_TEST_CASES_FOR_PROXY_ARCHIVE(Name, Function)                                                                 \
 	TEST_CASE("proxy binary_" Name) {                                                                                     \

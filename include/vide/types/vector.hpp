@@ -91,7 +91,7 @@ void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::vector<bool, A>& vector) {
 	ar(make_size_tag(size));
 
 	vector.resize(static_cast<std::size_t>( size ));
-	for (auto v : vector) {
+	for (auto&& v : vector) {
 		bool b;
 		ar(b);
 		v = b;

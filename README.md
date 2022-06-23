@@ -4,7 +4,7 @@ Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 This is an experimental fork that alter multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
 Neither forward, nor backward compatibility is guaranteed.  
-Bugfixes from the upstream are planned to be ported manually.
+Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2022.03.27 ddd46724).
 
 ### Changes / Differences to Cereal:
 - Change name to `vide` to indicate the incompatibility with upstream

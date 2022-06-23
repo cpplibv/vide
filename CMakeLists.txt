@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(vide LANGUAGES CXX VERSION 1.3.0)
+project(vide LANGUAGES CXX VERSION 2.1.0)
 
 if (PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(VIDE_MASTER_PROJECT ON)
@@ -18,9 +18,6 @@ include(cmake/wish_warning.cmake)
 #if (APPLE)
 #    option(SKIP_PORTABILITY_TEST "Skip portability (32 bit) tests" ON)
 #endif ()
-#
-#option(SKIP_PERFORMANCE_COMPARISON "Skip building performance comparison (requires boost)" OFF)
-
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RELEASE)

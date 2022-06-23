@@ -38,9 +38,9 @@
 #define VIDE_VERSION_HPP_
 
 //! The major version
-#define VIDE_VERSION_MAJOR 1
+#define VIDE_VERSION_MAJOR 2
 //! The minor version
-#define VIDE_VERSION_MINOR 3
+#define VIDE_VERSION_MINOR 1
 //! The patch version
 #define VIDE_VERSION_PATCH 0
 

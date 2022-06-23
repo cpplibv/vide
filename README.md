@@ -2,7 +2,7 @@
 ==========================================
 Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
-This is an experimental fork that alter multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
+This is an experimental fork that alters multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
 Neither forward, nor backward compatibility is guaranteed.  
 Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2022.03.27 ddd46724).
 
@@ -13,16 +13,16 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Remove some legacy compiler support
 - Bump required versions to C++23, GCC 11.2, CMake 3.20
 - Fixes and breaks some minor stuff
-- Remove `SEV_SETUP_ARCHIVE_TRAITS` (Input and output archives are no longer linked)
+- Remove `VIDE_SETUP_ARCHIVE_TRAITS` (Input and output archives are no longer linked)
   - Pro: Enables archives to be template types
   - Pro: One less macro that has to be called
   - Pro: Allows single in or out direction archives or type supports
   - Con: load_minimal type deduction is now done with the input archives on the save_minimal function (never called, only instantiated for type deduction)
   - Con: No check if save_minimal and load_minimal are correctly using the same type
   - Note: Cons could be negated with a single typedef inside the input archive to the output archive
-- New archive flag `sev::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
+- New archive flag `vide::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
 - Move NVP into its own header
-- Move `sev::access` into its own header and add access_fwd.hpp header for forward declaration only
+- Move `vide::access` into its own header and add access_fwd.hpp header for forward declaration only
 - Move `BinaryData`, `SizeTag`, `MapItem` and `construct` into their own header
 - Rework type serializers to only include what is required
 - Remove `load_and_construct`
@@ -39,6 +39,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Add process_as customization point for archives to handle special types
 - Remove prologue and epilogue function support (process_as can take care of it)
 - Add `ar.nvp("var", var)` syntax to allow option to not include any header file and really on dependent lookup only
+- Bump version to 2.1.0
 
 ### Planned:
 - Add safe/unsafe data serialization support
@@ -68,52 +69,50 @@ Installation and use of of cereal is fully documented on the [main web page](htt
 * Use the serialization archives to load and save data
 
 ```cpp
-#include <sev/types/unordered_map.hpp>
-#include <sev/types/memory.hpp>
-#include <sev/archives/binary.hpp>
+#include <vide/types/unordered_map.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/archives/binary.hpp>
 #include <fstream>
-    
-struct MyRecord
-{
-  uint8_t x, y;
-  float z;
-  
-  template <class Archive>
-  void serialize( Archive & ar )
-  {
-    ar( x, y, z );
-  }
-};
-    
-struct SomeData
-{
-  int32_t id;
-  std::shared_ptr<std::unordered_map<uint32_t, MyRecord>> data;
-  
-  template <class Archive>
-  void save( Archive & ar ) const
-  {
-    ar( data );
-  }
-      
-  template <class Archive>
-  void load( Archive & ar )
-  {
-    static int32_t idGen = 0;
-    id = idGen++;
-    ar( data );
-  }
+
+struct MyRecord {
+	uint8_t x, y;
+	float z;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(x);
+		ar(y);
+		ar(z);
+	}
 };
 
-int main()
-{
-  std::ofstream os("out.cereal", std::ios::binary);
-  sev::BinaryOutputArchive archive( os );
+struct SomeData {
+	int32_t id;
+	std::shared_ptr<std::unordered_map<uint32_t, MyRecord>> data;
 
-  SomeData myData;
-  archive( myData );
+	template <class Archive>
+	void save(Archive& ar) const {
+		ar(data);
+	}
 
-  return 0;
+	template <class Archive>
+	void load(Archive& ar) {
+		static int32_t idGen = 0;
+		id = idGen++;
+		ar(data);
+	}
+};
+
+int main() {
+	std::ofstream os("out.bin", std::ios::binary | std::ios::out);
+
+	SomeData myData;
+	{
+		vide::BinaryOutputArchive archive(os);
+		archive(myData);
+	}
+
+	return 0;
 }
 ```    
 

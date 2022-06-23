@@ -44,13 +44,13 @@ file(WRITE ${BINARY_DIR}/test_source/CMakeLists.txt "
   endif()
   find_package(cereal REQUIRED)
   add_executable(cereal-test-config-module main.cpp)
-  target_link_libraries(cereal-test-config-module cereal::cereal)
+  target_link_libraries(cereal-test-config-module vide::cereal)
   enable_testing()
   add_test(NAME test-cereal-test-config-module COMMAND cereal-test-config-module)
 ")
 
 file(WRITE ${BINARY_DIR}/test_source/main.cpp "
-  #include <cereal/archives/binary.hpp>
+  #include <vide/archives/binary.hpp>
   #include <sstream>
   #include <cstdlib>
   struct MyData
@@ -71,7 +71,7 @@ file(WRITE ${BINARY_DIR}/test_source/main.cpp "
     std::stringstream ss; // any stream can be used
 
     {
-      cereal::BinaryOutputArchive oarchive(ss); // Create an output archive
+      vide::BinaryOutputArchive oarchive(ss); // Create an output archive
 
       MyData m1, m2, m3;
       m1.set();
@@ -81,7 +81,7 @@ file(WRITE ${BINARY_DIR}/test_source/main.cpp "
     }
 
     {
-      cereal::BinaryInputArchive iarchive(ss); // Create an input archive
+      vide::BinaryInputArchive iarchive(ss); // Create an input archive
 
       MyData m1, m2, m3;
       iarchive(m1, m2, m3); // Read the data from the archive

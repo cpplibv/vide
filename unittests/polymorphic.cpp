@@ -32,9 +32,9 @@ TEST_SUITE_BEGIN("polymorphic");
 
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic", test_polymorphic)
 
-#if CEREAL_THREAD_SAFE
+#if VIDE_THREAD_SAFE
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_threading", test_polymorphic_threading)
-#endif // CEREAL_THREAD_SAFE
+#endif // VIDE_THREAD_SAFE
 
 
 TEST_SUITE_END();

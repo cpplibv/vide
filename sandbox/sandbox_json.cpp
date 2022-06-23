@@ -25,18 +25,18 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <cereal/cereal.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
+#include <vide/vide.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/archives/json.hpp>
 
-#include <cereal/types/string.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
+#include <vide/types/string.hpp>
+#include <vide/types/utility.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/complex.hpp>
+#include <vide/types/base_class.hpp>
+#include <vide/types/array.hpp>
+#include <vide/types/vector.hpp>
+#include <vide/types/map.hpp>
 
 #include <sstream>
 #include <fstream>
@@ -52,11 +52,11 @@ struct Test1 {
 	int a;
 
 private:
-	friend class cereal::access;
+	friend class vide::access;
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(CEREAL_NVP(a));
+		ar(VIDE_NVP(a));
 	}
 };
 
@@ -70,7 +70,7 @@ public:
 	int a;
 
 private:
-	friend class cereal::access;
+	friend class vide::access;
 
 	template <class Archive>
 	void save(Archive& ar) const {
@@ -90,7 +90,7 @@ struct Test3 {
 
 template <class Archive>
 void serialize(Archive& ar, Test3& t) {
-	ar(CEREAL_NVP(t.a));
+	ar(VIDE_NVP(t.a));
 }
 
 namespace test4 {
@@ -101,12 +101,12 @@ struct Test4 {
 
 template <class Archive>
 void save(Archive& ar, Test4 const& t) {
-	ar(CEREAL_NVP(t.a));
+	ar(VIDE_NVP(t.a));
 }
 
 template <class Archive>
 void load(Archive& ar, Test4& t) {
-	ar(CEREAL_NVP(t.a));
+	ar(VIDE_NVP(t.a));
 }
 }
 
@@ -117,7 +117,7 @@ public:
 private:
 	char a;
 
-	friend class cereal::access;
+	friend class vide::access;
 
 	template <class Archive>
 	void serialize(Archive& ar) {
@@ -136,13 +136,13 @@ struct Everything {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(CEREAL_NVP(x));
-		ar(CEREAL_NVP(y));
-		ar(CEREAL_NVP(t1));
-		ar(CEREAL_NVP(t2));
-		ar(CEREAL_NVP(t3));
-		ar(CEREAL_NVP(t4));
-		ar(CEREAL_NVP(s));
+		ar(VIDE_NVP(x));
+		ar(VIDE_NVP(y));
+		ar(VIDE_NVP(t1));
+		ar(VIDE_NVP(t2));
+		ar(VIDE_NVP(t3));
+		ar(VIDE_NVP(t4));
+		ar(VIDE_NVP(s));
 	}
 
 	bool operator==(Everything const& o) {
@@ -173,11 +173,11 @@ struct SubFixture {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(CEREAL_NVP(a));
+		ar(VIDE_NVP(a));
 		ar(b);
 		ar(c);
-		ar(CEREAL_NVP(d));
-		ar(CEREAL_NVP(s));
+		ar(VIDE_NVP(d));
+		ar(VIDE_NVP(s));
 	}
 
 	void change() {
@@ -203,7 +203,7 @@ struct Fixture {
 	template <class Archive>
 	void save(Archive& ar) const {
 		ar(f1);
-		ar(CEREAL_NVP(f2));
+		ar(VIDE_NVP(f2));
 		ar(f3);
 		ar.saveBinaryValue(array, sizeof(int) * 4, "cool array man");
 	}
@@ -211,7 +211,7 @@ struct Fixture {
 	template <class Archive>
 	void load(Archive& ar) {
 		ar(f1);
-		ar(CEREAL_NVP(f2));
+		ar(VIDE_NVP(f2));
 		ar(f3);
 		ar.loadBinaryValue(array, sizeof(int) * 4);
 	}
@@ -232,8 +232,8 @@ struct AAA {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(CEREAL_NVP(one))(CEREAL_NVP(two));
-		//ar( CEREAL_NVP(three) );
+		ar(VIDE_NVP(one))(VIDE_NVP(two));
+		//ar( VIDE_NVP(three) );
 	}
 };
 
@@ -255,11 +255,11 @@ public:
 private:
 	std::map<std::string, std::vector<std::complex<float>>> data;
 
-	friend class cereal::access;
+	friend class vide::access;
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(CEREAL_NVP(data));
+		ar(VIDE_NVP(data));
 	}
 };
 
@@ -280,10 +280,10 @@ struct OOJson {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(CEREAL_NVP(c));
-		ar(CEREAL_NVP(a));
+		ar(VIDE_NVP(c));
+		ar(VIDE_NVP(a));
 		ar(b);
-		ar(CEREAL_NVP(d));
+		ar(VIDE_NVP(d));
 	}
 };
 
@@ -293,7 +293,7 @@ int main() {
 
 	{
 		std::ofstream os("file.json");
-		cereal::JSONOutputArchive oar(os);
+		vide::JSONOutputArchive oar(os);
 
 		//auto f = std::make_shared<Fixture>();
 		//auto f2 = f;
@@ -301,7 +301,7 @@ int main() {
 		//oar( f2 );
 		Stuff s;
 		s.fillData();
-		oar(cereal::make_nvp("best data ever", s));
+		oar(vide::make_nvp("best data ever", s));
 	}
 
 	{
@@ -312,10 +312,10 @@ int main() {
 
 	// playground
 	{
-		cereal::JSONOutputArchive archive(std::cout);
+		vide::JSONOutputArchive archive(std::cout);
 		bool arr[] = {true, false};
 		std::vector<int> vec = {1, 2, 3, 4, 5};
-		archive(CEREAL_NVP(vec));
+		archive(VIDE_NVP(vec));
 		archive(arr);
 		auto f = std::make_shared<Fixture>();
 		auto f2 = f;
@@ -326,65 +326,65 @@ int main() {
 	// test out of order
 	std::stringstream oos;
 	{
-		cereal::JSONOutputArchive ar(oos);
-		cereal::JSONOutputArchive ar2(std::cout,
-				cereal::JSONOutputArchive::Options(2, cereal::JSONOutputArchive::Options::IndentChar::space, 2));
+		vide::JSONOutputArchive ar(oos);
+		vide::JSONOutputArchive ar2(std::cout,
+				vide::JSONOutputArchive::Options(2, vide::JSONOutputArchive::Options::IndentChar::space, 2));
 
-		ar(cereal::make_nvp("1", 1));
-		ar(cereal::make_nvp("2", 2));
+		ar(vide::make_nvp("1", 1));
+		ar(vide::make_nvp("2", 2));
 		ar(3);
 		ar(0); // unused
-		ar(cereal::make_nvp("4", 4));
-		ar(cereal::make_nvp("5", 5));
+		ar(vide::make_nvp("4", 4));
+		ar(vide::make_nvp("5", 5));
 
 		int x = 33;
 		ar.saveBinaryValue(&x, sizeof(int), "bla");
 
-		ar2(cereal::make_nvp("1", 1));
-		ar2(cereal::make_nvp("2", 2));
+		ar2(vide::make_nvp("1", 1));
+		ar2(vide::make_nvp("2", 2));
 		ar2(3);
 		ar2(0); // unused
-		ar2(cereal::make_nvp("4", 4));
-		ar2(cereal::make_nvp("5", 5));
+		ar2(vide::make_nvp("4", 4));
+		ar2(vide::make_nvp("5", 5));
 		ar2.saveBinaryValue(&x, sizeof(int), "bla");
 
 		OOJson oo(1, 2, true, 4.2);
-		ar(CEREAL_NVP(oo));
-		ar2(CEREAL_NVP(oo));
+		ar(VIDE_NVP(oo));
+		ar2(VIDE_NVP(oo));
 
 		// boost stuff
-		ar & cereal::make_nvp("usingop&", oo) & 6;
+		ar & vide::make_nvp("usingop&", oo) & 6;
 		ar << 5 << 4 << 3;
 
-		ar2 & cereal::make_nvp("usingop&", oo) & 6;
+		ar2 & vide::make_nvp("usingop&", oo) & 6;
 		ar2 << 5 << 4 << 3;
 
 		long double ld = std::numeric_limits<long double>::max();
 		long long ll = std::numeric_limits<long long>::max();
 		unsigned long long ull = std::numeric_limits<unsigned long long>::max();
 
-		ar(CEREAL_NVP(ld));
-		ar(CEREAL_NVP(ll));
-		ar(CEREAL_NVP(ull));
+		ar(VIDE_NVP(ld));
+		ar(VIDE_NVP(ll));
+		ar(VIDE_NVP(ull));
 
-		ar2(CEREAL_NVP(ld));
-		ar2(CEREAL_NVP(ll));
-		ar2(CEREAL_NVP(ull));
+		ar2(VIDE_NVP(ld));
+		ar2(VIDE_NVP(ll));
+		ar2(VIDE_NVP(ull));
 	}
 
 	{
-		cereal::JSONInputArchive ar(oos);
+		vide::JSONInputArchive ar(oos);
 		int i1, i2, i3, i4, i5, x;
 
 		ar(i1);
-		ar(cereal::make_nvp("2", i2))(i3);
-		ar(cereal::make_nvp("4", i4))(i5);
+		ar(vide::make_nvp("2", i2))(i3);
+		ar(vide::make_nvp("4", i4))(i5);
 
 		ar.loadBinaryValue(&x, sizeof(int));
 
 		OOJson ii;
-		ar(cereal::make_nvp("oo", ii));
-		ar(cereal::make_nvp("2", i2));
+		ar(vide::make_nvp("oo", ii));
+		ar(vide::make_nvp("2", i2));
 
 		std::cout << i1 << " " << i2 << " " << i3 << " " << i4 << " " << i5 << std::endl;
 		std::cout << x << std::endl;
@@ -394,7 +394,7 @@ int main() {
 		std::cout << std::endl;
 
 		OOJson oo;
-		ar >> cereal::make_nvp("usingop&", oo);
+		ar >> vide::make_nvp("usingop&", oo);
 		std::cout << oo.a << " " << oo.b << " " << oo.c.first << " " << oo.c.second << " ";
 		for (auto z : oo.d)
 			std::cout << z << " ";
@@ -407,9 +407,9 @@ int main() {
 		long long ll;
 		unsigned long long ull;
 
-		ar(CEREAL_NVP(ld));
-		ar(CEREAL_NVP(ll));
-		ar(CEREAL_NVP(ull));
+		ar(VIDE_NVP(ld));
+		ar(VIDE_NVP(ll));
+		ar(VIDE_NVP(ull));
 
 		std::cout << (ld == std::numeric_limits<long double>::max()) << std::endl;
 		std::cout << (ll == std::numeric_limits<long long>::max()) << std::endl;

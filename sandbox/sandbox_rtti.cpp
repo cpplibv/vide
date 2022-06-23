@@ -26,9 +26,9 @@
 */
 
 #include <type_traits>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/xml.hpp>
-#include <cereal/types/polymorphic.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/archives/xml.hpp>
+#include <vide/types/polymorphic.hpp>
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -66,17 +66,17 @@ struct MyType : public Base
     void save(Archive & ar) const
     {
       std::cout << "Saving MyType" << std::endl;
-      ar( cereal::virtual_base_class<Base>( this ) );
+      ar( vide::virtual_base_class<Base>( this ) );
     }
 
   template<class Archive>
     void load(Archive & ar)
     {
       std::cout << "Loading MyType" << std::endl;
-      ar( cereal::base_class<Base>( this ) );
+      ar( vide::base_class<Base>( this ) );
     }
 };
-CEREAL_REGISTER_TYPE(MyType)
+VIDE_REGISTER_TYPE(MyType)
 
 struct YourType : public Base
 {
@@ -103,8 +103,8 @@ struct YourType : public Base
     }
 };
 
-CEREAL_REGISTER_TYPE(YourType)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(Base, YourType)
+VIDE_REGISTER_TYPE(YourType)
+VIDE_REGISTER_POLYMORPHIC_RELATION(Base, YourType)
 
 struct OurBase
 {
@@ -151,14 +151,14 @@ struct DerivedVirtual : public virtual BaseVirtual
   template <class Archive>
   void save( Archive & ar ) const
   {
-    ar( cereal::virtual_base_class<BaseVirtual>( this ) );
+    ar( vide::virtual_base_class<BaseVirtual>( this ) );
     ar( y );
   }
 
   template <class Archive>
   void load( Archive & ar )
   {
-    ar( cereal::virtual_base_class<BaseVirtual>( this ) );
+    ar( vide::virtual_base_class<BaseVirtual>( this ) );
     ar( y );
   }
 };
@@ -173,10 +173,10 @@ struct TestType
   }
 };
 
-namespace cereal
+namespace vide
 {
-  template <class Archive> struct specialize<Archive, DerivedVirtual, cereal::specialization::member_load_save> {};
-  template <class Archive> struct specialize<Archive, TestType, cereal::specialization::member_serialize> {};
+  template <class Archive> struct specialize<Archive, DerivedVirtual, vide::specialization::member_load_save> {};
+  template <class Archive> struct specialize<Archive, TestType, vide::specialization::member_serialize> {};
 }
 
 struct AAA
@@ -192,7 +192,7 @@ struct BBB : AAA
   void serialize( Archive & ) {}
 };
 
-CEREAL_REGISTER_TYPE(BBB)
+VIDE_REGISTER_TYPE(BBB)
 
 template <class T> void nop(T&&) {}
 
@@ -200,8 +200,8 @@ int main()
 {
   {
     std::ofstream ostream("rtti.txt");
-    //cereal::BinaryOutputArchive oarchive(ostream);
-    cereal::XMLOutputArchive oarchive(ostream);
+    //vide::BinaryOutputArchive oarchive(ostream);
+    vide::XMLOutputArchive oarchive(ostream);
 
     std::shared_ptr<Base> ptr1 = std::make_shared<MyType>();
     std::shared_ptr<Base> ptr2 = std::make_shared<YourType>(33);
@@ -222,8 +222,8 @@ int main()
 
   {
     std::ifstream istream("rtti.txt");
-    //cereal::BinaryInputArchive iarchive(istream);
-    cereal::XMLInputArchive iarchive(istream);
+    //vide::BinaryInputArchive iarchive(istream);
+    vide::XMLInputArchive iarchive(istream);
 
     std::shared_ptr<Base> ptr1;
     std::shared_ptr<Base> ptr2;

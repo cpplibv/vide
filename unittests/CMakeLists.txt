@@ -15,13 +15,13 @@ if (NOT SKIP_PORTABILITY_TEST)
     if ((${CMAKE_SIZEOF_VOID_P} EQUAL 8))
         if (NOT MSVC)
             add_executable(portability_test32 portability_test.cpp)
-            target_link_libraries(portability_test32 ${CEREAL_THREAD_LIBS})
+            target_link_libraries(portability_test32 ${VIDE_THREAD_LIBS})
             set_target_properties(portability_test32 PROPERTIES COMPILE_FLAGS "-m32")
             set_target_properties(portability_test32 PROPERTIES LINK_FLAGS "-m32")
         endif ()
 
         add_executable(portability_test64 portability_test.cpp)
-        target_link_libraries(portability_test64 ${CEREAL_THREAD_LIBS})
+        target_link_libraries(portability_test64 ${VIDE_THREAD_LIBS})
 
         add_test(NAME portability_test
                 COMMAND ${CMAKE_COMMAND}
@@ -30,7 +30,7 @@ if (NOT SKIP_PORTABILITY_TEST)
 
     elseif (MSVC)
         add_executable(portability_test32 portability_test.cpp)
-        target_link_libraries(portability_test32 cereal::cereal)
+        target_link_libraries(portability_test32 vide::vide)
     endif ()
 endif ()
 
@@ -46,7 +46,7 @@ foreach (TEST_SOURCE ${TESTS})
     if (IS_SPECIAL_TEST EQUAL -1)
 
         add_executable(${TEST_TARGET} ${TEST_SOURCE})
-        target_link_libraries(${TEST_TARGET} ${CEREAL_THREAD_LIBS})
+        target_link_libraries(${TEST_TARGET} ${VIDE_THREAD_LIBS})
         add_test(NAME "${TEST_TARGET}" COMMAND "${TEST_TARGET}")
 
         # If we are on a 64-bit machine, create an extra 32-bit version of the test if portability testing is enabled
@@ -54,7 +54,7 @@ foreach (TEST_SOURCE ${TESTS})
             add_executable(${TEST_TARGET}_32 ${TEST_SOURCE})
             set_target_properties(${TEST_TARGET}_32 PROPERTIES
                     COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-            target_link_libraries(${TEST_TARGET}_32 ${CEREAL_THREAD_LIBS})
+            target_link_libraries(${TEST_TARGET}_32 ${VIDE_THREAD_LIBS})
             add_test(NAME "${TEST_TARGET}_32" COMMAND "${TEST_TARGET}_32")
         endif ()
 
@@ -88,7 +88,7 @@ endforeach ()
 #      set_target_properties(${COVERAGE_TARGET} PROPERTIES COMPILE_FLAGS "-coverage")
 #      set_target_properties(${COVERAGE_TARGET} PROPERTIES LINK_FLAGS "-coverage")
 #      set_target_properties(${COVERAGE_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/coverage")
-#      target_link_libraries(${COVERAGE_TARGET} ${CEREAL_THREAD_LIBS})
+#      target_link_libraries(${COVERAGE_TARGET} ${VIDE_THREAD_LIBS})
 #    endif()
 #  endforeach()
 #endif()

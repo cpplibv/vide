@@ -11,9 +11,11 @@ Type files that still have to be cleaned from cereal/cereal.hpp include:
 
 
 rename cereal, name ideas:
-    cerealv
+    vide      (latin for serial)
     cerv      (best?)
     cev
+    sev
+    cerealv
     serialv
     ver
     vereal

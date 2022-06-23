@@ -24,37 +24,37 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TEST_COMMON_H_
-#define CEREAL_TEST_COMMON_H_
+#ifndef VIDE_TEST_COMMON_H_
+#define VIDE_TEST_COMMON_H_
 
-#include <cereal/types/memory.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/atomic.hpp>
-#include <cereal/types/valarray.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/deque.hpp>
-#include <cereal/types/forward_list.hpp>
-#include <cereal/types/list.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/queue.hpp>
-#include <cereal/types/set.hpp>
-#include <cereal/types/stack.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/unordered_set.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/bitset.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/chrono.hpp>
-#include <cereal/types/polymorphic.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/array.hpp>
+#include <vide/types/atomic.hpp>
+#include <vide/types/valarray.hpp>
+#include <vide/types/vector.hpp>
+#include <vide/types/deque.hpp>
+#include <vide/types/forward_list.hpp>
+#include <vide/types/list.hpp>
+#include <vide/types/string.hpp>
+#include <vide/types/map.hpp>
+#include <vide/types/queue.hpp>
+#include <vide/types/set.hpp>
+#include <vide/types/stack.hpp>
+#include <vide/types/unordered_map.hpp>
+#include <vide/types/unordered_set.hpp>
+#include <vide/types/utility.hpp>
+#include <vide/types/tuple.hpp>
+#include <vide/types/bitset.hpp>
+#include <vide/types/complex.hpp>
+#include <vide/types/chrono.hpp>
+#include <vide/types/polymorphic.hpp>
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/archives/xml.hpp>
-#include <cereal/archives/json.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/archives/portable_binary.hpp>
+#include <vide/archives/xml.hpp>
+#include <vide/archives/json.hpp>
 
-#include <cereal/archives/proxy_archive.hpp>
+#include <vide/archives/proxy_archive.hpp>
 
 #include <limits>
 #include <random>
@@ -246,8 +246,8 @@ struct StructHash {
 // -------------------------------------------------------------------------------------------------
 
 template <typename Ar>
-struct UserProxyArchive : cereal::ProxyArchive<UserProxyArchive<Ar>, Ar> {
-	using cereal::ProxyArchive<UserProxyArchive<Ar>, Ar>::ProxyArchive;
+struct UserProxyArchive : vide::ProxyArchive<UserProxyArchive<Ar>, Ar> {
+	using vide::ProxyArchive<UserProxyArchive<Ar>, Ar>::ProxyArchive;
 
 	int my_user_data = 42;
 };
@@ -272,36 +272,36 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
 
 #define CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function)                                                                \
 	TEST_CASE("binary_" Name) {                                                                                           \
-		Function<cereal::BinaryInputArchive, cereal::BinaryOutputArchive>();                                                \
+		Function<vide::BinaryInputArchive, vide::BinaryOutputArchive>();                                                \
 	}                                                                                                                       \
                                                                                                                             \
 	TEST_CASE("portable_binary_" Name) {                                                                                  \
-		Function<cereal::PortableBinaryInputArchive, cereal::PortableBinaryOutputArchive>();                                \
+		Function<vide::PortableBinaryInputArchive, vide::PortableBinaryOutputArchive>();                                \
 	}                                                                                                                       \
                                                                                                                             \
 	TEST_CASE("xml_" Name) {                                                                                              \
-		Function<cereal::XMLInputArchive, cereal::XMLOutputArchive>();                                                      \
+		Function<vide::XMLInputArchive, vide::XMLOutputArchive>();                                                      \
 	}                                                                                                                       \
                                                                                                                             \
 	TEST_CASE("json_" Name) {                                                                                             \
-		Function<cereal::JSONInputArchive, cereal::JSONOutputArchive>();                                                    \
+		Function<vide::JSONInputArchive, vide::JSONOutputArchive>();                                                    \
 	}
 
 #define CREATE_TEST_CASES_FOR_PROXY_ARCHIVE(Name, Function)                                                                 \
 	TEST_CASE("proxy binary_" Name) {                                                                                     \
-		Function<ProxyTestGroup<cereal::BinaryInputArchive>, ProxyTestGroup<cereal::BinaryOutputArchive>>();                \
+		Function<ProxyTestGroup<vide::BinaryInputArchive>, ProxyTestGroup<vide::BinaryOutputArchive>>();                \
 	}                                                                                                                       \
 	                                                                                                                        \
 	TEST_CASE("proxy portable_binary_" Name) {                                                                            \
-		Function<ProxyTestGroup<cereal::PortableBinaryInputArchive>, ProxyTestGroup<cereal::PortableBinaryOutputArchive>>();\
+		Function<ProxyTestGroup<vide::PortableBinaryInputArchive>, ProxyTestGroup<vide::PortableBinaryOutputArchive>>();\
 	}                                                                                                                       \
 	                                                                                                                        \
 	TEST_CASE("proxy xml_" Name) {                                                                                        \
-		Function<ProxyTestGroup<cereal::XMLInputArchive>, ProxyTestGroup<cereal::XMLOutputArchive>>();                      \
+		Function<ProxyTestGroup<vide::XMLInputArchive>, ProxyTestGroup<vide::XMLOutputArchive>>();                      \
 	}                                                                                                                       \
 	                                                                                                                        \
 	TEST_CASE("proxy json_" Name) {                                                                                       \
-		Function<ProxyTestGroup<cereal::JSONInputArchive>, ProxyTestGroup<cereal::JSONOutputArchive>>();                    \
+		Function<ProxyTestGroup<vide::JSONInputArchive>, ProxyTestGroup<vide::JSONOutputArchive>>();                    \
 	}
 
 #define CREATE_TEST_CASES_FOR_ALL_ARCHIVE(Name, Function) \
@@ -310,4 +310,4 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
 
 // -------------------------------------------------------------------------------------------------
 
-#endif // CEREAL_TEST_COMMON_H_
+#endif // VIDE_TEST_COMMON_H_

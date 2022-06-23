@@ -1,19 +1,19 @@
-#include <cereal/cereal.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
-#include <cereal/archives/xml.hpp>
+#include <vide/vide.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/archives/json.hpp>
+#include <vide/archives/xml.hpp>
 
-#include <cereal/archives/proxy_archive.hpp>
+#include <vide/archives/proxy_archive.hpp>
 
-#include <cereal/types/array.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/bitset.hpp>
+#include <vide/types/array.hpp>
+#include <vide/types/base_class.hpp>
+#include <vide/types/complex.hpp>
+#include <vide/types/map.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/string.hpp>
+#include <vide/types/utility.hpp>
+#include <vide/types/vector.hpp>
+#include <vide/types/bitset.hpp>
 
 #include <sstream>
 #include <fstream>
@@ -30,11 +30,11 @@
 //	int a;
 //
 //private:
-//	friend class cereal::access;
+//	friend class vide::access;
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
-//		ar(CEREAL_NVP(a));
+//		ar(VIDE_NVP(a));
 //	}
 //};
 //
@@ -48,7 +48,7 @@
 //	int a;
 //
 //private:
-//	friend class cereal::access;
+//	friend class vide::access;
 //
 //	template <class Archive>
 //	void save(Archive& ar) const {
@@ -68,7 +68,7 @@
 //
 //template <class Archive>
 //void serialize(Archive& ar, Test3& t) {
-//	ar(CEREAL_NVP(t.a));
+//	ar(VIDE_NVP(t.a));
 //}
 //
 //namespace test4 {
@@ -79,12 +79,12 @@
 //
 //template <class Archive>
 //void save(Archive& ar, Test4 const& t) {
-//	ar(CEREAL_NVP(t.a));
+//	ar(VIDE_NVP(t.a));
 //}
 //
 //template <class Archive>
 //void load(Archive& ar, Test4& t) {
-//	ar(CEREAL_NVP(t.a));
+//	ar(VIDE_NVP(t.a));
 //}
 //}
 //
@@ -95,7 +95,7 @@
 //private:
 //	char a;
 //
-//	friend class cereal::access;
+//	friend class vide::access;
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
@@ -114,13 +114,13 @@
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
-//		ar(CEREAL_NVP(x));
-//		ar(CEREAL_NVP(y));
-//		ar(CEREAL_NVP(t1));
-//		ar(CEREAL_NVP(t2));
-//		ar(CEREAL_NVP(t3));
-//		ar(CEREAL_NVP(t4));
-//		ar(CEREAL_NVP(s));
+//		ar(VIDE_NVP(x));
+//		ar(VIDE_NVP(y));
+//		ar(VIDE_NVP(t1));
+//		ar(VIDE_NVP(t2));
+//		ar(VIDE_NVP(t3));
+//		ar(VIDE_NVP(t4));
+//		ar(VIDE_NVP(s));
 //	}
 //
 //	bool operator==(Everything const& o) {
@@ -150,11 +150,11 @@
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
-//		ar(CEREAL_NVP(a));
+//		ar(VIDE_NVP(a));
 //		ar(b);
 //		ar(c);
-//		ar(CEREAL_NVP(d));
-//		ar(CEREAL_NVP(s));
+//		ar(VIDE_NVP(d));
+//		ar(VIDE_NVP(s));
 //	}
 //
 //	void change() {
@@ -180,7 +180,7 @@
 //	template <class Archive>
 //	void save(Archive& ar) const {
 //		ar(f1);
-//		ar(CEREAL_NVP(f2));
+//		ar(VIDE_NVP(f2));
 //		ar(f3);
 //		ar.saveBinaryValue(array, sizeof(int) * 4, "cool array man");
 //	}
@@ -188,7 +188,7 @@
 //	template <class Archive>
 //	void load(Archive& ar) {
 //		ar(f1);
-//		ar(CEREAL_NVP(f2));
+//		ar(VIDE_NVP(f2));
 //		ar(f3);
 //		ar.loadBinaryValue(array, sizeof(int) * 4);
 //	}
@@ -209,8 +209,8 @@
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
-//		ar(CEREAL_NVP(one))(CEREAL_NVP(two));
-//		//ar( CEREAL_NVP(three) );
+//		ar(VIDE_NVP(one))(VIDE_NVP(two));
+//		//ar( VIDE_NVP(three) );
 //	}
 //};
 //
@@ -232,11 +232,11 @@
 //private:
 //	std::map<std::string, std::vector<std::complex<float>>> data;
 //
-//	friend class cereal::access;
+//	friend class vide::access;
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
-//		ar(CEREAL_NVP(data));
+//		ar(VIDE_NVP(data));
 //	}
 //};
 //
@@ -257,10 +257,10 @@
 //
 //	template <class Archive>
 //	void serialize(Archive& ar) {
-//		ar(CEREAL_NVP(c));
-//		ar(CEREAL_NVP(a));
+//		ar(VIDE_NVP(c));
+//		ar(VIDE_NVP(a));
 //		ar(b);
-//		ar(CEREAL_NVP(d));
+//		ar(VIDE_NVP(d));
 //	}
 //};
 
@@ -296,27 +296,27 @@ struct TestType0 {
 		a += ar.my_user_data;
 
 		ar(a);
-		ar(CEREAL_NVP_("b", b));
-		ar(CEREAL_NVP(c));
-		ar(CEREAL_NVP(d));
-		ar(CEREAL_NVP(nullptr));
+		ar(VIDE_NVP_("b", b));
+		ar(VIDE_NVP(c));
+		ar(VIDE_NVP(d));
+		ar(VIDE_NVP(nullptr));
 		ar(nullptr);
 		ar(vecA);
-		ar(CEREAL_NVP(vecB));
+		ar(VIDE_NVP(vecB));
 		ar(helloA);
-		ar(CEREAL_NVP(helloB));
+		ar(VIDE_NVP(helloB));
 		ar(bits0);
-		ar(CEREAL_NVP(bits1));
+		ar(VIDE_NVP(bits1));
 		ar(complex0);
-		ar(CEREAL_NVP(complex1));
+		ar(VIDE_NVP(complex1));
 		ar(enum0);
-		ar(CEREAL_NVP(enum1));
+		ar(VIDE_NVP(enum1));
 	}
 };
 
 template <typename Ar>
-struct UserProxyArchive : cereal::ProxyArchive<UserProxyArchive<Ar>, Ar> {
-	using cereal::ProxyArchive<UserProxyArchive<Ar>, Ar>::ProxyArchive;
+struct UserProxyArchive : vide::ProxyArchive<UserProxyArchive<Ar>, Ar> {
+	using vide::ProxyArchive<UserProxyArchive<Ar>, Ar>::ProxyArchive;
 
 	int my_user_data = 42;
 };
@@ -327,14 +327,14 @@ int main() {
 	std::cout << std::boolalpha << std::endl;
 
 	{
-		cereal::JSONOutputArchive oar(std::cout);
-		UserProxyArchive<cereal::JSONOutputArchive> ctxar(oar);
-//		cereal::XMLOutputArchive oar(std::cout);
-//		UserProxyArchive<cereal::XMLOutputArchive> ctxar(oar);
+		vide::JSONOutputArchive oar(std::cout);
+		UserProxyArchive<vide::JSONOutputArchive> ctxar(oar);
+//		vide::XMLOutputArchive oar(std::cout);
+//		UserProxyArchive<vide::XMLOutputArchive> ctxar(oar);
 
 		TestType0 t0;
 //		ctxar(t0);
-		ctxar(cereal::make_nvp("t1", t0));
+		ctxar(vide::make_nvp("t1", t0));
 //		oar(t0);
 //		ctxar.template operator()<int>(t0.b);
 	}

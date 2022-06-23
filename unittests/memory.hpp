@@ -24,8 +24,8 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TEST_MEMORY_H_
-#define CEREAL_TEST_MEMORY_H_
+#ifndef VIDE_TEST_MEMORY_H_
+#define VIDE_TEST_MEMORY_H_
 #include "common.hpp"
 
 template <class IArchive, class OArchive> inline
@@ -114,7 +114,7 @@ class TestClass
     int x;
 
   private:
-    friend class cereal::access;
+    friend class vide::access;
     TestClass() = default;
 
     template<class Archive>
@@ -145,4 +145,4 @@ void test_default_construction()
   CHECK_EQ(o_ptr2->x, i_ptr2->x);
 }
 
-#endif // CEREAL_TEST_LOAD_CONSTRUCT_H_
+#endif // VIDE_TEST_LOAD_CONSTRUCT_H_

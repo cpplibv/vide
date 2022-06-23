@@ -25,11 +25,11 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <cereal/archives/portable_binary.hpp>
+#include <vide/archives/portable_binary.hpp>
 
-#include <cereal/types/memory.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/vector.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/map.hpp>
+#include <vide/types/vector.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -48,7 +48,7 @@ struct Data : std::enable_shared_from_this<Data>
   }
 
   template <class Archive>
-  static void load_and_construct( Archive & ar, cereal::construct<Data> & construct )
+  static void load_and_construct( Archive & ar, vide::construct<Data> & construct )
   {
     int32_t xx;
     int64_t yy;
@@ -155,7 +155,7 @@ int main( int, char ** argv )
   if( std::string(argv[1]) == "load" )
   {
     std::ifstream is("portable.cereal", std::ios::binary);
-    cereal::PortableBinaryInputArchive ar( is );
+    vide::PortableBinaryInputArchive ar( is );
 
     std::vector<Another> vec_i;
     std::shared_ptr<Data> data_i;
@@ -187,7 +187,7 @@ int main( int, char ** argv )
   else if( std::string(argv[1]) == "save" )
   {
     std::ofstream os("portable.cereal", std::ios::binary);
-    cereal::PortableBinaryOutputArchive ar( os );
+    vide::PortableBinaryOutputArchive ar( os );
 
     ar( int_o );
     ar( vec_o );

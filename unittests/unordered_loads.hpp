@@ -24,8 +24,8 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TEST_UNORDERED_LOADS_H_
-#define CEREAL_TEST_UNORDERED_LOADS_H_
+#ifndef VIDE_TEST_UNORDERED_LOADS_H_
+#define VIDE_TEST_UNORDERED_LOADS_H_
 #include "common.hpp"
 
 struct unordered_naming
@@ -38,19 +38,19 @@ struct unordered_naming
   template <class Archive>
   void save( Archive & ar ) const
   {
-    	ar(CEREAL_NVP(x));
-        ar(CEREAL_NVP(z));
-        ar(CEREAL_NVP(y));
-        ar(CEREAL_NVP(xx));
+    	ar(VIDE_NVP(x));
+        ar(VIDE_NVP(z));
+        ar(VIDE_NVP(y));
+        ar(VIDE_NVP(xx));
   }
 
   template <class Archive>
   void load( Archive & ar )
   {
     	ar(x);
-        ar(CEREAL_NVP(y));
-        ar(CEREAL_NVP(z));
-        ar(CEREAL_NVP(xx));
+        ar(VIDE_NVP(y));
+        ar(VIDE_NVP(z));
+        ar(VIDE_NVP(xx));
   }
 
   bool operator==( unordered_naming const & other ) const
@@ -103,13 +103,13 @@ void test_unordered_loads()
     std::ostringstream os;
     {
 		OArchive oar(os);
-		oar(cereal::make_nvp(name1, o_int1));
-		oar(cereal::make_nvp(name2, o_double2));
-		oar(cereal::make_nvp(name3, o_vecbool3));
-		oar(cereal::make_nvp(name4, o_int4));
-		oar(cereal::make_nvp(name5, o_int5));
-		oar(cereal::make_nvp(name6, o_int6));
-		oar(cereal::make_nvp(name7, o_un7));
+		oar(vide::make_nvp(name1, o_int1));
+		oar(vide::make_nvp(name2, o_double2));
+		oar(vide::make_nvp(name3, o_vecbool3));
+		oar(vide::make_nvp(name4, o_int4));
+		oar(vide::make_nvp(name5, o_int5));
+		oar(vide::make_nvp(name6, o_int6));
+		oar(vide::make_nvp(name7, o_un7));
     }
 
     decltype(o_int1) i_int1;
@@ -123,12 +123,12 @@ void test_unordered_loads()
     std::istringstream is(os.str());
     {
 		IArchive iar(is);
-		iar(cereal::make_nvp(name7, i_un7));
-		iar(cereal::make_nvp(name2, i_double2));
-		iar(cereal::make_nvp(name4, i_int4));
-		iar(cereal::make_nvp(name3, i_vecbool3));
-		iar(cereal::make_nvp(name1, i_int1));
-		iar(cereal::make_nvp(name5, i_int5));
+		iar(vide::make_nvp(name7, i_un7));
+		iar(vide::make_nvp(name2, i_double2));
+		iar(vide::make_nvp(name4, i_int4));
+		iar(vide::make_nvp(name3, i_vecbool3));
+		iar(vide::make_nvp(name1, i_int1));
+		iar(vide::make_nvp(name5, i_int5));
 		iar(i_int6);
     }
 
@@ -144,4 +144,4 @@ void test_unordered_loads()
   }
 }
 
-#endif // CEREAL_TEST_UNORDERED_LOADS_H_
+#endif // VIDE_TEST_UNORDERED_LOADS_H_

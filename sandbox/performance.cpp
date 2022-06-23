@@ -47,10 +47,10 @@
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/base_object.hpp>
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/map.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/types/vector.hpp>
+#include <vide/types/string.hpp>
+#include <vide/types/map.hpp>
 
 //! Runs serialization to save data to an ostringstream
 /*! Used to time how long it takes to save data to an ostringstream.
@@ -96,7 +96,7 @@ struct cerealBinary
   template <class T>
   static void save( std::ostringstream & os, T const & data )
   {
-    cereal::BinaryOutputArchive oar(os);
+    vide::BinaryOutputArchive oar(os);
     oar(data);
   }
 
@@ -104,7 +104,7 @@ struct cerealBinary
   template <class T>
   static void load( std::istringstream & is, T & data )
   {
-    cereal::BinaryInputArchive iar(is);
+    vide::BinaryInputArchive iar(is);
     iar(data);
   }
 };
@@ -189,12 +189,12 @@ void test( std::string const & name,
     // Cereal
     {
       std::ostringstream os;
-      auto saveResult = saveData<DataTCereal>( dataC, {SerializationT::cereal::template save<DataTCereal>}, os );
+      auto saveResult = saveData<DataTCereal>( dataC, {SerializationT::vide::template save<DataTCereal>}, os );
       totalCerealSave += saveResult;
       if(!cerealSize)
         cerealSize = os.tellp();
 
-      auto loadResult = loadData<DataTCereal>( os, {SerializationT::cereal::template load<DataTCereal>} );
+      auto loadResult = loadData<DataTCereal>( os, {SerializationT::vide::template load<DataTCereal>} );
       totalCerealLoad += loadResult.second;
     }
   }
@@ -319,7 +319,7 @@ struct PoDChildCereal : virtual PoDStructCereal
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( cereal::virtual_base_class<PoDStructCereal>(this), v );
+    ar( vide::virtual_base_class<PoDStructCereal>(this), v );
   }
 };
 

@@ -1,21 +1,28 @@
-**VaderY/cereal** - Fork of [USCiLab/cereal](https://github.com/USCiLab/cereal)
+**VaderY/vide** - A C++23 library for serialization
+==========================================
+Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
-This is an experimental fork that wishes to alter multiple core functionality of the library and therefore **is not compatible** with the upstream!
-Neither forward not backward compatibility is guaranteed.
+This is an experimental fork that alter multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
+Neither forward, nor backward compatibility is guaranteed.  
+Bugfixes from the upstream are planned to be ported manually.
 
+### Changes / Differences to Cereal:
+- Change name to `vide` to indicate the incompatibility with upstream
+  - `vide` comes from latin word serial
+  - Name change was necessary due to incompatibilities
 - Remove some legacy compiler support
 - Bump required versions to C++23, GCC 11.2, CMake 3.20
 - Fixes and breaks some minor stuff
-- Remove `CEREAL_SETUP_ARCHIVE_TRAITS` (Input and output archives are no longer linked)
+- Remove `SEV_SETUP_ARCHIVE_TRAITS` (Input and output archives are no longer linked)
   - Pro: Enables archives to be template types
   - Pro: One less macro that has to be called
   - Pro: Allows single in or out direction archives or type supports
   - Con: load_minimal type deduction is now done with the input archives on the save_minimal function (never called, only instantiated for type deduction)
   - Con: No check if save_minimal and load_minimal are correctly using the same type
   - Note: Cons could be negated with a single typedef inside the input archive to the output archive
-- New archive flag `cereal::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
+- New archive flag `sev::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
 - Move NVP into its own header
-- Move `cereal::access` into its own header and add access_fwd.hpp header for forward declaration only
+- Move `sev::access` into its own header and add access_fwd.hpp header for forward declaration only
 - Move `BinaryData`, `SizeTag`, `MapItem` and `construct` into their own header
 - Rework type serializers to only include what is required
 - Remove `load_and_construct`
@@ -33,20 +40,20 @@ Neither forward not backward compatibility is guaranteed.
 - Remove prologue and epilogue function support (process_as can take care of it)
 - Add `ar.nvp("var", var)` syntax to allow option to not include any header file and really on dependent lookup only
 
-
-Planned:
+### Planned:
 - Add safe/unsafe data serialization support
   - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
+  - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
 - Improved compile time performance
 - Maybe: Context variables passed as additional function arguments
-- Change name to cerealv or cev to indicate the incompatibility with upstream
 - `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 
+-------------------------------------------------------------------------------------------------
 
 cereal - A C++11 library for serialization
 ==========================================
 
-<img src="https://uscilab.github.io/cereal/assets/img/cerealboxside.png" align="right"/><p>cereal is a header-only C++11 serialization library.  cereal takes arbitrary data types and reversibly turns them into different representations, such as compact binary encodings, XML, or JSON.  cereal was designed to be fast, light-weight, and easy to extend - it has no external dependencies and can be easily bundled with other code or used standalone.</p>
+<p>cereal is a header-only C++11 serialization library.  cereal takes arbitrary data types and reversibly turns them into different representations, such as compact binary encodings, XML, or JSON.  cereal was designed to be fast, light-weight, and easy to extend - it has no external dependencies and can be easily bundled with other code or used standalone.</p>
 
 ### cereal has great documentation
 
@@ -61,9 +68,9 @@ Installation and use of of cereal is fully documented on the [main web page](htt
 * Use the serialization archives to load and save data
 
 ```cpp
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/archives/binary.hpp>
+#include <sev/types/unordered_map.hpp>
+#include <sev/types/memory.hpp>
+#include <sev/archives/binary.hpp>
 #include <fstream>
     
 struct MyRecord
@@ -101,7 +108,7 @@ struct SomeData
 int main()
 {
   std::ofstream os("out.cereal", std::ios::binary);
-  cereal::BinaryOutputArchive archive( os );
+  sev::BinaryOutputArchive archive( os );
 
   SomeData myData;
   archive( myData );

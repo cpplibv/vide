@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(cereal LANGUAGES CXX VERSION 1.3.0)
+project(vide LANGUAGES CXX VERSION 1.3.0)
 
 if (PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(CEREAL_MASTER_PROJECT ON)
+    set(VIDE_MASTER_PROJECT ON)
 endif ()
 
 
@@ -22,7 +22,7 @@ include(cmake/wish_warning.cmake)
 #option(SKIP_PERFORMANCE_COMPARISON "Skip building performance comparison (requires boost)" OFF)
 #
 ## TODO: should not be needed! CK
-#if (NOT CMAKE_VERSION VERSION_LESS 3.0) # installing cereal requires INTERFACE lib
+#if (NOT CMAKE_VERSION VERSION_LESS 3.0) # installing vide requires INTERFACE lib
 #    option(JUST_INSTALL_CEREAL "Don't do anything besides installing the library" OFF)
 #endif ()
 
@@ -33,13 +33,13 @@ endif ()
 set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
 
 
-set(CEREAL_THREAD_LIBS)
+set(VIDE_THREAD_LIBS)
 if (UNIX)
     option(THREAD_SAFE "Use mutexes to ensure thread safety" OFF)
     if (THREAD_SAFE)
         message(STATUS "Use mutexes")
-        add_definitions(-DCEREAL_THREAD_SAFE=1)
-        set(CEREAL_THREAD_LIBS pthread)
+        add_definitions(-DVIDE_THREAD_SAFE=1)
+        set(VIDE_THREAD_LIBS pthread)
     endif ()
 endif ()
 
@@ -134,7 +134,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
     #	SET(CMAKE_RANLIB "gcc-ranlib")
     #	add_definitions(-DNDEBUG)
     wish_static_link_std()
-    add_compile_options(-static) # Normally wish_static_link_std() would take care of this, but cereal is not really using wish
+    add_compile_options(-static) # Normally wish_static_link_std() would take care of this, but vide is not really using wish
 
 elseif (CMAKE_BUILD_TYPE STREQUAL "DEV")
     add_compile_options(-O3)
@@ -150,25 +150,25 @@ add_compile_options(-std=c++23)
 
 # -------------------------------------------------------------------------------------------------
 
-add_library(cereal INTERFACE)
-add_library(cereal::cereal ALIAS cereal)
-target_include_directories(cereal INTERFACE
+add_library(vide INTERFACE)
+add_library(vide::vide ALIAS vide)
+target_include_directories(vide INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
         )
-list(APPEND CEREAL_THREAD_LIBS cereal::cereal)
+list(APPEND VIDE_THREAD_LIBS vide::vide)
 
 if (NOT CMAKE_VERSION VERSION_LESS 3.8)
-    target_compile_features(cereal INTERFACE cxx_std_11)
+    target_compile_features(vide INTERFACE cxx_std_11)
 endif ()
 
 
-option(CEREAL_INSTALL "Generate the install target" ${CEREAL_MASTER_PROJECT})
-if (CEREAL_INSTALL)
+option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
+if (VIDE_INSTALL)
     include(CMakePackageConfigHelpers)
 
-    install(TARGETS cereal EXPORT ${PROJECT_NAME}Targets)
-    install(DIRECTORY include/cereal DESTINATION include)
+    install(TARGETS vide EXPORT ${PROJECT_NAME}Targets)
+    install(DIRECTORY include/vide DESTINATION include)
 
     set(configFile ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake)
     set(versionFile ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake)
@@ -187,7 +187,7 @@ if (CEREAL_INSTALL)
     install(FILES ${configFile} ${versionFile} DESTINATION ${configInstallDestination})
     install(
             EXPORT ${PROJECT_NAME}Targets
-            NAMESPACE "cereal::"
+            NAMESPACE "vide::"
             DESTINATION ${configInstallDestination}
     )
 endif ()
@@ -204,7 +204,7 @@ endif ()
 #endif()
 
 
-option(BUILD_TESTS "Build tests" ${CEREAL_MASTER_PROJECT})
+option(BUILD_TESTS "Build tests" ${VIDE_MASTER_PROJECT})
 if (BUILD_TESTS)
     enable_testing()
     add_subdirectory(unittests)

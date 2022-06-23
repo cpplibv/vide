@@ -24,8 +24,8 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TEST_DEFER_H_
-#define CEREAL_TEST_DEFER_H_
+#ifndef VIDE_TEST_DEFER_H_
+#define VIDE_TEST_DEFER_H_
 #include "common.hpp"
 
 struct DeferNode;
@@ -78,11 +78,11 @@ struct DeferNode
   {
         ar(id);
 		ar(w);
-        ar(cereal::defer( iser ));
-        ar(cereal::defer( ispl ));
-        ar(cereal::defer( eser ));
-        ar(cereal::defer( espl ));
-        ar(cereal::defer( relations ));
+        ar(vide::defer( iser ));
+        ar(vide::defer( ispl ));
+        ar(vide::defer( eser ));
+        ar(vide::defer( espl ));
+        ar(vide::defer( relations ));
         ar(z);
   }
 
@@ -193,4 +193,4 @@ void test_defer()
   }
 }
 
-#endif // CEREAL_TEST_DEFER_H_
+#endif // VIDE_TEST_DEFER_H_

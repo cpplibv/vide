@@ -25,22 +25,22 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <cereal/cereal.hpp>
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/archives/xml.hpp>
+#include <vide/vide.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/archives/portable_binary.hpp>
+#include <vide/archives/xml.hpp>
 
-#include <cereal/types/array.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/types/bitset.hpp>
-#include <cereal/types/chrono.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/vector.hpp>
+#include <vide/types/array.hpp>
+#include <vide/types/base_class.hpp>
+#include <vide/types/bitset.hpp>
+#include <vide/types/chrono.hpp>
+#include <vide/types/complex.hpp>
+#include <vide/types/map.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/polymorphic.hpp>
+#include <vide/types/string.hpp>
+#include <vide/types/utility.hpp>
+#include <vide/types/vector.hpp>
 
 //#include <cxxabi.h>
 #include <sstream>
@@ -53,7 +53,7 @@
 class Base
 {
   private:
-    friend class cereal::access;
+    friend class vide::access;
     template <class Archive>
     void serialize( Archive & ar )
     {
@@ -84,7 +84,7 @@ class Derived : public Base
     template <class Archive>
     void save( Archive & ar ) const
     {
-      ar( cereal::virtual_base_class<Base>(this) );
+      ar( vide::virtual_base_class<Base>(this) );
       std::cout << "Derived save" << std::endl;
       ar( y );
     }
@@ -92,7 +92,7 @@ class Derived : public Base
     template <class Archive>
     void load( Archive & ar )
     {
-      ar( cereal::virtual_base_class<Base>(this) );
+      ar( vide::virtual_base_class<Base>(this) );
       std::cout << "Derived load" << std::endl;
       ar( y );
     }
@@ -102,12 +102,12 @@ class Derived : public Base
     int y;
 };
 
-namespace cereal
+namespace vide
 {
-  template <class Archive> struct specialize<Archive, Derived, cereal::specialization::member_load_save> {};
+  template <class Archive> struct specialize<Archive, Derived, vide::specialization::member_load_save> {};
 }
 
-CEREAL_REGISTER_TYPE(Derived)
+VIDE_REGISTER_TYPE(Derived)
 
 // ###################################
 struct Test1
@@ -115,11 +115,11 @@ struct Test1
   int a;
 
   private:
-    friend class cereal::access;
+    friend class vide::access;
     template<class Archive>
     void serialize(Archive & ar)
     {
-      ar(CEREAL_NVP(a));
+      ar(VIDE_NVP(a));
     }
 };
 
@@ -132,7 +132,7 @@ class Test2
     int a;
 
   private:
-    friend class cereal::access;
+    friend class vide::access;
 
     template<class Archive>
       void save(Archive & ar) const
@@ -156,7 +156,7 @@ struct Test3
 template<class Archive>
 void serialize(Archive & ar, Test3 & t)
 {
-  ar(CEREAL_NVP(t.a));
+  ar(VIDE_NVP(t.a));
 }
 
 namespace test4
@@ -170,13 +170,13 @@ namespace test4
   template<class Archive>
   void save(Archive & ar, Test4 const & t)
   {
-    ar(CEREAL_NVP(t.a));
+    ar(VIDE_NVP(t.a));
   }
 
   template<class Archive>
   void load(Archive & ar, Test4 & t)
   {
-    ar(CEREAL_NVP(t.a));
+    ar(VIDE_NVP(t.a));
   }
 }
 
@@ -188,7 +188,7 @@ class Private
   private:
     char a;
 
-    friend class cereal::access;
+    friend class vide::access;
 
     template<class Archive>
       void serialize(Archive & ar)
@@ -212,15 +212,15 @@ struct Everything
   template<class Archive>
   void serialize(Archive & ar)
   {
-    ar(CEREAL_NVP(x));
-    ar(CEREAL_NVP(y));
-    ar(CEREAL_NVP(t1));
-    ar(CEREAL_NVP(t2));
-    ar(CEREAL_NVP(t3));
-    ar(CEREAL_NVP(t4));
-    ar(CEREAL_NVP(time_point));
-    ar(CEREAL_NVP(time_dur));
-    ar(CEREAL_NVP(s));
+    ar(VIDE_NVP(x));
+    ar(VIDE_NVP(y));
+    ar(VIDE_NVP(t1));
+    ar(VIDE_NVP(t2));
+    ar(VIDE_NVP(t3));
+    ar(VIDE_NVP(t4));
+    ar(VIDE_NVP(time_point));
+    ar(VIDE_NVP(time_dur));
+    ar(VIDE_NVP(s));
   }
 
   bool operator==(Everything const & o)
@@ -262,7 +262,7 @@ public:
   NoDefaultCtor(int x) : y(x)
   { }
 
-  friend class cereal::access;
+  friend class vide::access;
 
   int y;
 
@@ -273,13 +273,13 @@ public:
   }
 };
 
-//namespace cereal
+//namespace vide
 //{
 //  template <>
 //  struct LoadAndConstruct<NoDefaultCtor>
 //  {
 //    template <class Archive>
-//    static void load_and_construct( Archive & ar, cereal::construct<NoDefaultCtor> & construct )
+//    static void load_and_construct( Archive & ar, vide::construct<NoDefaultCtor> & construct )
 //    {
 //      int y;
 //      ar( y );
@@ -297,17 +297,17 @@ struct unordered_naming
   template <class Archive>
   void save( Archive & ar ) const
   {
-    ar( CEREAL_NVP(x),
-        CEREAL_NVP(z),
-        CEREAL_NVP(y) );
+    ar( VIDE_NVP(x),
+        VIDE_NVP(z),
+        VIDE_NVP(y) );
   }
 
   template <class Archive>
   void load( Archive & ar )
   {
     ar( x,
-        CEREAL_NVP(y),
-        CEREAL_NVP(z) );
+        VIDE_NVP(y),
+        VIDE_NVP(z) );
   }
 
   bool operator==( unordered_naming const & other ) const
@@ -358,13 +358,13 @@ void test_unordered_loads()
       std::ofstream os("test.xml");
       OArchive oar(os);
 
-      oar( cereal::make_nvp( name1, o_int1 ),
-           cereal::make_nvp( name2, o_double2 ),
-           cereal::make_nvp( name3, o_vecbool3 ),
-           cereal::make_nvp( name4, o_int4 ),
-           cereal::make_nvp( name5, o_int5 ),
-           cereal::make_nvp( name6, o_int6 ),
-           cereal::make_nvp( name7, o_un7 ) );
+      oar( vide::make_nvp( name1, o_int1 ),
+           vide::make_nvp( name2, o_double2 ),
+           vide::make_nvp( name3, o_vecbool3 ),
+           vide::make_nvp( name4, o_int4 ),
+           vide::make_nvp( name5, o_int5 ),
+           vide::make_nvp( name6, o_int6 ),
+           vide::make_nvp( name7, o_un7 ) );
     }
 
     decltype(o_int1) i_int1;
@@ -379,12 +379,12 @@ void test_unordered_loads()
     {
       IArchive iar(is);
 
-      iar( cereal::make_nvp( name7, o_un7 ),
-           cereal::make_nvp( name2, i_double2 ),
-           cereal::make_nvp( name4, i_int4 ),
-           cereal::make_nvp( name3, i_vecbool3 ),
-           cereal::make_nvp( name1, i_int1 ),
-           cereal::make_nvp( name5, i_int5 ),
+      iar( vide::make_nvp( name7, o_un7 ),
+           vide::make_nvp( name2, i_double2 ),
+           vide::make_nvp( name4, i_int4 ),
+           vide::make_nvp( name3, i_vecbool3 ),
+           vide::make_nvp( name1, i_int1 ),
+           vide::make_nvp( name5, i_int5 ),
            i_int6,
            i_un7 );
     }
@@ -401,7 +401,7 @@ class BoostTransitionMS
     void setX( int xx ){ x = xx; }
 
   private:
-    friend class cereal::access;
+    friend class vide::access;
     int x;
 
     template <class Archive>
@@ -419,7 +419,7 @@ class BoostTransitionSplit
     void setX( int xx ){ x = xx; }
 
   private:
-    friend class cereal::access;
+    friend class vide::access;
     int x;
 
     template <class Archive>
@@ -482,8 +482,8 @@ int main()
 
   {
     std::ofstream os("out.txt", std::ios::binary);
-    cereal::BinaryOutputArchive archive(os);
-    archive(CEREAL_NVP(e_out));
+    vide::BinaryOutputArchive archive(os);
+    archive(VIDE_NVP(e_out));
     archive(t2);
     archive(nodefault);
   }
@@ -494,8 +494,8 @@ int main()
 
   {
     std::ifstream is("out.txt", std::ios::binary);
-    cereal::BinaryInputArchive archive(is);
-    archive(CEREAL_NVP(e_in));
+    vide::BinaryInputArchive archive(is);
+    archive(VIDE_NVP(e_in));
     archive(t2);
     archive(nodefaultin);
     std::remove("out.txt");
@@ -505,11 +505,11 @@ int main()
   assert(nodefault->y == nodefaultin->y);
 
   {
-    cereal::BinaryOutputArchive archive(std::cout);
+    vide::BinaryOutputArchive archive(std::cout);
     int xxx[] = {-1, 95, 3};
     archive( xxx );
 
-    cereal::XMLOutputArchive archive2(std::cout, cereal::XMLOutputArchive::Options(std::numeric_limits<double>::max_digits10, true, true));
+    vide::XMLOutputArchive archive2(std::cout, vide::XMLOutputArchive::Options(std::numeric_limits<double>::max_digits10, true, true));
     archive2( xxx );
 
     std::vector<int> yyy = {1, 2, 3};
@@ -520,16 +520,16 @@ int main()
 
   {
     std::ofstream os("out.xml");
-    cereal::XMLOutputArchive oar( os );
-    //cereal::XMLOutputArchive oar( std::cout );
+    vide::XMLOutputArchive oar( os );
+    //vide::XMLOutputArchive oar( std::cout );
 
-    oar( cereal::make_nvp("hello", 5 ) );
+    oar( vide::make_nvp("hello", 5 ) );
 
     std::string bla("bla");
     oar( bla );
 
     auto intptr = std::make_shared<int>(99);
-    oar( CEREAL_NVP(intptr) );
+    oar( VIDE_NVP(intptr) );
 
     std::map<std::string, int> map1 =
     {
@@ -538,10 +538,10 @@ int main()
       {"three", 3}
     };
 
-    oar( CEREAL_NVP(map1) );
+    oar( VIDE_NVP(map1) );
 
     int x = 3;
-    oar( CEREAL_NVP(x) );
+    oar( VIDE_NVP(x) );
     oar( 5 );
     oar( 3.3 );
     oar( 3.2f );
@@ -556,7 +556,7 @@ int main()
 
     std::vector<std::vector<std::string>> vec2 = {vec, vec, vec};
 
-    oar( cereal::make_nvp("EVERYTHING", e_out) );
+    oar( vide::make_nvp("EVERYTHING", e_out) );
     oar( vec );
     oar( vec2 );
 
@@ -574,10 +574,10 @@ int main()
 
   {
     std::ifstream is("out.xml");
-    cereal::XMLInputArchive iar( is );
+    vide::XMLInputArchive iar( is );
 
     int hello;
-    iar( cereal::make_nvp("hello", hello) );
+    iar( vide::make_nvp("hello", hello) );
     assert( hello == 5 );
 
     std::string bla;
@@ -585,19 +585,19 @@ int main()
     assert( bla == "bla" );
 
     std::shared_ptr<int> intptr;
-    iar( CEREAL_NVP(intptr) );
+    iar( VIDE_NVP(intptr) );
     assert( *intptr == 99 );
 
     std::map<std::string, int> map1;
 
-    iar( CEREAL_NVP(map1) );
+    iar( VIDE_NVP(map1) );
     assert( map1["one"]   == 1 );
     assert( map1["two"]   == 2 );
     assert( map1["three"] == 3 );
 
 
     int x;
-    iar( CEREAL_NVP(x) );
+    iar( VIDE_NVP(x) );
     assert( x == 3 );
 
     int x5;
@@ -622,7 +622,7 @@ int main()
       assert( arr[i] == (i+1) );
 
     Everything e;
-    iar( cereal::make_nvp("EVERYTHING", e) );
+    iar( vide::make_nvp("EVERYTHING", e) );
     assert( e == e_out );
 
     std::vector<std::string> vec;
@@ -660,7 +660,7 @@ int main()
 
   {
     std::ofstream b("endian.out", std::ios::binary);
-    cereal::PortableBinaryOutputArchive oar(b);
+    vide::PortableBinaryOutputArchive oar(b);
 
     bool bb = true;
     char a = 'a';
@@ -678,7 +678,7 @@ int main()
   }
   {
     std::ifstream b("endian.out", std::ios::binary);
-    cereal::PortableBinaryInputArchive iar(b);
+    vide::PortableBinaryInputArchive iar(b);
 
     bool bb;
     char a;
@@ -697,7 +697,7 @@ int main()
 
   {
     std::ofstream ss("xml_ordering.out");
-    cereal::XMLOutputArchive ar(ss);
+    vide::XMLOutputArchive ar(ss);
 
     double one = 1;
     double two = 2;
@@ -705,12 +705,12 @@ int main()
     std::vector<int> four = {1, 2, 3, 4};
 
     // Output is ordered 3 2 1 4
-    ar(three)(CEREAL_NVP(two))(one)(cereal::make_nvp("five", four));
+    ar(three)(VIDE_NVP(two))(one)(vide::make_nvp("five", four));
   }
 
   {
     std::ifstream ss("xml_ordering.out");
-    cereal::XMLInputArchive ar(ss);
+    vide::XMLInputArchive ar(ss);
 
     // Output prodered out of order, try to load in order 1 2 3 4
     double one;
@@ -719,20 +719,20 @@ int main()
     std::vector<int> four;
 
     ar( one ); // cereal can only give warnings if you used an NVP!
-    ar( CEREAL_NVP( two ) );
+    ar( VIDE_NVP( two ) );
     ar( three );
 
     try
     {
-      ar( CEREAL_NVP( three ) );
+      ar( VIDE_NVP( three ) );
     }
-    catch( cereal::Exception const & e )
+    catch( vide::Exception const & e )
     {
       std::cout << e.what() << std::endl;
       std::cout << "Looked for three but we didn't use an NVP when saving" << std::endl;
     }
-    ar( cereal::make_nvp("five", four) );
-    ar( cereal::make_nvp("five", four) ); // do it a second time since it shouldn't matter as we provide the name
+    ar( vide::make_nvp("five", four) );
+    ar( vide::make_nvp("five", four) ); // do it a second time since it shouldn't matter as we provide the name
 
     std::cout << one << std::endl;
     std::cout << two << std::endl;
@@ -743,8 +743,8 @@ int main()
 
   {
     // Boost transition layer stuff
-    std::ofstream ss("cereal_version.out");
-    cereal::XMLOutputArchive ar(ss);
+    std::ofstream ss("vide_version.out");
+    vide::XMLOutputArchive ar(ss);
 
     BoostTransitionMS b(3);
     ar(b)(b);
@@ -761,8 +761,8 @@ int main()
 
   {
     // Boost transition layer stuff
-    std::ifstream ss("cereal_version.out");
-    cereal::XMLInputArchive ar(ss);
+    std::ifstream ss("vide_version.out");
+    vide::XMLInputArchive ar(ss);
 
     BoostTransitionMS b;
     ar( b );
@@ -796,7 +796,7 @@ int main()
   return 0;
 }
 
-CEREAL_CLASS_VERSION(BoostTransitionMS, 1)
-CEREAL_CLASS_VERSION(BoostTransitionSplit, 2)
-CEREAL_CLASS_VERSION(BoostTransitionNMS, 3)
+VIDE_CLASS_VERSION(BoostTransitionMS, 1)
+VIDE_CLASS_VERSION(BoostTransitionSplit, 2)
+VIDE_CLASS_VERSION(BoostTransitionNMS, 3)
 // keep the other at default version (0)

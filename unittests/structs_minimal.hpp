@@ -24,8 +24,8 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef CEREAL_TEST_STRUCTS_MINIMAL_H_
-#define CEREAL_TEST_STRUCTS_MINIMAL_H_
+#ifndef VIDE_TEST_STRUCTS_MINIMAL_H_
+#define VIDE_TEST_STRUCTS_MINIMAL_H_
 
 #include "common.hpp"
 
@@ -37,7 +37,7 @@ public:
 	MemberMinimal(const std::string& str) : x(str) {}
 
 protected:
-	friend class cereal::access;
+	friend class vide::access;
 
 	template <class Archive>
 	std::string save_minimal(const Archive&) const {
@@ -60,7 +60,7 @@ public:
 	MemberMinimalVersioned(double d) : x(d) {}
 
 protected:
-	friend class cereal::access;
+	friend class vide::access;
 
 	template <class Archive>
 	double save_minimal(const Archive&, const std::uint32_t) const {
@@ -238,4 +238,4 @@ void test_structs_minimal() {
 	}
 }
 
-#endif // CEREAL_TEST_STRUCTS_MINIMAL_H_
+#endif // VIDE_TEST_STRUCTS_MINIMAL_H_

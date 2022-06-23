@@ -32,9 +32,9 @@ TEST_SUITE_BEGIN("versioning");
 
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning", test_versioning)
 
-#if CEREAL_THREAD_SAFE
+#if VIDE_THREAD_SAFE
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning_threading", test_versioning_threading)
-#endif // CEREAL_THREAD_SAFE
+#endif // VIDE_THREAD_SAFE
 
 
 TEST_SUITE_END();

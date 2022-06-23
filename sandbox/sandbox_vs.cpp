@@ -1,48 +1,48 @@
 #include <base.hpp>
 #include <derived.hpp>
 
-#include <cereal/access.hpp>
-#include <cereal/details/traits.hpp>
-#include <cereal/details/helpers.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/cereal.hpp>
+#include <vide/access.hpp>
+#include <vide/details/traits.hpp>
+#include <vide/details/helpers.hpp>
+#include <vide/types/base_class.hpp>
+#include <vide/vide.hpp>
 
-#include <cereal/types/array.hpp>
-#include <cereal/types/bitset.hpp>
-#include <cereal/types/chrono.hpp>
-#include <cereal/types/common.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/deque.hpp>
-#include <cereal/types/forward_list.hpp>
-#include <cereal/types/list.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/memory.hpp>
+#include <vide/types/array.hpp>
+#include <vide/types/bitset.hpp>
+#include <vide/types/chrono.hpp>
+#include <vide/types/common.hpp>
+#include <vide/types/complex.hpp>
+#include <vide/types/deque.hpp>
+#include <vide/types/forward_list.hpp>
+#include <vide/types/list.hpp>
+#include <vide/types/map.hpp>
+#include <vide/types/memory.hpp>
 
-#include <cereal/details/util.hpp>
+#include <vide/details/util.hpp>
 
-#include <cereal/details/polymorphic_impl.hpp>
-#include <cereal/types/polymorphic.hpp>
+#include <vide/details/polymorphic_impl.hpp>
+#include <vide/types/polymorphic.hpp>
 
-#include <cereal/types/queue.hpp>
-#include <cereal/types/set.hpp>
-#include <cereal/types/stack.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/unordered_set.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/vector.hpp>
+#include <vide/types/queue.hpp>
+#include <vide/types/set.hpp>
+#include <vide/types/stack.hpp>
+#include <vide/types/string.hpp>
+#include <vide/types/tuple.hpp>
+#include <vide/types/unordered_map.hpp>
+#include <vide/types/unordered_set.hpp>
+#include <vide/types/utility.hpp>
+#include <vide/types/vector.hpp>
 
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/archives/xml.hpp>
-#include <cereal/archives/json.hpp>
+#include <vide/archives/binary.hpp>
+#include <vide/archives/portable_binary.hpp>
+#include <vide/archives/xml.hpp>
+#include <vide/archives/json.hpp>
 
 #include <iostream>
 #include <type_traits>
 #include <functional>
 
-//CEREAL_FORCE_LINK_SHARED_LIBRARY(Sandbox)
+//VIDE_FORCE_LINK_SHARED_LIBRARY(Sandbox)
 
 struct Archive {
 };
@@ -115,8 +115,8 @@ struct C {
 	char a;
 };
 
-CEREAL_REGISTER_TYPE(B)
-CEREAL_REGISTER_POLYMORPHIC_RELATION(A, B)
+VIDE_REGISTER_TYPE(B)
+VIDE_REGISTER_POLYMORPHIC_RELATION(A, B)
 
 class MemberMinimal {
 public:
@@ -142,60 +142,60 @@ int main() {
 
 	// serialize
 	std::cout << "\tserialize" << std::endl;
-	std::cout << cereal::traits::has_member_serialize<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_serialize<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_serialize<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_non_member_serialize<T, Archive>::value << std::endl;
 
 	// load
 	std::cout << "\tload" << std::endl;
-	std::cout << cereal::traits::has_member_load<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_load<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_load<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_non_member_load<T, Archive>::value << std::endl;
 
 	// load minimal
 	std::cout << "\tload minimal" << std::endl;
-	std::cout << cereal::traits::has_member_load<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_load<T, Archive>::value << std::endl;
 
 	// save
 	std::cout << "\tsave" << std::endl;
-	std::cout << cereal::traits::has_member_save<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_save<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_save<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_non_member_save<T, Archive>::value << std::endl;
 
 	// save_minimal
 	std::cout << "\tsave_minimal" << std::endl;
-	std::cout << cereal::traits::has_member_save_minimal<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_save_minimal<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_save_minimal<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_non_member_save_minimal<T, Archive>::value << std::endl;
 
 	// save_minimal_versioned
 	std::cout << "\tsave_minimal versioned" << std::endl;
-	std::cout << cereal::traits::has_member_versioned_save_minimal<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_versioned_save_minimal<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_versioned_save_minimal<T, Archive>::value << std::endl;
+	std::cout << vide::traits::has_non_member_versioned_save_minimal<T, Archive>::value << std::endl;
 
 	// splittable
 	std::cout << "\t splittable" << std::endl;
-	std::cout << cereal::traits::has_member_split<T, Archive, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_non_member_split<T, Archive, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_split<T, Archive, Archive>::value << std::endl;
+	std::cout << vide::traits::has_non_member_split<T, Archive, Archive>::value << std::endl;
 
 	// serialiable
 	std::cout << "\toutput serializable" << std::endl;
-	std::cout << cereal::traits::is_output_serializable<T, Archive>::value << std::endl;
+	std::cout << vide::traits::is_output_serializable<T, Archive>::value << std::endl;
 
 #if !defined(__INTEL_COMPILER)
 	//! TODO: This causes icc to crash
-	std::cout << cereal::traits::is_input_serializable<T, Archive>::value << std::endl;
+	std::cout << vide::traits::is_input_serializable<T, Archive>::value << std::endl;
 #endif
 
 	// specialized
 	std::cout << "\tspecialized" << std::endl;
-	std::cout << cereal::traits::detail::is_specialized_member_serialize<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::detail::is_specialized_member_load_save<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::detail::is_specialized_non_member_serialize<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::detail::is_specialized_non_member_load_save<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::detail::count_specializations<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::is_specialized<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::is_specialized_member_serialize<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::is_specialized_member_load_save<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::is_specialized_non_member_serialize<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::is_specialized_non_member_load_save<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::count_specializations<T, Archive>::value << std::endl;
+	std::cout << vide::traits::is_specialized<T, Archive>::value << std::endl;
 
 	// counts
 	std::cout << "\tcounts" << std::endl;
-	std::cout << cereal::traits::detail::count_output_serializers<T, Archive>::value << std::endl;
-	std::cout << cereal::traits::detail::count_input_serializers<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::count_output_serializers<T, Archive>::value << std::endl;
+	std::cout << vide::traits::detail::count_input_serializers<T, Archive>::value << std::endl;
 
 	// array size
 	std::cout << "\tarray size" << std::endl;
@@ -203,15 +203,15 @@ int main() {
 
 	// extra testing
 	std::cout << "\textra" << std::endl;
-	std::cout << cereal::traits::has_member_save_minimal<MemberMinimal, Archive>::value << std::endl;
-	std::cout << cereal::traits::has_member_load_minimal<MemberMinimal, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_save_minimal<MemberMinimal, Archive>::value << std::endl;
+	std::cout << vide::traits::has_member_load_minimal<MemberMinimal, Archive>::value << std::endl;
 
 	// DLL testing
 	std::cout << "------DLL TESTING------" << std::endl;
 	std::stringstream dllSS1;
 	std::stringstream dllSS2;
 	{
-		cereal::XMLOutputArchive out(dllSS1);
+		vide::XMLOutputArchive out(dllSS1);
 		VersionTest x{1};
 		std::shared_ptr<Base> p = std::make_shared<Derived>();
 		out(x);
@@ -228,13 +228,13 @@ int main() {
 		std::shared_ptr<Base> p;
 		std::shared_ptr<A> ay;
 		{
-			cereal::XMLInputArchive in(dllSS1);
+			vide::XMLInputArchive in(dllSS1);
 			in(x);
 			in(p);
 			in(ay);
 		}
 		{
-			cereal::XMLOutputArchive out(dllSS2);
+			vide::XMLOutputArchive out(dllSS2);
 			out(x);
 			out(p);
 			out(ay);

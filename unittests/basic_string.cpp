@@ -72,7 +72,7 @@ TEST_CASE("xml_string_issue109")
 	for (size_t i = 0; i < (sizeof(strings) / sizeof(strings[0])); ++i) {
 		std::basic_string<char> o_string = strings[i];
 
-		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(o_string);
+		test_ws_in_out<vide::XMLInputArchive, vide::XMLOutputArchive>(o_string);
 	}
 }
 
@@ -93,15 +93,15 @@ TEST_CASE("xml_char_issue109")
 	};
 
 	for (size_t i = 0; i < (sizeof(chars) / sizeof(chars[0])); ++i) {
-		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(chars[i]);
+		test_ws_in_out<vide::XMLInputArchive, vide::XMLOutputArchive>(chars[i]);
 	}
 
 	for (size_t i = 0; i < (sizeof(chars) / sizeof(chars[0])); ++i) {
-		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(int8_t(chars[i]));
+		test_ws_in_out<vide::XMLInputArchive, vide::XMLOutputArchive>(int8_t(chars[i]));
 	}
 
 	for (size_t i = 0; i < (sizeof(chars) / sizeof(chars[0])); ++i) {
-		test_ws_in_out<cereal::XMLInputArchive, cereal::XMLOutputArchive>(char(chars[i]));
+		test_ws_in_out<vide::XMLInputArchive, vide::XMLOutputArchive>(char(chars[i]));
 	}
 }
 
@@ -142,7 +142,7 @@ TEST_CASE("xml_string_issue_consecutive_calls")
 			" some text ",
 	};
 
-	test_ws_in_out_array<cereal::XMLInputArchive, cereal::XMLOutputArchive>(strings);
+	test_ws_in_out_array<vide::XMLInputArchive, vide::XMLOutputArchive>(strings);
 }
 
 TEST_SUITE_END();

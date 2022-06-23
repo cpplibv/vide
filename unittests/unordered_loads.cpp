@@ -32,19 +32,19 @@
 TEST_SUITE_BEGIN("unordered_loads");
 
 TEST_CASE("xml_unordered_loads") {
-	test_unordered_loads<cereal::XMLInputArchive, cereal::XMLOutputArchive>();
+	test_unordered_loads<vide::XMLInputArchive, vide::XMLOutputArchive>();
 }
 
 TEST_CASE("json_unordered_loads") {
-	test_unordered_loads<cereal::JSONInputArchive, cereal::JSONOutputArchive>();
+	test_unordered_loads<vide::JSONInputArchive, vide::JSONOutputArchive>();
 }
 
 TEST_CASE("proxy xml_unordered_loads") {
-	test_unordered_loads<ProxyTestGroup<cereal::XMLInputArchive>, ProxyTestGroup<cereal::XMLOutputArchive>>();                      \
+	test_unordered_loads<ProxyTestGroup<vide::XMLInputArchive>, ProxyTestGroup<vide::XMLOutputArchive>>();                      \
 }
 
 TEST_CASE("proxy json_unordered_loads") {
-	test_unordered_loads<ProxyTestGroup<cereal::JSONInputArchive>, ProxyTestGroup<cereal::JSONOutputArchive>>();                    \
+	test_unordered_loads<ProxyTestGroup<vide::JSONInputArchive>, ProxyTestGroup<vide::JSONOutputArchive>>();                    \
 }
 
 TEST_SUITE_END();

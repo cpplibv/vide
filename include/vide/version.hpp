@@ -1,7 +1,7 @@
 /*! \file version.hpp
-    \brief Macros to detect vide version
+    \brief Macros to detect Vide version
 
-    These macros can assist in determining the version of cereal. Be
+    These macros can assist in determining the version of Vide. Be
     warned that vide is not guaranteed to be compatible across
     different versions. For more information on releases of cereal,
     see https://github.com/USCiLab/cereal/releases.
@@ -40,7 +40,7 @@
 //! The major version
 #define VIDE_VERSION_MAJOR 2
 //! The minor version
-#define VIDE_VERSION_MINOR 1
+#define VIDE_VERSION_MINOR 2
 //! The patch version
 #define VIDE_VERSION_PATCH 0
 

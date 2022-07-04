@@ -41,7 +41,7 @@ namespace vide
 {
   //! Saving for std-like pair associative containers
   template <class Archive, template <typename...> class Map, typename... Args, typename = typename Map<Args...>::mapped_type> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, Map<Args...> const & map )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, Map<Args...> const & map )
   {
     ar( make_size_tag( static_cast<size_type>(map.size()) ) );
 
@@ -51,7 +51,7 @@ namespace vide
 
   //! Loading for std-like pair associative containers
   template <class Archive, template <typename...> class Map, typename... Args, typename = typename Map<Args...>::mapped_type> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, Map<Args...> & map )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, Map<Args...> & map )
   {
     size_type size;
     ar( make_size_tag( size ) );

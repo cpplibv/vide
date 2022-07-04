@@ -44,7 +44,7 @@
     pointers to them can be serialized.  Note that base
     classes do not need to be registered.
 
-    Registering a type lets cereal know how to properly
+    Registering a type lets vide know how to properly
     serialize it when a smart pointer to a base object is
     used in conjunction with a derived class.
 
@@ -72,7 +72,7 @@
     if placed in a source file, but see the above comments
     on registering in source files.
 
-    Polymorphic support in cereal requires RTTI to be
+    Polymorphic support in vide requires RTTI to be
     enabled */
 #define VIDE_REGISTER_TYPE(...)                                        \
   namespace vide {                                                     \
@@ -101,7 +101,7 @@
   VIDE_BIND_TO_ARCHIVES(T)
 
 //! Registers the base-derived relationship for a polymorphic type
-/*! When polymorphic serialization occurs, cereal needs to know how to
+/*! When polymorphic serialization occurs, vide needs to know how to
     properly cast between derived and base types for the polymorphic
     type. Normally this happens automatically whenever vide::base_class
     or vide::virtual_base_class are used to serialize a base class. In
@@ -130,7 +130,7 @@
     Informally, odr-use means that your program takes the address of or binds
     a reference directly to an object, which must have a definition.
 
-    Since polymorphic type support in cereal relies on the dynamic
+    Since polymorphic type support in vide relies on the dynamic
     initialization of certain global objects happening before
     serialization is performed, it is important to ensure that something
     from files that call VIDE_REGISTER_TYPE is odr-used before serialization
@@ -165,7 +165,7 @@
   namespace detail {                                       \
     void VIDE_DLL_EXPORT dynamic_init_dummy_##LibName(); \
   } /* end detail */                                       \
-  } /* end cereal */                                       \
+  } /* end vide */                                       \
   namespace {                                              \
     struct dynamic_init_##LibName {                        \
       dynamic_init_##LibName() {                           \
@@ -297,7 +297,7 @@ serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint32_t nameid) 
 //! Saving std::shared_ptr for polymorphic types, abstract
 template <class Archive, class T>
 inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
@@ -322,7 +322,7 @@ VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
 //! Saving std::shared_ptr for polymorphic types, not abstract
 template <class Archive, class T>
 inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
@@ -354,7 +354,7 @@ VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
 //! Loading std::shared_ptr for polymorphic types
 template <class Archive, class T>
 inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::shared_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& ptr) {
 	std::uint32_t nameid;
 	ar(VIDE_NVP_("polymorphic_id", nameid));
 
@@ -371,7 +371,7 @@ VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::shared_ptr<T>& ptr) {
 //! Saving std::weak_ptr for polymorphic types
 template <class Archive, class T>
 inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::weak_ptr<T> const& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::weak_ptr<T> const& ptr) {
 	auto const sptr = ptr.lock();
 	ar(VIDE_NVP_("locked_ptr", sptr));
 }
@@ -379,7 +379,7 @@ VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::weak_ptr<T> const& ptr) {
 //! Loading std::weak_ptr for polymorphic types
 template <class Archive, class T>
 inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::weak_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::weak_ptr<T>& ptr) {
 	std::shared_ptr<T> sptr;
 	ar(VIDE_NVP_("locked_ptr", sptr));
 	ptr = sptr;
@@ -388,7 +388,7 @@ VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::weak_ptr<T>& ptr) {
 //! Saving std::unique_ptr for polymorphic types that are abstract
 template <class Archive, class T, class D>
 inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
@@ -413,7 +413,7 @@ VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 //! Saving std::unique_ptr for polymorphic types, not abstract
 template <class Archive, class T, class D>
 inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
@@ -445,7 +445,7 @@ VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 //! Loading std::unique_ptr, case when user provides load_and_construct for polymorphic types
 template <class Archive, class T, class D>
 inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D>& ptr) {
+VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
 	std::uint32_t nameid;
 	ar(VIDE_NVP_("polymorphic_id", nameid));
 

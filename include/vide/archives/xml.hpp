@@ -55,7 +55,7 @@ namespace xml_detail {
 	#define VIDE_XML_STRING_VALUE "root"
 #endif // VIDE_XML_STRING_VALUE
 
-//! The name given to the root node in a cereal xml archive
+//! The name given to the root node in a vide xml archive
 static const char* VIDE_XML_STRING = VIDE_XML_STRING_VALUE;
 
 //! Returns true if the character is whitespace
@@ -555,7 +555,7 @@ public:
 		// Parse the root
 		auto root = itsXML.first_node(xml_detail::VIDE_XML_STRING);
 		if (root == nullptr)
-			throw Exception("Could not detect cereal root node - likely due to empty or invalid input");
+			throw Exception("Could not detect vide root node - likely due to empty or invalid input");
 		else
 			itsNodes.emplace(root);
 	}

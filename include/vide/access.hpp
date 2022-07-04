@@ -39,8 +39,8 @@ namespace vide {
 
 // -------------------------------------------------------------------------------------------------
 
-//! A class that can be made a friend to give cereal access to non public functions
-/*! If you desire non-public serialization functions within a class, cereal can only
+//! A class that can be made a friend to give vide access to non public functions
+/*! If you desire non-public serialization functions within a class, vide can only
 	access these if you declare vide::access a friend.
 
 	@code{.cpp}
@@ -60,63 +60,63 @@ namespace vide {
 class access {
 public:
 	// ####### Standard Serialization ########################################
-	template <class Archive, class T> inline
-	static auto member_serialize(Archive& ar, T& t) -> decltype(t.VIDE_SERIALIZE_FUNCTION_NAME(ar)) { return t.VIDE_SERIALIZE_FUNCTION_NAME(ar); }
+	template <class Archive, class T>
+	inline static auto member_serialize(Archive& ar, T& t) -> decltype(t.VIDE_FUNCTION_NAME_SERIALIZE(ar)) { return t.VIDE_FUNCTION_NAME_SERIALIZE(ar); }
 
-	template <class Archive, class T> inline
-	static auto member_save(Archive& ar, const T& t) -> decltype(t.VIDE_SAVE_FUNCTION_NAME(ar)) { return t.VIDE_SAVE_FUNCTION_NAME(ar); }
+	template <class Archive, class T>
+	inline static auto member_save(Archive& ar, const T& t) -> decltype(t.VIDE_FUNCTION_NAME_SAVE(ar)) { return t.VIDE_FUNCTION_NAME_SAVE(ar); }
 
-	template <class Archive, class T> inline
-	static auto member_save_non_const(Archive& ar, T& t) -> decltype(t.VIDE_SAVE_FUNCTION_NAME(ar)) { return t.VIDE_SAVE_FUNCTION_NAME(ar); }
+	template <class Archive, class T>
+	inline static auto member_save_non_const(Archive& ar, T& t) -> decltype(t.VIDE_FUNCTION_NAME_SAVE(ar)) { return t.VIDE_FUNCTION_NAME_SAVE(ar); }
 
-	template <class Archive, class T> inline
-	static auto member_load(Archive& ar, T& t) -> decltype(t.VIDE_LOAD_FUNCTION_NAME(ar)) { return t.VIDE_LOAD_FUNCTION_NAME(ar); }
+	template <class Archive, class T>
+	inline static auto member_load(Archive& ar, T& t) -> decltype(t.VIDE_FUNCTION_NAME_LOAD(ar)) { return t.VIDE_FUNCTION_NAME_LOAD(ar); }
 
-	template <class Archive, class T> inline
-	static auto member_save_minimal(const Archive& ar, const T& t) -> decltype(t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar)) { return t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar); }
+	template <class Archive, class T>
+	inline static auto member_save_minimal(const Archive& ar, const T& t) -> decltype(t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar)) { return t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar); }
 
-	template <class Archive, class T> inline
-	static auto member_save_minimal_non_const(const Archive& ar, T& t) -> decltype(t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar)) { return t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar); }
+	template <class Archive, class T>
+	inline static auto member_save_minimal_non_const(const Archive& ar, T& t) -> decltype(t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar)) { return t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar); }
 
-	template <class Archive, class T, class U> inline
-	static auto member_load_minimal(const Archive& ar, T& t, U&& u) -> decltype(t.VIDE_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u))) { return t.VIDE_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u)); }
+	template <class Archive, class T, class U>
+	inline static auto member_load_minimal(const Archive& ar, T& t, U&& u) -> decltype(t.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(u))) { return t.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(u)); }
 
 	// ####### Versioned Serialization #######################################
-	template <class Archive, class T> inline
-	static auto member_serialize(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_SERIALIZE_FUNCTION_NAME(ar, version)) { return t.VIDE_SERIALIZE_FUNCTION_NAME(ar, version); }
+	template <class Archive, class T>
+	inline static auto member_serialize(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_SERIALIZE(ar, version)) { return t.VIDE_FUNCTION_NAME_SERIALIZE(ar, version); }
 
-	template <class Archive, class T> inline
-	static auto member_save(Archive& ar, const T& t, const std::uint32_t version) -> decltype(t.VIDE_SAVE_FUNCTION_NAME(ar, version)) { return t.VIDE_SAVE_FUNCTION_NAME(ar, version); }
+	template <class Archive, class T>
+	inline static auto member_save(Archive& ar, const T& t, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_SAVE(ar, version)) { return t.VIDE_FUNCTION_NAME_SAVE(ar, version); }
 
-	template <class Archive, class T> inline
-	static auto member_save_non_const(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_SAVE_FUNCTION_NAME(ar, version)) { return t.VIDE_SAVE_FUNCTION_NAME(ar, version); }
+	template <class Archive, class T>
+	inline static auto member_save_non_const(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_SAVE(ar, version)) { return t.VIDE_FUNCTION_NAME_SAVE(ar, version); }
 
-	template <class Archive, class T> inline
-	static auto member_load(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_LOAD_FUNCTION_NAME(ar, version)) { return t.VIDE_LOAD_FUNCTION_NAME(ar, version); }
+	template <class Archive, class T>
+	inline static auto member_load(Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_LOAD(ar, version)) { return t.VIDE_FUNCTION_NAME_LOAD(ar, version); }
 
-	template <class Archive, class T> inline
-	static auto member_save_minimal(const Archive& ar, const T& t, const std::uint32_t version) -> decltype(t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar, version)) { return t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar, version); }
+	template <class Archive, class T>
+	inline static auto member_save_minimal(const Archive& ar, const T& t, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version)) { return t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version); }
 
-	template <class Archive, class T> inline
-	static auto member_save_minimal_non_const(const Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar, version)) { return t.VIDE_SAVE_MINIMAL_FUNCTION_NAME(ar, version); }
+	template <class Archive, class T>
+	inline static auto member_save_minimal_non_const(const Archive& ar, T& t, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version)) { return t.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version); }
 
-	template <class Archive, class T, class U> inline
-	static auto member_load_minimal(const Archive& ar, T& t, U&& u, const std::uint32_t version) -> decltype(t.VIDE_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u), version)) { return t.VIDE_LOAD_MINIMAL_FUNCTION_NAME(ar, std::forward<U>(u), version); }
+	template <class Archive, class T, class U>
+	inline static auto member_load_minimal(const Archive& ar, T& t, U&& u, const std::uint32_t version) -> decltype(t.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(u), version)) { return t.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(u), version); }
 
 	// ####### Other Functionality ##########################################
 	// for detecting inheritance from enable_shared_from_this
-	template <class T> inline
-	static auto shared_from_this(T& t) -> decltype(t.shared_from_this());
+	template <class T>
+	inline static auto shared_from_this(T& t) -> decltype(t.shared_from_this());
 
 	// for placement new
-	template <class T, class ... Args> inline
-	static void construct(T*& ptr, Args&& ... args) {
+	template <class T, class ... Args>
+	inline static void construct(T*& ptr, Args&& ... args) {
 		new(ptr) T(std::forward<Args>(args)...);
 	}
 
 	// for non-placement new with a default constructor
-	template <class T> inline
-	static T* construct() {
+	template <class T>
+	inline static T* construct() {
 		return new T();
 	}
 };

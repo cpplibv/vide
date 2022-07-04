@@ -58,7 +58,7 @@ enum class type : uint8_t {
 
 //! Serializing (save) for std::bitset
 template <class Archive, size_t N>
-inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::bitset<N>& bits) {
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::bitset<N>& bits) {
 	constexpr bool serialize_as_binary = Archive::template could_serialize<BinaryData<std::uint32_t>>;
 
 	if constexpr (serialize_as_binary) { // when BinaryData optimization supported
@@ -109,7 +109,7 @@ inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::bitset<N>& bits) {
 
 //! Serializing (load) for std::bitset
 template <class Archive, size_t N>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::bitset<N>& bits) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::bitset<N>& bits) {
 	bitset_detail::type t;
 	ar(VIDE_NVP_("type", t));
 

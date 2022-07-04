@@ -1,5 +1,5 @@
 /*! \file cereal.hpp
-    \brief Main cereal functionality */
+    \brief Main vide functionality */
 /*
   Copyright (c) 2013-2022, Randolph Voorhies, Shane Grant
   All rights reserved.
@@ -55,7 +55,7 @@ namespace vide {
 
 // ######################################################################
 //! Marks data for deferred serialization
-/*! cereal performs a recursive depth-first traversal of data it serializes. When
+/*! vide performs a recursive depth-first traversal of data it serializes. When
 	serializing smart pointers to large, nested, or cyclical data structures, it
 	is possible to encounter a stack overflow from excessive recursion when following
 	a chain of pointers.
@@ -133,7 +133,7 @@ enum Flags {
 	put this is immediately following the definition of your archive.
 	Archive registration is only strictly necessary if you wish to
 	support pointers to polymorphic data types.  All archives that
-	come with cereal are already registered.
+	come with vide are already registered.
 	@ingroup Internal */
 #define VIDE_REGISTER_ARCHIVE(Archive)                                \
   namespace vide { namespace detail {                                 \
@@ -164,7 +164,7 @@ enum Flags {
 
 	By default, all types have an assumed version value of zero.  By
 	using this macro, you may change the version number associated with
-	some type.  cereal will then use this value as a second parameter
+	some type.  vide will then use this value as a second parameter
 	to your serialization functions.
 
 	The interface for the serialization functions is nearly identical
@@ -313,7 +313,7 @@ public:
 
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
-		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
+		a large project from Boost to cereal.  The preferred interface for vide is using operator(). */
 	//! @{
 
 	//! Serializes passed in data
@@ -455,7 +455,7 @@ private:
 	//! Non member serialization
 	template <class As, class T, PROCESS_IF(non_member_serialize, As)>
 	inline void processImpl(As& as, const T& t) {
-		VIDE_SERIALIZE_FUNCTION_NAME(as, const_cast<T&>(t));
+		VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(t));
 	}
 
 	//! Member split (save)
@@ -467,7 +467,7 @@ private:
 	//! Non member split (save)
 	template <class As, class T, PROCESS_IF(non_member_save, As)>
 	inline void processImpl(As& as, const T& t) {
-		VIDE_SAVE_FUNCTION_NAME(as, t);
+		VIDE_FUNCTION_NAME_SAVE(as, t);
 	}
 
 	//! Member split (save_minimal)
@@ -479,7 +479,7 @@ private:
 	//! Non member split (save_minimal)
 	template <class As, class T, PROCESS_IF(non_member_save_minimal, As)>
 	inline void processImpl(As& as, const T& t) {
-		self().process(VIDE_SAVE_MINIMAL_FUNCTION_NAME(as, t));
+		self().process(VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t));
 	}
 
 	//! Empty class specialization
@@ -551,7 +551,7 @@ private:
 	/*! Versioning implementation */
 	template <class As, class T, PROCESS_IF(non_member_versioned_serialize, As)>
 	inline void processImpl(As& as, const T& t) {
-		VIDE_SERIALIZE_FUNCTION_NAME(as, const_cast<T&>(t), registerClassVersion<T>());
+		VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(t), registerClassVersion<T>());
 	}
 
 	//! Member split (save)
@@ -565,7 +565,7 @@ private:
 	/*! Versioning implementation */
 	template <class As, class T, PROCESS_IF(non_member_versioned_save, As)>
 	inline void processImpl(As& as, const T& t) {
-		VIDE_SAVE_FUNCTION_NAME(as, t, registerClassVersion<T>());
+		VIDE_FUNCTION_NAME_SAVE(as, t, registerClassVersion<T>());
 	}
 
 	//! Member split (save_minimal)
@@ -579,7 +579,7 @@ private:
 	/*! Versioning implementation */
 	template <class As, class T, PROCESS_IF(non_member_versioned_save_minimal, As)>
 	inline void processImpl(As& as, const T& t) {
-		self().process(VIDE_SAVE_MINIMAL_FUNCTION_NAME(as, t, registerClassVersion<T>()));
+		self().process(VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t, registerClassVersion<T>()));
 	}
 
 #undef PROCESS_IF
@@ -666,7 +666,7 @@ public:
 
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
-		a large project from Boost to cereal.  The preferred interface for cereal is using operator(). */
+		a large project from Boost to cereal.  The preferred interface for vide is using operator(). */
 	//! @{
 
 	//! Serializes passed in data
@@ -821,7 +821,7 @@ private:
 	//! Non member serialization
 	template <class As, class T, PROCESS_IF(non_member_serialize, As)>
 	inline void processImpl(As& as, T& t) {
-		VIDE_SERIALIZE_FUNCTION_NAME(as, t);
+		VIDE_FUNCTION_NAME_SERIALIZE(as, t);
 	}
 
 	//! Member split (load)
@@ -833,7 +833,7 @@ private:
 	//! Non member split (load)
 	template <class As, class T, PROCESS_IF(non_member_load, As)>
 	inline void processImpl(As& as, T& t) {
-		VIDE_LOAD_FUNCTION_NAME(as, t);
+		VIDE_FUNCTION_NAME_LOAD(as, t);
 	}
 
 	//! Member split (load_minimal)
@@ -849,7 +849,7 @@ private:
 	inline void processImpl(As& as, T& t) {
 		traits::get_non_member_save_minimal_type<ArchiveType, T> value;
 		self().process(value);
-		VIDE_LOAD_MINIMAL_FUNCTION_NAME(as, t, value);
+		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, value);
 	}
 
 	//! Empty class specialization
@@ -925,7 +925,7 @@ private:
 	template <class As, class T, PROCESS_IF(non_member_versioned_serialize, As)>
 	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
-		VIDE_SERIALIZE_FUNCTION_NAME(as, t, version);
+		VIDE_FUNCTION_NAME_SERIALIZE(as, t, version);
 	}
 
 	//! Member split (load)
@@ -941,7 +941,7 @@ private:
 	template <class As, class T, PROCESS_IF(non_member_versioned_load, As)>
 	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
-		VIDE_LOAD_FUNCTION_NAME(as, t, version);
+		VIDE_FUNCTION_NAME_LOAD(as, t, version);
 	}
 
 	//! Member split (load_minimal)
@@ -961,7 +961,7 @@ private:
 		const auto version = loadClassVersion<T>();
 		traits::get_non_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self().process(value);
-		VIDE_LOAD_MINIMAL_FUNCTION_NAME(as, t, value, version);
+		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, value, version);
 	}
 
 #undef PROCESS_IF

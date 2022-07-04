@@ -92,7 +92,7 @@ loadData( std::ostringstream const & dataStream, std::function<void(std::istring
 
 struct cerealBinary
 {
-  //! Saves data to a cereal binary archive
+  //! Saves data to a vide binary archive
   template <class T>
   static void save( std::ostringstream & os, T const & data )
   {
@@ -100,7 +100,7 @@ struct cerealBinary
     oar(data);
   }
 
-  //! Loads data to a cereal binary archive
+  //! Loads data to a vide binary archive
   template <class T>
   static void load( std::istringstream & is, T & data )
   {

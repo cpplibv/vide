@@ -44,7 +44,7 @@ namespace vide {
 
 //! Saving for std::valarray all other types
 template <class Archive, class T>
-inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::valarray<T>& valarray) {
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::valarray<T>& valarray) {
 	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
 	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
 	constexpr bool serialize_as_binary = binary_serializable && Archive::template could_serialize<BinaryData<T>>;
@@ -62,7 +62,7 @@ inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::valarray<T>& valarra
 
 //! Loading for std::valarray all other types
 template <class Archive, class T>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::valarray<T>& valarray) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::valarray<T>& valarray) {
 	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
 	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
 	constexpr bool serialize_as_binary = binary_serializable && Archive::template could_serialize<BinaryData<T>>;

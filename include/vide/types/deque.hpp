@@ -40,7 +40,7 @@ namespace vide
 {
   //! Saving for std::deque
   template <class Archive, class T, class A> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::deque<T, A> const & deque )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::deque<T, A> const & deque )
   {
     ar( make_size_tag( static_cast<size_type>(deque.size()) ) );
 
@@ -50,7 +50,7 @@ namespace vide
 
   //! Loading for std::deque
   template <class Archive, class T, class A> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::deque<T, A> & deque )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::deque<T, A> & deque )
   {
     size_type size;
     ar( make_size_tag( size ) );

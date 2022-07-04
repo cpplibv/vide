@@ -110,9 +110,9 @@ namespace vide
         Base * base_ptr;
     };
 
-  //! Casts a derived class to its virtual base class in a way that allows cereal to track inheritance
+  //! Casts a derived class to its virtual base class in a way that allows vide to track inheritance
   /*! This should be used in cases when a derived type features virtual inheritance from some
-      base type.  This allows cereal to track the inheritance and to avoid making duplicate copies
+      base type.  This allows vide to track the inheritance and to avoid making duplicate copies
       during serialization.
 
       It is safe to use virtual_base_class in all circumstances for serializing base classes, even in cases
@@ -174,11 +174,11 @@ namespace vide
           ar( vide::virtual_base_class<MyRight>( this ) ); // safely serialize data members in MyRight
           ar( a );
 
-          // Because we used virtual_base_class, cereal will ensure that only one instance of MyBase is
+          // Because we used virtual_base_class, vide will ensure that only one instance of MyBase is
           // serialized as we traverse the inheritance heirarchy. This means that there will be one copy
           // each of the variables x, y, z, and a
 
-          // If we had chosen to use static_cast<> instead, cereal would perform no tracking and
+          // If we had chosen to use static_cast<> instead, vide would perform no tracking and
           // assume that every base class should be serialized (in this case leading to a duplicate
           // serialization of MyBase due to diamond inheritance
       };

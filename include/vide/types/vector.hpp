@@ -42,7 +42,7 @@ namespace vide {
 
 //! Serialization for non-arithmetic vector types
 template <class Archive, class T, class A>
-inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::vector<T, A>& vector) {
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::vector<T, A>& vector) {
 	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
 	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
 	constexpr bool serialize_as_binary = binary_serializable && Archive::template could_serialize<BinaryData<T>>;
@@ -59,7 +59,7 @@ inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::vector<T, A>& vector
 
 //! Serialization for non-arithmetic vector types
 template <class Archive, class T, class A>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::vector<T, A>& vector) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::vector<T, A>& vector) {
 	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
 	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
 	constexpr bool serialize_as_binary = binary_serializable && Archive::template could_serialize<BinaryData<T>>;
@@ -78,7 +78,7 @@ inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::vector<T, A>& vector) {
 
 //! Serialization for bool vector types
 template <class Archive, class A> inline
-void VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::vector<bool, A> const& vector) {
+void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::vector<bool, A> const& vector) {
 	ar(make_size_tag(static_cast<size_type>(vector.size()))); // number of elements
 	for (const auto v : vector)
 		ar(static_cast<bool>(v));
@@ -86,7 +86,7 @@ void VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::vector<bool, A> const& vector) {
 
 //! Serialization for bool vector types
 template <class Archive, class A> inline
-void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::vector<bool, A>& vector) {
+void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::vector<bool, A>& vector) {
 	size_type size;
 	ar(make_size_tag(size));
 

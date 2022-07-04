@@ -55,7 +55,7 @@ inline void load_std_variant(std::size_t index, Archive& ar, std::variant<Types.
 } // namespace detail ------------------------------------------------------------------------------
 
 template <typename Archive, typename... Types>
-inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::variant<Types...>& variant) {
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::variant<Types...>& variant) {
 	static_assert(sizeof...(Types) < 256, "Variant serialization only supported up to 255 type.");
 
 	const auto index = static_cast<uint8_t>(variant.index());
@@ -66,7 +66,7 @@ inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::variant<Types...>& v
 }
 
 template <typename Archive, typename... Types>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::variant<Types...>& variant) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::variant<Types...>& variant) {
 	static_assert(sizeof...(Types) < 256, "Variant serialization only supported up to 255 type.");
 
 	uint8_t index;
@@ -79,7 +79,7 @@ inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::variant<Types...>& variant
 
 /// Serializing a std::monostate
 template <class Archive>
-void VIDE_SERIALIZE_FUNCTION_NAME(Archive&, const std::monostate&) {}
+void VIDE_FUNCTION_NAME_SERIALIZE(Archive&, const std::monostate&) {}
 
 #endif // VIDE_TYPES_STD_VARIANT_HPP_
 

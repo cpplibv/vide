@@ -96,14 +96,14 @@ namespace vide
 
   //! Saving for std::queue
   template <class Archive, class T, class C> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::queue<T, C> const & queue )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::queue<T, C> const & queue )
   {
     ar( VIDE_NVP_("container", queue_detail::container( queue )) );
   }
 
   //! Loading for std::queue
   template <class Archive, class T, class C> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::queue<T, C> & queue )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::queue<T, C> & queue )
   {
     C container;
     ar( VIDE_NVP_("container", container) );
@@ -112,7 +112,7 @@ namespace vide
 
   //! Saving for std::priority_queue
   template <class Archive, class T, class C, class Comp> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::priority_queue<T, C, Comp> const & priority_queue )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::priority_queue<T, C, Comp> const & priority_queue )
   {
     ar( VIDE_NVP_("comparator", queue_detail::comparator( priority_queue )) );
     ar( VIDE_NVP_("container", queue_detail::container( priority_queue )) );
@@ -120,7 +120,7 @@ namespace vide
 
   //! Loading for std::priority_queue
   template <class Archive, class T, class C, class Comp> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::priority_queue<T, C, Comp> & priority_queue )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::priority_queue<T, C, Comp> & priority_queue )
   {
     Comp comparator;
     ar( VIDE_NVP_("comparator", comparator) );

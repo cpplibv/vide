@@ -72,28 +72,28 @@ namespace vide
 
   //! Saving for std::set
   template <class Archive, class K, class C, class A> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::set<K, C, A> const & set )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::set<K, C, A> const & set )
   {
     set_detail::save( ar, set );
   }
 
   //! Loading for std::set
   template <class Archive, class K, class C, class A> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::set<K, C, A> & set )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::set<K, C, A> & set )
   {
     set_detail::load( ar, set );
   }
 
   //! Saving for std::multiset
   template <class Archive, class K, class C, class A> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::multiset<K, C, A> const & multiset )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::multiset<K, C, A> const & multiset )
   {
     set_detail::save( ar, multiset );
   }
 
   //! Loading for std::multiset
   template <class Archive, class K, class C, class A> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::multiset<K, C, A> & multiset )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::multiset<K, C, A> & multiset )
   {
     set_detail::load( ar, multiset );
   }

@@ -72,28 +72,28 @@ namespace vide
 
   //! Saving for std::unordered_set
   template <class Archive, class K, class H, class KE, class A> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::unordered_set<K, H, KE, A> const & unordered_set )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::unordered_set<K, H, KE, A> const & unordered_set )
   {
     unordered_set_detail::save( ar, unordered_set );
   }
 
   //! Loading for std::unordered_set
   template <class Archive, class K, class H, class KE, class A> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::unordered_set<K, H, KE, A> & unordered_set )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::unordered_set<K, H, KE, A> & unordered_set )
   {
     unordered_set_detail::load( ar, unordered_set );
   }
 
   //! Saving for std::unordered_multiset
   template <class Archive, class K, class H, class KE, class A> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::unordered_multiset<K, H, KE, A> const & unordered_multiset )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::unordered_multiset<K, H, KE, A> const & unordered_multiset )
   {
     unordered_set_detail::save( ar, unordered_multiset );
   }
 
   //! Loading for std::unordered_multiset
   template <class Archive, class K, class H, class KE, class A> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::unordered_multiset<K, H, KE, A> & unordered_multiset )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::unordered_multiset<K, H, KE, A> & unordered_multiset )
   {
     unordered_set_detail::load( ar, unordered_multiset );
   }

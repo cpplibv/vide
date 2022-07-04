@@ -44,7 +44,7 @@ namespace vide {
 
 //! Serialization for basic_string types, if binary data is supported
 template <class Archive, class CharT, class Traits, class Alloc>
-inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::basic_string<CharT, Traits, Alloc> const& str) {
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::basic_string<CharT, Traits, Alloc> const& str) {
 	// Save number of chars + the data
 	ar(make_size_tag(static_cast<size_type>(str.size())));
 	ar(binary_data(str.data(), str.size() * sizeof(CharT)));
@@ -52,7 +52,7 @@ inline void VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::basic_string<CharT, Traits
 
 //! Serialization for basic_string types, if binary data is supported
 template <class Archive, class CharT, class Traits, class Alloc>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::basic_string<CharT, Traits, Alloc>& str) {
 	size_type size;
 	ar(make_size_tag(size));
 	str.resize(static_cast<std::size_t>(size));

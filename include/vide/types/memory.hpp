@@ -41,7 +41,7 @@ namespace memory_detail {
 
 // -------------------------------------------------------------------------------------------------
 
-//! A wrapper class to notify cereal that it is ok to serialize the contained pointer
+//! A wrapper class to notify vide that it is ok to serialize the contained pointer
 /*! This mechanism allows us to intercept and properly handle polymorphic pointers
 	@internal */
 template <class T>
@@ -68,7 +68,7 @@ PtrWrapper<T> make_ptr_wrapper(T&& t) {
 	enable_shared_from_this to function correctly will not be initialized properly.
 
 	This internal weak_ptr can also be modified by the shared_ptr that is created
-	during the serialization of a polymorphic pointer, where cereal creates a
+	during the serialization of a polymorphic pointer, where vide creates a
 	wrapper shared_ptr out of a void pointer to the real data.
 
 	In the case of load_and_construct, this happens because it is the allocation
@@ -147,21 +147,21 @@ private:
 //! Saving std::shared_ptr for non polymorphic types
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, const std::shared_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 }
 
 //! Loading std::shared_ptr, case when no user load and construct for non polymorphic types
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::shared_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& ptr) {
 	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 }
 
 //! Saving std::weak_ptr for non polymorphic types
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::weak_ptr<T> const& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::weak_ptr<T> const& ptr) {
 	auto const sptr = ptr.lock();
 	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(sptr)));
 }
@@ -169,7 +169,7 @@ VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::weak_ptr<T> const& ptr) {
 //! Loading std::weak_ptr for non polymorphic types
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::weak_ptr<T>& ptr) {
+VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::weak_ptr<T>& ptr) {
 	std::shared_ptr<T> sptr;
 	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(sptr)));
 	ptr = sptr;
@@ -178,14 +178,14 @@ VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::weak_ptr<T>& ptr) {
 //! Saving std::unique_ptr for non polymorphic types
 template <class Archive, class T, class D> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-VIDE_SAVE_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D> const& ptr) {
+VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 }
 
 //! Loading std::unique_ptr, case when user provides load_and_construct for non polymorphic types
 template <class Archive, class T, class D> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
-VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D>& ptr) {
+VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
 	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 }
 
@@ -195,7 +195,7 @@ VIDE_LOAD_FUNCTION_NAME(Archive& ar, std::unique_ptr<T, D>& ptr) {
 //! Saving std::shared_ptr (wrapper implementation)
 /*! @internal */
 template <class Archive, class T> inline
-void VIDE_SAVE_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<const std::shared_ptr<T>&> const& wrapper) {
+void VIDE_FUNCTION_NAME_SAVE(Archive& ar, memory_detail::PtrWrapper<const std::shared_ptr<T>&> const& wrapper) {
 	auto& ptr = wrapper.ptr;
 
 	uint32_t id = ar.registerSharedPointer(ptr);
@@ -209,7 +209,7 @@ void VIDE_SAVE_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<const std::s
 //! Loading std::shared_ptr, case when no user load and construct (wrapper implementation)
 /*! @internal */
 template <class Archive, class T>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<std::shared_ptr<T>&>& wrapper) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, memory_detail::PtrWrapper<std::shared_ptr<T>&>& wrapper) {
 	uint32_t id;
 
 	ar(VIDE_NVP_("id", id));
@@ -233,7 +233,7 @@ inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<std::
 //! Saving std::unique_ptr (wrapper implementation)
 /*! @internal */
 template <class Archive, class T, class D> inline
-void VIDE_SAVE_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<std::unique_ptr<T, D> const&> const& wrapper) {
+void VIDE_FUNCTION_NAME_SAVE(Archive& ar, memory_detail::PtrWrapper<std::unique_ptr<T, D> const&> const& wrapper) {
 	auto& ptr = wrapper.ptr;
 
 	// unique_ptr get one byte of metadata which signifies whether they were a nullptr
@@ -251,7 +251,7 @@ void VIDE_SAVE_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<std::unique_
 //! Loading std::unique_ptr, case when no load_and_construct (wrapper implementation)
 /*! @internal */
 template <class Archive, class T, class D>
-inline void VIDE_LOAD_FUNCTION_NAME(Archive& ar, memory_detail::PtrWrapper<std::unique_ptr<T, D>&>& wrapper) {
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, memory_detail::PtrWrapper<std::unique_ptr<T, D>&>& wrapper) {
 	uint8_t isValid;
 	ar(VIDE_NVP_("valid", isValid));
 

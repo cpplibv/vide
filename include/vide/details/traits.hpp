@@ -192,17 +192,17 @@ VIDE_MAKE_HAS_MEMBER_TEST(serialize, serialize,);
 // Member Serialize (versioned)
 VIDE_MAKE_HAS_MEMBER_TEST(serialize, versioned_serialize, VIDE_MAKE_VERSIONED_TEST);
 // Non Member Serialize
-VIDE_MAKE_HAS_NON_MEMBER_TEST(serialize, VIDE_SERIALIZE_FUNCTION_NAME,);
+VIDE_MAKE_HAS_NON_MEMBER_TEST(serialize, VIDE_FUNCTION_NAME_SERIALIZE,);
 // Non Member Serialize (versioned)
-VIDE_MAKE_HAS_NON_MEMBER_TEST(versioned_serialize, VIDE_SERIALIZE_FUNCTION_NAME, VIDE_MAKE_VERSIONED_TEST);
+VIDE_MAKE_HAS_NON_MEMBER_TEST(versioned_serialize, VIDE_FUNCTION_NAME_SERIALIZE, VIDE_MAKE_VERSIONED_TEST);
 // Member Load
 VIDE_MAKE_HAS_MEMBER_TEST(load, load,);
 // Member Load (versioned)
 VIDE_MAKE_HAS_MEMBER_TEST(load, versioned_load, VIDE_MAKE_VERSIONED_TEST);
 // Non Member Load
-VIDE_MAKE_HAS_NON_MEMBER_TEST(load, VIDE_LOAD_FUNCTION_NAME,);
+VIDE_MAKE_HAS_NON_MEMBER_TEST(load, VIDE_FUNCTION_NAME_LOAD,);
 // Non Member Load (versioned)
-VIDE_MAKE_HAS_NON_MEMBER_TEST(versioned_load, VIDE_LOAD_FUNCTION_NAME, VIDE_MAKE_VERSIONED_TEST);
+VIDE_MAKE_HAS_NON_MEMBER_TEST(versioned_load, VIDE_FUNCTION_NAME_LOAD, VIDE_MAKE_VERSIONED_TEST);
 
 // ######################################################################
 #undef VIDE_MAKE_HAS_NON_MEMBER_TEST
@@ -277,14 +277,14 @@ struct has_member_versioned_save : std::integral_constant<bool, detail::has_memb
       struct has_non_member_##test_name##_impl                                                                               \
       {                                                                                                                      \
         template <class TT, class AA>                                                                                        \
-        static auto test(int) -> decltype( VIDE_SAVE_FUNCTION_NAME(                                                        \
+        static auto test(int) -> decltype( VIDE_FUNCTION_NAME_SAVE(                                                        \
                                               std::declval<AA&>(),                                                           \
                                               std::declval<TT const &>() versioned ), yes());                                \
         template <class, class> static no test(...);                                                                         \
         static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;                                         \
                                                                                                                              \
         template <class TT, class AA>                                                                                        \
-        static auto test2(int) -> decltype( VIDE_SAVE_FUNCTION_NAME(                                                       \
+        static auto test2(int) -> decltype( VIDE_FUNCTION_NAME_SAVE(                                                       \
                                               std::declval<AA &>(),                                                          \
                                               std::declval<typename std::remove_const<TT>::type&>() versioned ), yes());     \
         template <class, class> static no test2(...);                                                                        \
@@ -433,14 +433,14 @@ VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(versioned_save_minimal)
       struct has_non_member_##test_name##_impl                                                                               \
       {                                                                                                                      \
         template <class TT, class AA>                                                                                        \
-        static auto test(int) -> decltype( VIDE_SAVE_MINIMAL_FUNCTION_NAME(                                                \
+        static auto test(int) -> decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL(                                                \
               std::declval<AA const &>(),                                                                                    \
               std::declval<TT const &>() versioned ), yes());                                                                \
         template <class, class> static no test(...);                                                                         \
         static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;                                         \
                                                                                                                              \
         template <class TT, class AA>                                                                                        \
-        static auto test2(int) -> decltype( VIDE_SAVE_MINIMAL_FUNCTION_NAME(                                               \
+        static auto test2(int) -> decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL(                                               \
               std::declval<AA const &>(),                                                                                    \
               std::declval<typename std::remove_const<TT>::type&>() versioned ), yes());                                     \
         template <class, class> static no test2(...);                                                                        \
@@ -455,7 +455,7 @@ VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(versioned_save_minimal)
       template <class T, class A>                                                                                            \
       struct get_non_member_##test_name##_type <T, A, true>                                                                  \
       {                                                                                                                      \
-        using type = decltype( VIDE_SAVE_MINIMAL_FUNCTION_NAME( std::declval<A const &>(),                                 \
+        using type = decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL( std::declval<A const &>(),                                 \
                                                                   std::declval<T const &>() versioned ) );                   \
       };                                                                                                                     \
     } /* end namespace detail */                                                                                             \
@@ -714,19 +714,19 @@ VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
       struct has_non_member_##test_name##_impl                                                                               \
       {                                                                                                                      \
         template <class TT, class AA>                                                                                        \
-        static auto test(int) -> decltype( VIDE_LOAD_MINIMAL_FUNCTION_NAME(                                                \
+        static auto test(int) -> decltype( VIDE_FUNCTION_NAME_LOAD_MINIMAL(                                                \
               std::declval<AA const &>(), std::declval<TT&>(), AnyConvert() versioned ), yes() );                            \
         template <class, class> static no test( ... );                                                                       \
         static const bool exists = std::is_same<decltype( test<T, A>( 0 ) ), yes>::value;                                    \
                                                                                                                              \
         template <class TT, class AA, class UU>                                                                              \
-        static auto test2(int) -> decltype( VIDE_LOAD_MINIMAL_FUNCTION_NAME(                                               \
+        static auto test2(int) -> decltype( VIDE_FUNCTION_NAME_LOAD_MINIMAL(                                               \
               std::declval<AA const &>(), std::declval<TT&>(), NoConvertConstRef<UU>() versioned ), yes() );                 \
         template <class, class, class> static no test2( ... );                                                               \
         static const bool valid = std::is_same<decltype( test2<T, A, U>( 0 ) ), yes>::value;                                 \
                                                                                                                              \
         template <class TT, class AA>                                                                                        \
-        static auto test3(int) -> decltype( VIDE_LOAD_MINIMAL_FUNCTION_NAME(                                               \
+        static auto test3(int) -> decltype( VIDE_FUNCTION_NAME_LOAD_MINIMAL(                                               \
               std::declval<AA const &>(), NoConvertRef<TT>(), AnyConvert() versioned ), yes() );                             \
         template <class, class> static no test3( ... );                                                                      \
         static const bool const_valid = std::is_same<decltype( test3<T, A>( 0 ) ), yes>::value;                              \
@@ -770,36 +770,36 @@ VIDE_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_sav
 template <class T, class InputArchive, class OutputArchive>
 struct has_member_split : std::integral_constant<bool,
 		(has_member_load<T, InputArchive>::value && has_member_save<T, OutputArchive>::value) ||
-				(has_member_versioned_load<T, InputArchive>::value && has_member_versioned_save<T, OutputArchive>::value)> {
+		(has_member_versioned_load<T, InputArchive>::value && has_member_versioned_save<T, OutputArchive>::value)> {
 };
 
 // ######################################################################
 template <class T, class InputArchive, class OutputArchive>
 struct has_non_member_split : std::integral_constant<bool,
 		(has_non_member_load<T, InputArchive>::value && has_non_member_save<T, OutputArchive>::value) ||
-				(has_non_member_versioned_load<T, InputArchive>::value && has_non_member_versioned_save<T, OutputArchive>::value)> {
+		(has_non_member_versioned_load<T, InputArchive>::value && has_non_member_versioned_save<T, OutputArchive>::value)> {
 };
 
 // ######################################################################
 template <class T, class OutputArchive>
 struct has_invalid_output_versioning : std::integral_constant<bool,
 		(has_member_versioned_save<T, OutputArchive>::value && has_member_save<T, OutputArchive>::value) ||
-				(has_non_member_versioned_save<T, OutputArchive>::value && has_non_member_save<T, OutputArchive>::value) ||
-				(has_member_versioned_serialize<T, OutputArchive>::value && has_member_serialize<T, OutputArchive>::value) ||
-				(has_non_member_versioned_serialize<T, OutputArchive>::value && has_non_member_serialize<T, OutputArchive>::value) ||
-				(has_member_versioned_save_minimal<T, OutputArchive>::value && has_member_save_minimal<T, OutputArchive>::value) ||
-				(has_non_member_versioned_save_minimal<T, OutputArchive>::value && has_non_member_save_minimal<T, OutputArchive>::value)> {
+		(has_non_member_versioned_save<T, OutputArchive>::value && has_non_member_save<T, OutputArchive>::value) ||
+		(has_member_versioned_serialize<T, OutputArchive>::value && has_member_serialize<T, OutputArchive>::value) ||
+		(has_non_member_versioned_serialize<T, OutputArchive>::value && has_non_member_serialize<T, OutputArchive>::value) ||
+		(has_member_versioned_save_minimal<T, OutputArchive>::value && has_member_save_minimal<T, OutputArchive>::value) ||
+		(has_non_member_versioned_save_minimal<T, OutputArchive>::value && has_non_member_save_minimal<T, OutputArchive>::value)> {
 };
 
 // ######################################################################
 template <class T, class InputArchive>
 struct has_invalid_input_versioning : std::integral_constant<bool,
 		(has_member_versioned_load<T, InputArchive>::value && has_member_load<T, InputArchive>::value) ||
-				(has_non_member_versioned_load<T, InputArchive>::value && has_non_member_load<T, InputArchive>::value) ||
-				(has_member_versioned_serialize<T, InputArchive>::value && has_member_serialize<T, InputArchive>::value) ||
-				(has_non_member_versioned_serialize<T, InputArchive>::value && has_non_member_serialize<T, InputArchive>::value) ||
-				(has_member_versioned_load_minimal<T, InputArchive>::value && has_member_load_minimal<T, InputArchive>::value) ||
-				(has_non_member_versioned_load_minimal<T, InputArchive>::value && has_non_member_load_minimal<T, InputArchive>::value)> {
+		(has_non_member_versioned_load<T, InputArchive>::value && has_non_member_load<T, InputArchive>::value) ||
+		(has_member_versioned_serialize<T, InputArchive>::value && has_member_serialize<T, InputArchive>::value) ||
+		(has_non_member_versioned_serialize<T, InputArchive>::value && has_non_member_serialize<T, InputArchive>::value) ||
+		(has_member_versioned_load_minimal<T, InputArchive>::value && has_member_load_minimal<T, InputArchive>::value) ||
+		(has_non_member_versioned_load_minimal<T, InputArchive>::value && has_non_member_load_minimal<T, InputArchive>::value)> {
 };
 
 // ######################################################################
@@ -823,11 +823,11 @@ VIDE_MAKE_IS_SPECIALIZED_IMPL(non_member_load_save_minimal);
 template <class T, class A>
 struct count_specializations : std::integral_constant<int,
 		is_specialized_member_serialize<T, A>::value +
-				is_specialized_member_load_save<T, A>::value +
-				is_specialized_member_load_save_minimal<T, A>::value +
-				is_specialized_non_member_serialize<T, A>::value +
-				is_specialized_non_member_load_save<T, A>::value +
-				is_specialized_non_member_load_save_minimal<T, A>::value> {
+		is_specialized_member_load_save<T, A>::value +
+		is_specialized_member_load_save_minimal<T, A>::value +
+		is_specialized_non_member_serialize<T, A>::value +
+		is_specialized_non_member_load_save<T, A>::value +
+		is_specialized_non_member_load_save_minimal<T, A>::value> {
 };
 } // namespace detail
 
@@ -835,11 +835,11 @@ struct count_specializations : std::integral_constant<int,
 template <class T, class A>
 struct is_specialized : std::integral_constant<bool,
 		detail::is_specialized_member_serialize<T, A>::value ||
-				detail::is_specialized_member_load_save<T, A>::value ||
-				detail::is_specialized_member_load_save_minimal<T, A>::value ||
-				detail::is_specialized_non_member_serialize<T, A>::value ||
-				detail::is_specialized_non_member_load_save<T, A>::value ||
-				detail::is_specialized_non_member_load_save_minimal<T, A>::value> {
+		detail::is_specialized_member_load_save<T, A>::value ||
+		detail::is_specialized_member_load_save_minimal<T, A>::value ||
+		detail::is_specialized_non_member_serialize<T, A>::value ||
+		detail::is_specialized_non_member_load_save<T, A>::value ||
+		detail::is_specialized_non_member_load_save_minimal<T, A>::value> {
 	static_assert(detail::count_specializations<T, A>::value <= 1, "More than one explicit specialization detected for type.");
 };
 
@@ -886,12 +886,12 @@ VIDE_MAKE_IS_SPECIALIZED(non_member_load_minimal, non_member_versioned_load_mini
 template <class T, class OutputArchive>
 struct has_minimal_output_serialization : std::integral_constant<bool,
 		is_specialized_member_save_minimal<T, OutputArchive>::value ||
-				((has_member_save_minimal<T, OutputArchive>::value ||
-						has_non_member_save_minimal<T, OutputArchive>::value ||
-						has_member_versioned_save_minimal<T, OutputArchive>::value ||
-						has_non_member_versioned_save_minimal<T, OutputArchive>::value) &&
-						!(is_specialized_member_serialize<T, OutputArchive>::value ||
-								is_specialized_member_save<T, OutputArchive>::value))> {
+		((has_member_save_minimal<T, OutputArchive>::value ||
+				has_non_member_save_minimal<T, OutputArchive>::value ||
+				has_member_versioned_save_minimal<T, OutputArchive>::value ||
+				has_non_member_versioned_save_minimal<T, OutputArchive>::value) &&
+				!(is_specialized_member_serialize<T, OutputArchive>::value ||
+						is_specialized_member_save<T, OutputArchive>::value))> {
 };
 
 // ######################################################################
@@ -1014,8 +1014,8 @@ template <class Cast, template <class, class> class Test, class Archive>
 struct has_minimal_base_class_serialization : detail::has_minimal_base_class_serialization_impl<Cast, Test, Archive> {};
 
 // ######################################################################
-//! Extracts the true type from something possibly wrapped in a cereal NoConvert
-/*! Internally cereal uses some wrapper classes to test the validity of non-member
+//! Extracts the true type from something possibly wrapped in a vide NoConvert
+/*! Internally vide uses some wrapper classes to test the validity of non-member
 	minimal load and save functions.  This can interfere with user type traits on
 	templated load and save minimal functions.  To get to the correct underlying type,
 	users should use strip_minimal when performing any enable_if type type trait checks.
@@ -1044,28 +1044,175 @@ struct is_default_constructible {
 };
 
 // ######################################################################
-namespace detail {
-//! Removes all qualifiers and minimal wrappers from an archive
-template <class A>
-using decay_archive = typename std::decay<typename strip_minimal<A>::type>::type;
-}
-
-//! Checks if the provided archive type is equal to some cereal archive type
-/*! This automatically does things such as std::decay and removing any other wrappers that may be
-	on the Archive template parameter.
-
-	Example use:
-	@code{cpp}
-	// example use to disable a serialization function
-	template <class Archive, EnableIf<vide::traits::is_same_archive<Archive, vide::BinaryOutputArchive>::value> = sfinae>
-	void save( Archive & ar, MyType const & mt );
-	@endcode */
-template <class ArchiveT, class CerealArchiveT>
-struct is_same_archive : std::integral_constant<bool,
-		std::is_same<detail::decay_archive<ArchiveT>, CerealArchiveT>::value> {
-};
+//namespace detail {
+////! Removes all qualifiers and minimal wrappers from an archive
+//template <class A>
+//using decay_archive = typename std::decay<typename strip_minimal<A>::type>::type;
+//}
+//
+////! Checks if the provided archive type is equal to some vide archive type
+///*! This automatically does things such as std::decay and removing any other wrappers that may be
+//	on the Archive template parameter.
+//
+//	Example use:
+//	@code{cpp}
+//	// example use to disable a serialization function
+//	template <class Archive, EnableIf<vide::traits::is_same_archive<Archive, vide::BinaryOutputArchive>::value> = sfinae>
+//	void save( Archive & ar, MyType const & mt );
+//	@endcode */
+//template <class ArchiveT, class CerealArchiveT>
+//struct is_same_archive : std::integral_constant<bool,
+//		std::is_same<detail::decay_archive<ArchiveT>, CerealArchiveT>::value> {
+//};
 
 } // namespace traits
+
+// =================================================================================================
+// =================================================================================================
+// =================================================================================================
+
+template <typename T>
+concept Void = std::is_void_v<T>;
+
+template <typename T>
+concept NotVoid = not std::is_void_v<T>;
+
+//template <typename Archive, typename T>
+//struct diagnose_type {
+//	// ALL THE DEBUG INFORMATION HERE, only instantiate if primary serialization_traits signaled failured
+//};
+
+template <typename Archive, typename T>
+struct serialization_traits {
+
+	// --- Non-Versioned
+
+	static constexpr bool has_serialize_member = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_SERIALIZE(ar) } -> Void;
+	};
+
+	static constexpr bool has_serialize_global = requires (Archive& ar, T& var) {
+		{ VIDE_FUNCTION_NAME_SERIALIZE(ar, var) } -> Void;
+	};
+
+	static constexpr bool has_save_member = requires (Archive& ar, const T& var) {
+		{ var.VIDE_FUNCTION_NAME_SAVE(ar) } -> Void;
+	};
+	static constexpr bool has_load_member = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_LOAD(ar) } -> Void;
+	};
+
+	static constexpr bool has_save_global = requires (Archive& ar, const T& var) {
+		{ VIDE_FUNCTION_NAME_SAVE(ar, var) } -> Void;
+	};
+	static constexpr bool has_load_global = requires (Archive& ar, T& var) {
+		{ VIDE_FUNCTION_NAME_LOAD(ar, var) } -> Void;
+	};
+
+	static constexpr bool has_save_minimal_member = requires (const Archive& ar, const T& var) {
+		{ var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar) } -> NotVoid;
+	};
+	static constexpr bool has_load_minimal_member =
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, cvar.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar)) } -> Void;
+			} ||
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, cvar.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, 0)) } -> Void;
+			};
+
+	static constexpr bool has_save_minimal_global = requires (const Archive& ar, const T& var) {
+		{ VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, var) } -> NotVoid;
+	};
+	static constexpr bool has_load_minimal_global =
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, cvar)) } -> Void;
+			} ||
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, cvar, 0)) } -> Void;
+			};
+
+	// --- Versioned
+
+	static constexpr bool has_serialize_member_versioned = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_SERIALIZE(ar, 0) } -> Void;
+	};
+
+	static constexpr bool has_serialize_global_versioned = requires (Archive& ar, T& var) {
+		{ VIDE_FUNCTION_NAME_SERIALIZE(ar, var, 0) } -> Void;
+	};
+
+	static constexpr bool has_save_member_versioned = requires (Archive& ar, const T& var) {
+		{ var.VIDE_FUNCTION_NAME_SAVE(ar, 0) } -> Void;
+	};
+	static constexpr bool has_load_member_versioned = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_LOAD(ar, 0) } -> Void;
+	};
+
+	static constexpr bool has_save_global_versioned = requires (Archive& ar, const T& var) {
+		{ VIDE_FUNCTION_NAME_SAVE(ar, var, 0) } -> Void;
+	};
+	static constexpr bool has_load_global_versioned = requires (Archive& ar, T& var) {
+		{ VIDE_FUNCTION_NAME_LOAD(ar, var, 0) } -> Void;
+	};
+
+	static constexpr bool has_save_minimal_member_versioned = requires (const Archive& ar, const T& var) {
+		{ var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, 0) } -> NotVoid;
+	};
+	static constexpr bool has_load_minimal_member_versioned =
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, cvar.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, 0), 0) } -> Void;
+			} ||
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, cvar.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar), 0) } -> Void;
+			};
+
+	static constexpr bool has_save_minimal_global_versioned = requires (const Archive& ar, const T& var) {
+		{ VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, var, 0) } -> NotVoid;
+	};
+	static constexpr bool has_load_minimal_global_versioned =
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, cvar, 0), 0) } -> Void;
+			} ||
+			requires (const Archive& ar, const T& cvar, T& var) {
+				{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, cvar), 0) } -> Void;
+			};
+
+	// --- Conclusions
+	static constexpr int count_output_serializers =
+			has_serialize_member +
+			has_serialize_global +
+			has_save_member +
+			has_save_global +
+			has_save_minimal_member +
+			has_save_minimal_global +
+			has_serialize_member_versioned +
+			has_serialize_global_versioned +
+			has_save_member_versioned +
+			has_save_global_versioned +
+			has_save_minimal_member_versioned +
+			has_save_minimal_global_versioned;
+
+	static constexpr int count_input_serializers =
+			has_serialize_member +
+			has_serialize_global +
+			has_load_member +
+			has_load_global +
+			has_load_minimal_member +
+			has_load_minimal_global +
+			has_serialize_member_versioned +
+			has_serialize_global_versioned +
+			has_load_member_versioned +
+			has_load_global_versioned +
+			has_load_minimal_member_versioned +
+			has_load_minimal_global_versioned;
+
+	static constexpr bool is_input_serializable = count_input_serializers == 1;
+	static constexpr bool is_output_serializable = count_output_serializers == 1;
+};
+
+// =================================================================================================
+// =================================================================================================
+// =================================================================================================
 
 } // namespace vide
 

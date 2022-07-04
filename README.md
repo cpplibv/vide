@@ -42,12 +42,18 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Bump version to 2.1.0
 
 ### Planned:
+- Allow const reference return type for `save_minimal`
+- An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
+- Foreach iteration algorithms
 - Add safe/unsafe data serialization support
   - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
   - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
-- Improved compile time performance
+- Improved compile time performance (by organizing includes)
+- Improved compile time performance (by improving meta programming practices)
+- Improved compile time performance (general)
+- Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments
-- `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
+- Maybe: Versioned<->type selector
 
 -------------------------------------------------------------------------------------------------
 

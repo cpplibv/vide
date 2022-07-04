@@ -40,7 +40,7 @@ namespace vide
 {
   //! Saving for std::forward_list all other types
   template <class Archive, class T, class A> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::forward_list<T, A> const & forward_list )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::forward_list<T, A> const & forward_list )
   {
     // write the size - note that this is slow because we need to traverse
     // the entire list. there are ways we could avoid this but this was chosen
@@ -56,7 +56,7 @@ namespace vide
 
   //! Loading for std::forward_list all other types from
   template <class Archive, class T, class A>
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::forward_list<T, A> & forward_list )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::forward_list<T, A> & forward_list )
   {
     size_type size;
     ar( make_size_tag( size ) );

@@ -60,14 +60,14 @@ namespace vide
 
   //! Saving for std::stack
   template <class Archive, class T, class C> inline
-  void VIDE_SAVE_FUNCTION_NAME( Archive & ar, std::stack<T, C> const & stack )
+  void VIDE_FUNCTION_NAME_SAVE( Archive & ar, std::stack<T, C> const & stack )
   {
     ar( VIDE_NVP_("container", stack_detail::container( stack )) );
   }
 
   //! Loading for std::stack
   template <class Archive, class T, class C> inline
-  void VIDE_LOAD_FUNCTION_NAME( Archive & ar, std::stack<T, C> & stack )
+  void VIDE_FUNCTION_NAME_LOAD( Archive & ar, std::stack<T, C> & stack )
   {
     C container;
     ar( VIDE_NVP_("container", container) );

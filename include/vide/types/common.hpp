@@ -65,14 +65,14 @@ public:
 template <class Archive, class T> inline
 typename std::enable_if<common_detail::is_enum<T>::value,
 		typename common_detail::is_enum<T>::base_type>::type
-VIDE_SAVE_MINIMAL_FUNCTION_NAME(const Archive&, T const& t) {
+VIDE_FUNCTION_NAME_SAVE_MINIMAL(const Archive&, T const& t) {
 	return static_cast<typename common_detail::is_enum<T>::base_type>(t);
 }
 
 //! Loading for enum types
 template <class Archive, class T> inline
 typename std::enable_if<common_detail::is_enum<T>::value, void>::type
-VIDE_LOAD_MINIMAL_FUNCTION_NAME(const Archive&, T&& t,
+VIDE_FUNCTION_NAME_LOAD_MINIMAL(const Archive&, T&& t,
 		typename common_detail::is_enum<T>::base_type const& value) {
 	t = reinterpret_cast<typename common_detail::is_enum<T>::type const&>( value );
 }
@@ -80,7 +80,7 @@ VIDE_LOAD_MINIMAL_FUNCTION_NAME(const Archive&, T&& t,
 //! Serialization for raw pointers
 /*! This exists only to throw a static_assert to let users know we don't support raw pointers. */
 template <class Archive, class T>
-inline void VIDE_SERIALIZE_FUNCTION_NAME(Archive&, T*&) {
+inline void VIDE_FUNCTION_NAME_SERIALIZE(Archive&, T*&) {
 	static_assert(vide::traits::detail::delay_static_assert<T>::value,
 			"Cereal does not support serializing raw pointers - please use a smart pointer");
 }
@@ -88,7 +88,7 @@ inline void VIDE_SERIALIZE_FUNCTION_NAME(Archive&, T*&) {
 //! Serialization for C style arrays
 template <class Archive, class T>
 inline typename std::enable_if<std::is_array_v<T>, void>::type
-VIDE_SERIALIZE_FUNCTION_NAME(Archive& ar, T& array) {
+VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar, T& array) {
 	common_detail::serializeArray(ar, array,
 			std::integral_constant<bool, traits::is_output_serializable<BinaryData<T>, Archive>::value &&
 					std::is_arithmetic_v<typename std::remove_all_extents<T>::type>>());

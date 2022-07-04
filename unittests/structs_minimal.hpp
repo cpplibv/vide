@@ -53,6 +53,28 @@ public:
 	std::string x;
 };
 
+class MemberMinimalContRef {
+public:
+	std::string x;
+
+//public:
+//	MemberMinimalContRef() = default;
+//	MemberMinimalContRef(const std::string& str) : x(str) {}
+
+protected:
+	friend class vide::access;
+
+	template <class Archive>
+	const std::string& save_minimal(const Archive&) const {
+		return x;
+	}
+
+	template <class Archive>
+	void load_minimal(const Archive&, const std::string& str) {
+		x = str;
+	}
+};
+
 class MemberMinimalVersioned {
 public:
 	MemberMinimalVersioned() = default;
@@ -112,23 +134,35 @@ void load_minimal(const Archive&, NonMemberMinimalVersioned& nmm, bool const& da
 	nmm.x = data;
 }
 
+// -------------------------------------------------------------------------------------------------
+
 struct TestStruct {
-	TestStruct() = default;
-
-	TestStruct(const std::string& s, double d, std::uint32_t u, bool b) :
-			mm(s), mmv(d), nmm(u), nmmv(b) {}
-
-	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(mm)(mmv);
-		ar(nmm)(nmmv);
-	}
-
 	MemberMinimal mm;
+//	MemberMinimalContRef mmcr;
 	MemberMinimalVersioned mmv;
 	NonMemberMinimal nmm;
 	NonMemberMinimalVersioned nmmv;
+
+	TestStruct() = default;
+
+	TestStruct(const std::string& s, double d, std::uint32_t u, bool b) :
+			mm(s),
+//			mmcr(s),
+			mmv(d),
+			nmm(u),
+			nmmv(b) {}
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(mm);
+//		ar(mmcr);
+		ar(mmv);
+		ar(nmm);
+		ar(nmmv);
+	}
 };
+
+// -------------------------------------------------------------------------------------------------
 
 struct Issue79Struct {
 	Issue79Struct() = default;
@@ -138,26 +172,22 @@ struct Issue79Struct {
 	std::int32_t x;
 };
 
-template <class Archive>
-	requires Archive::is_text_archive
+template <class Archive> requires Archive::is_text_archive
 inline std::string save_minimal(const Archive&, Issue79Struct const& val) {
 	return std::to_string(val.x);
 }
 
-template <class Archive>
-	requires Archive::is_text_archive
+template <class Archive> requires Archive::is_text_archive
 inline void load_minimal(const Archive&, Issue79Struct& val, const std::string& str) {
 	val.x = std::stoi(str);
 }
 
-template <class Archive>
-	requires (not Archive::is_text_archive)
+template <class Archive> requires (not Archive::is_text_archive)
 inline std::int32_t save_minimal(const Archive&, const Issue79Struct& val) {
 	return val.x;
 }
 
-template <class Archive>
-	requires (not Archive::is_text_archive)
+template <class Archive> requires (not Archive::is_text_archive)
 inline void load_minimal(const Archive&, Issue79Struct& val, std::int32_t const& xx) {
 	val.x = xx;
 }
@@ -169,30 +199,28 @@ struct Issue79StructInternal {
 
 	std::int32_t x;
 
-	template <class Archive>
-		requires Archive::is_text_archive
+	template <class Archive> requires Archive::is_text_archive
 	inline std::string save_minimal(const Archive&) const {
 		return std::to_string(x);
 	}
 
-	template <class Archive>
-		requires Archive::is_text_archive
+	template <class Archive> requires Archive::is_text_archive
 	inline void load_minimal(const Archive&, const std::string& str) {
 		x = std::stoi(str);
 	}
 
-	template <class Archive>
-		requires (not Archive::is_text_archive)
+	template <class Archive> requires (not Archive::is_text_archive)
 	inline std::int32_t save_minimal(const Archive&) const {
 		return x;
 	}
 
-	template <class Archive>
-		requires (not Archive::is_text_archive)
+	template <class Archive> requires (not Archive::is_text_archive)
 	inline void load_minimal(const Archive&, std::int32_t const& xx) {
 		x = xx;
 	}
 };
+
+// -------------------------------------------------------------------------------------------------
 
 template <class IArchive, class OArchive> inline
 void test_structs_minimal() {

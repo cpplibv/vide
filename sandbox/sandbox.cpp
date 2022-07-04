@@ -718,7 +718,7 @@ int main()
     double three;
     std::vector<int> four;
 
-    ar( one ); // cereal can only give warnings if you used an NVP!
+    ar( one ); // vide can only give warnings if you used an NVP!
     ar( VIDE_NVP( two ) );
     ar( three );
 

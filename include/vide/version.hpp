@@ -1,8 +1,8 @@
 /*! \file version.hpp
-    \brief Macros to detect cereal version
+    \brief Macros to detect vide version
 
     These macros can assist in determining the version of cereal. Be
-    warned that cereal is not guaranteed to be compatible across
+    warned that vide is not guaranteed to be compatible across
     different versions. For more information on releases of cereal,
     see https://github.com/USCiLab/cereal/releases.
 

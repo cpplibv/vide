@@ -111,7 +111,7 @@ struct serialize<0> {
 
 //! Serializing for std::tuple
 template <class Archive, class ... Types> inline
-void VIDE_SERIALIZE_FUNCTION_NAME(Archive& ar, std::tuple<Types...>& tuple) {
+void VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar, std::tuple<Types...>& tuple) {
 	tuple_detail::serialize<std::tuple_size<std::tuple<Types...>>::value>::template apply(ar, tuple);
 }
 

@@ -59,7 +59,7 @@ file(WRITE ${BINARY_DIR}/test_source/main.cpp "
     void set() { x = 1; y = 2; z = 3; }
     bool is_set() const { return x == 1 && y == 2 && z == 3; }
 
-    // This method lets cereal know which data members to serialize
+    // This method lets vide know which data members to serialize
     template<class Archive>
     void serialize(Archive & archive)
     {

@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 if not defined APPVEYOR (
     @echo This script is meant to be used with AppVeyor CI. This can be used as reference.
-    @echo I sincerely recommend not using it for building/testing cereal locally.
+    @echo I sincerely recommend not using it for building/testing vide locally.
     exit /b 0
 )
 

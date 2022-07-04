@@ -89,7 +89,7 @@ namespace detail {
 //! Base type for polymorphic void casting
 /*! Contains functions for casting between registered base and derived types.
 
-	This is necessary so that cereal can properly cast between polymorphic types
+	This is necessary so that vide can properly cast between polymorphic types
 	even though void pointers are used, which normally have no type information.
 	Runtime type information is used instead to index a compile-time made mapping
 	that can perform the proper cast. In the case of multiple levels of inheritance,
@@ -381,7 +381,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 };
 
 //! Registers a polymorphic casting relation between a Base and Derived type
-/*! Registering a relation allows cereal to properly cast between the two types
+/*! Registering a relation allows vide to properly cast between the two types
 	given runtime type information and void pointers.
 
 	Registration happens automatically via vide::base_class and vide::virtual_base_class

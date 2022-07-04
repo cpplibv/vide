@@ -46,17 +46,17 @@ enum class specialization {
 	non_member_load_save_minimal //!< Force the use of a non-member minimal load/save pair
 };
 
-//! A class used to disambiguate cases where cereal cannot detect a unique way of serializing a class
-/*! cereal attempts to figure out which method of serialization (member vs. non-member serialize
-	or load/save pair) at compile time.  If for some reason cereal cannot find a non-ambiguous way
+//! A class used to disambiguate cases where vide cannot detect a unique way of serializing a class
+/*! vide attempts to figure out which method of serialization (member vs. non-member serialize
+	or load/save pair) at compile time.  If for some reason vide cannot find a non-ambiguous way
 	of serializing a type, it will produce a static assertion complaining about this.
 
 	This can happen because you have both a serialize and load/save pair, or even because a base
 	class has a serialize (public or private with friend access) and a derived class does not
 	overwrite this due to choosing some other serialization type.
 
-	Specializing this class will tell cereal to explicitly use the serialization type you specify
-	and it will not complain about ambiguity in its compile time selection.  However, if cereal detects
+	Specializing this class will tell vide to explicitly use the serialization type you specify
+	and it will not complain about ambiguity in its compile time selection.  However, if vide detects
 	an ambiguity in specializations, it will continue to issue a static assertion.
 
 	@code{.cpp}
@@ -82,11 +82,11 @@ enum class specialization {
 	// The load/save pair in MyDerived is ambiguous because serialize in MyParent can
 	// be accessed from vide::access.  This looks the same as making serialize public
 	// in MyParent, making it seem as though MyDerived has both a serialize and a load/save pair.
-	// cereal will complain about this at compile time unless we disambiguate:
+	// vide will complain about this at compile time unless we disambiguate:
 
 	namespace vide
 	{
-	  // This struct specialization will tell cereal which is the right way to serialize the ambiguity
+	  // This struct specialization will tell vide which is the right way to serialize the ambiguity
 	  template <class Archive> struct specialize<Archive, MyDerived, vide::specialization::member_load_save> {};
 
 	  // If we only had a disambiguation for a specific archive type, it would look something like this

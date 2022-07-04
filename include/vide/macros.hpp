@@ -1,7 +1,7 @@
 /*! \file macros.hpp
-    \brief Preprocessor macros that can customise the cereal library
+    \brief Preprocessor macros that can customise the vide library
 
-    By default, cereal looks for serialization functions with very
+    By default, vide looks for serialization functions with very
     specific names, that is: serialize, load, save, load_minimal,
     or save_minimal.
 
@@ -9,7 +9,7 @@
     to some other style or preference.  This is implemented using
     preprocessor macros.
 
-    As a result of this, in internal cereal code you will see macros
+    As a result of this, in internal vide code you will see macros
     used for these function names.  In user code, you should name
     the functions like you normally would and not use the macros
     to improve readability.
@@ -45,8 +45,8 @@
 
 
 #ifndef VIDE_THREAD_SAFE
-//! Whether cereal should be compiled for a threaded environment
-/*! This macro causes cereal to use mutexes to control access to
+//! Whether vide should be compiled for a threaded environment
+/*! This macro causes vide to use mutexes to control access to
     global internal state in a thread safe manner.
 
     Note that even with this enabled you must still ensure that
@@ -58,7 +58,7 @@
 
 #ifndef VIDE_SIZE_TYPE
 //! Determines the data type used for size_type
-/*! cereal uses size_type to ensure that the serialized size of
+/*! vide uses size_type to ensure that the serialized size of
     dynamic containers is compatible across different architectures
     (e.g. 32 vs 64 bit), which may use different underlying types for
     std::size_t.
@@ -72,39 +72,39 @@
 
 // =================================================================================================
 
-#ifndef VIDE_SERIALIZE_FUNCTION_NAME
+#ifndef VIDE_FUNCTION_NAME_SERIALIZE
 //! The serialization/deserialization function name to search for.
-/*! You can define @c VIDE_SERIALIZE_FUNCTION_NAME to be different assuming
+/*! You can define @c VIDE_FUNCTION_NAME_SERIALIZE to be different assuming
     you do so before this file is included. */
-#define VIDE_SERIALIZE_FUNCTION_NAME serialize
-#endif // VIDE_SERIALIZE_FUNCTION_NAME
+#define VIDE_FUNCTION_NAME_SERIALIZE serialize
+#endif // VIDE_FUNCTION_NAME_SERIALIZE
 
-#ifndef VIDE_LOAD_FUNCTION_NAME
+#ifndef VIDE_FUNCTION_NAME_LOAD
 //! The deserialization (load) function name to search for.
-/*! You can define @c VIDE_LOAD_FUNCTION_NAME to be different assuming you do so
+/*! You can define @c VIDE_FUNCTION_NAME_LOAD to be different assuming you do so
     before this file is included. */
-#define VIDE_LOAD_FUNCTION_NAME load
-#endif // VIDE_LOAD_FUNCTION_NAME
+#define VIDE_FUNCTION_NAME_LOAD load
+#endif // VIDE_FUNCTION_NAME_LOAD
 
-#ifndef VIDE_SAVE_FUNCTION_NAME
+#ifndef VIDE_FUNCTION_NAME_SAVE
 //! The serialization (save) function name to search for.
-/*! You can define @c VIDE_SAVE_FUNCTION_NAME to be different assuming you do so
+/*! You can define @c VIDE_FUNCTION_NAME_SAVE to be different assuming you do so
     before this file is included. */
-#define VIDE_SAVE_FUNCTION_NAME save
-#endif // VIDE_SAVE_FUNCTION_NAME
+#define VIDE_FUNCTION_NAME_SAVE save
+#endif // VIDE_FUNCTION_NAME_SAVE
 
-#ifndef VIDE_LOAD_MINIMAL_FUNCTION_NAME
+#ifndef VIDE_FUNCTION_NAME_LOAD_MINIMAL
 //! The deserialization (load_minimal) function name to search for.
-/*! You can define @c VIDE_LOAD_MINIMAL_FUNCTION_NAME to be different assuming you do so
+/*! You can define @c VIDE_FUNCTION_NAME_LOAD_MINIMAL to be different assuming you do so
     before this file is included. */
-#define VIDE_LOAD_MINIMAL_FUNCTION_NAME load_minimal
-#endif // VIDE_LOAD_MINIMAL_FUNCTION_NAME
+#define VIDE_FUNCTION_NAME_LOAD_MINIMAL load_minimal
+#endif // VIDE_FUNCTION_NAME_LOAD_MINIMAL
 
-#ifndef VIDE_SAVE_MINIMAL_FUNCTION_NAME
+#ifndef VIDE_FUNCTION_NAME_SAVE_MINIMAL
 //! The serialization (save_minimal) function name to search for.
-/*! You can define @c VIDE_SAVE_MINIMAL_FUNCTION_NAME to be different assuming you do so
+/*! You can define @c VIDE_FUNCTION_NAME_SAVE_MINIMAL to be different assuming you do so
     before this file is included. */
-#define VIDE_SAVE_MINIMAL_FUNCTION_NAME save_minimal
-#endif // VIDE_SAVE_MINIMAL_FUNCTION_NAME
+#define VIDE_FUNCTION_NAME_SAVE_MINIMAL save_minimal
+#endif // VIDE_FUNCTION_NAME_SAVE_MINIMAL
 
 // =================================================================================================

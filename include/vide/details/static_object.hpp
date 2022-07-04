@@ -96,7 +96,7 @@ public:
 	};
 
 	//! Attempts to lock this static object for the current scope
-	/*! @note This function is a no-op if cereal is not compiled with
+	/*! @note This function is a no-op if vide is not compiled with
 			  thread safety enabled (VIDE_THREAD_SAFE = 1).
 
 		This function returns an object that holds a lock for

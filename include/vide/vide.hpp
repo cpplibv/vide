@@ -469,13 +469,13 @@ private:
 	//! Member split (save_minimal)
 	template <class As, class T, PROCESS_IF(member_save_minimal, As)>
 	inline void processImpl(As& as, const T& t) {
-		self().process(access::member_save_minimal(as, t));
+		self().process_as(as, access::member_save_minimal(as, t));
 	}
 
 	//! Non member split (save_minimal)
 	template <class As, class T, PROCESS_IF(non_member_save_minimal, As)>
 	inline void processImpl(As& as, const T& t) {
-		self().process(VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t));
+		self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t));
 	}
 
 	//! Empty class specialization
@@ -498,7 +498,7 @@ private:
 		(void) as;
 
 		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value != 0,
-				"cereal could not find any output serialization functions for the provided type and archive combination.\n\n"
+				"Vide could not find any output serialization functions for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Serialize functions generally have the following signature:\n\n"
 				"  template<class Archive>\n"
@@ -508,7 +508,7 @@ private:
 				"  }\n\n");
 
 		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value > 1,
-				"cereal found more than one compatible output serialization function for the provided type and archive combination.\n\n"
+				"Vide found more than one compatible output serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
 				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
@@ -568,14 +568,14 @@ private:
 	/*! Versioning implementation */
 	template <class As, class T, PROCESS_IF(member_versioned_save_minimal, As)>
 	inline void processImpl(As& as, const T& t) {
-		self().process(access::member_save_minimal(as, t, registerClassVersion<T>()));
+		self().process_as(as, access::member_save_minimal(as, t, registerClassVersion<T>()));
 	}
 
 	//! Non member split (save_minimal)
 	/*! Versioning implementation */
 	template <class As, class T, PROCESS_IF(non_member_versioned_save_minimal, As)>
 	inline void processImpl(As& as, const T& t) {
-		self().process(VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t, registerClassVersion<T>()));
+		self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t, registerClassVersion<T>()));
 	}
 
 #undef PROCESS_IF
@@ -832,7 +832,7 @@ private:
 	template <class As, class T, PROCESS_IF(member_load_minimal, As)>
 	inline void processImpl(As& as, T& t) {
 		traits::get_member_save_minimal_type<ArchiveType, T> value;
-		self().process(value);
+		self().process_as(as, value);
 		access::member_load_minimal(as, t, value);
 	}
 
@@ -840,7 +840,7 @@ private:
 	template <class As, class T, PROCESS_IF(non_member_load_minimal, As)>
 	inline void processImpl(As& as, T& t) {
 		traits::get_non_member_save_minimal_type<ArchiveType, T> value;
-		self().process(value);
+		self().process_as(as, value);
 		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, value);
 	}
 
@@ -863,7 +863,7 @@ private:
 		(void) as;
 
 		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value != 0,
-				"cereal could not find any input serialization functions for the provided type and archive combination.\n\n"
+				"Vide could not find any input serialization functions for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Serialize functions generally have the following signature:\n\n"
 				"  template <class Archive>\n"
@@ -873,7 +873,7 @@ private:
 				"  }\n\n");
 
 		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value > 1,
-				"cereal found more than one compatible input serialization function for the provided type and archive combination.\n\n"
+				"Vide found more than one compatible input serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
 				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
@@ -941,7 +941,7 @@ private:
 	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
 		traits::get_member_versioned_save_minimal_type<ArchiveType, T> value;
-		self().process(value);
+		self().process_as(as, value);
 		access::member_load_minimal(as, t, value, version);
 	}
 
@@ -951,7 +951,7 @@ private:
 	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
 		traits::get_non_member_versioned_save_minimal_type<ArchiveType, T> value;
-		self().process(value);
+		self().process_as(as, value);
 		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, value, version);
 	}
 

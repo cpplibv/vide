@@ -42,11 +42,13 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Bump version to 2.1.0 and start versioning Vide
 - Version 2.2.0:
   - Remove specialize/specialization feature that could disambiguate in duplicate serialization methods.  
-    (For now serialization methods consistency is required in a inheritance hierarchy)
+    (For now serialization methods consistency is required in inheritance hierarchies)
+  - Remove string/arithmetic type restriction from `load_minimal`/`save_minimal`
+  - Add support for const reference return type during `minimal` serialization
+  - Add support for recursive `minimal` serialization (But it is recommended to only use it with primitive/trivial types)
 
 
 ### Planned:
-- Allow const reference return type for `save_minimal`
 - An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Foreach iteration algorithms
 - Add safe/unsafe data serialization support

@@ -253,7 +253,7 @@ public:
 		saveValue(base64string);
 
 		if (itsOutputType)
-			itsNodes.top().node->append_attribute(itsXML.allocate_attribute("type", "cereal binary data"));
+			itsNodes.top().node->append_attribute(itsXML.allocate_attribute("type", "vide binary data"));
 
 		finishNode();
 	}

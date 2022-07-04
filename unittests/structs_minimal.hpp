@@ -32,9 +32,7 @@
 
 class MemberMinimal {
 public:
-	MemberMinimal() = default;
-
-	MemberMinimal(const std::string& str) : x(str) {}
+	std::string x;
 
 protected:
 	friend class vide::access;
@@ -48,18 +46,47 @@ protected:
 	void load_minimal(const Archive&, const std::string& str) {
 		x = str;
 	}
+};
 
+class MemberMinimalRecursive {
 public:
 	std::string x;
+
+protected:
+	friend class vide::access;
+
+	template <class Archive>
+	MemberMinimal save_minimal(const Archive&) const {
+		return MemberMinimal{x};
+	}
+
+	template <class Archive>
+	void load_minimal(const Archive&, const MemberMinimal& str) {
+		x = str.x;
+	}
+};
+
+class MemberMinimalRecursiveNested {
+public:
+	std::string x;
+
+protected:
+	friend class vide::access;
+
+	template <class Archive>
+	MemberMinimalRecursive save_minimal(const Archive&) const {
+		return MemberMinimalRecursive{x};
+	}
+
+	template <class Archive>
+	void load_minimal(const Archive&, const MemberMinimalRecursive& str) {
+		x = str.x;
+	}
 };
 
 class MemberMinimalContRef {
 public:
 	std::string x;
-
-//public:
-//	MemberMinimalContRef() = default;
-//	MemberMinimalContRef(const std::string& str) : x(str) {}
 
 protected:
 	friend class vide::access;
@@ -77,9 +104,7 @@ protected:
 
 class MemberMinimalVersioned {
 public:
-	MemberMinimalVersioned() = default;
-
-	MemberMinimalVersioned(double d) : x(d) {}
+	double x;
 
 protected:
 	friend class vide::access;
@@ -93,16 +118,9 @@ protected:
 	void load_minimal(const Archive&, double const& d, const std::uint32_t) {
 		x = d;
 	}
-
-public:
-	double x;
 };
 
 struct NonMemberMinimal {
-	NonMemberMinimal() = default;
-
-	NonMemberMinimal(std::uint32_t xx) : x(xx) {}
-
 	std::uint32_t x;
 };
 
@@ -117,10 +135,6 @@ void load_minimal(const Archive&, NonMemberMinimal& nmm, const std::uint32_t& da
 }
 
 struct NonMemberMinimalVersioned {
-	NonMemberMinimalVersioned() = default;
-
-	NonMemberMinimalVersioned(bool xx) : x(xx) {}
-
 	bool x;
 };
 
@@ -138,7 +152,9 @@ void load_minimal(const Archive&, NonMemberMinimalVersioned& nmm, bool const& da
 
 struct TestStruct {
 	MemberMinimal mm;
-//	MemberMinimalContRef mmcr;
+	MemberMinimalRecursive mm_recursive;
+	MemberMinimalRecursiveNested mm_recursive_nested;
+	MemberMinimalContRef mmcr;
 	MemberMinimalVersioned mmv;
 	NonMemberMinimal nmm;
 	NonMemberMinimalVersioned nmmv;
@@ -147,7 +163,9 @@ struct TestStruct {
 
 	TestStruct(const std::string& s, double d, std::uint32_t u, bool b) :
 			mm(s),
-//			mmcr(s),
+			mm_recursive(s),
+			mm_recursive_nested(s),
+			mmcr(s),
 			mmv(d),
 			nmm(u),
 			nmmv(b) {}
@@ -155,7 +173,9 @@ struct TestStruct {
 	template <class Archive>
 	void serialize(Archive& ar) {
 		ar(mm);
-//		ar(mmcr);
+		ar(mm_recursive);
+		ar.nvp("nest", mm_recursive_nested);
+		ar(mmcr);
 		ar(mmv);
 		ar(nmm);
 		ar(nmmv);
@@ -165,10 +185,6 @@ struct TestStruct {
 // -------------------------------------------------------------------------------------------------
 
 struct Issue79Struct {
-	Issue79Struct() = default;
-
-	Issue79Struct(std::int32_t xx) : x(xx) {}
-
 	std::int32_t x;
 };
 
@@ -193,12 +209,9 @@ inline void load_minimal(const Archive&, Issue79Struct& val, std::int32_t const&
 }
 
 struct Issue79StructInternal {
-	Issue79StructInternal() = default;
-
-	Issue79StructInternal(std::int32_t xx) : x(xx) {}
-
 	std::int32_t x;
 
+public:
 	template <class Archive> requires Archive::is_text_archive
 	inline std::string save_minimal(const Archive&) const {
 		return std::to_string(x);
@@ -255,6 +268,9 @@ void test_structs_minimal() {
 		}
 
 		CHECK_EQ(o_struct.mm.x, i_struct.mm.x);
+		CHECK_EQ(o_struct.mm_recursive.x, i_struct.mm_recursive.x);
+		CHECK_EQ(o_struct.mm_recursive_nested.x, i_struct.mm_recursive_nested.x);
+		CHECK_EQ(o_struct.mmcr.x, i_struct.mmcr.x);
 		CHECK_EQ(o_struct.mmv.x, doctest::Approx(i_struct.mmv.x).epsilon(1e-5));
 
 		CHECK_EQ(o_struct.nmm.x, i_struct.nmm.x);

@@ -27,8 +27,8 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef VIDE_DETAILS_TRAITS_HPP_
-#define VIDE_DETAILS_TRAITS_HPP_
+
+#pragma once
 
 #include <type_traits>
 #include <typeindex>
@@ -39,6 +39,9 @@
 
 namespace vide {
 namespace traits {
+
+// -------------------------------------------------------------------------------------------------
+
 using yes = std::true_type;
 using no = std::false_type;
 
@@ -243,7 +246,7 @@ template <class T, class A>
 struct has_member_save : std::integral_constant<bool, detail::has_member_save_impl<T, A>::value> {
 	typedef typename detail::has_member_save_impl<T, A> check;
 	static_assert(check::value || !check::not_const_type,
-			"cereal detected a non-const save. \n "
+			"Vide detected a non-const save. \n "
 			"save member functions must always be const");
 };
 
@@ -255,7 +258,7 @@ template <class T, class A>
 struct has_member_versioned_save : std::integral_constant<bool, detail::has_member_versioned_save_impl<T, A>::value> {
 	typedef typename detail::has_member_versioned_save_impl<T, A> check;
 	static_assert(check::value || !check::not_const_type,
-			"cereal detected a versioned non-const save. \n "
+			"Vide detected a versioned non-const save. \n "
 			"save member functions must always be const");
 };
 
@@ -296,7 +299,7 @@ struct has_member_versioned_save : std::integral_constant<bool, detail::has_memb
     {                                                                                                                        \
       using check = typename detail::has_non_member_##test_name##_impl<T, A>;                                                \
       static_assert( check::value || !check::not_const_type,                                                                 \
-        "cereal detected a non-const type parameter in non-member " #test_name ". \n "                                       \
+        "Vide detected a non-const type parameter in non-member " #test_name ". \n "                                       \
         #test_name " non-member functions must always pass their types as const" );                                          \
     };
 
@@ -312,43 +315,27 @@ VIDE_MAKE_HAS_NON_MEMBER_SAVE_TEST(versioned_save, VIDE_MAKE_VERSIONED_TEST)
 #undef VIDE_MAKE_HAS_NON_MEMBER_SAVE_TEST
 
 // ######################################################################
-// Minimal Utilities
-namespace detail {
-// Determines if the provided type is an std::string
-template <class> struct is_string : std::false_type {};
-
-template <class CharT, class Traits, class Alloc>
-struct is_string<std::basic_string<CharT, Traits, Alloc>> : std::true_type {};
-}
-
-// Determines if the type is valid for use with a minimal serialize function
-template <class T>
-struct is_minimal_type : std::integral_constant<bool,
-		detail::is_string<T>::value || std::is_arithmetic<T>::value> {
-};
-
-// ######################################################################
 //! Creates implementation details for whether a member save_minimal function exists
 /*! This creates a class derived from std::integral_constant that will be true if
 	the type has the proper member function for the given archive.
 
 	@param test_name The name to give the test (e.g. save_minimal or versioned_save_minimal)
 	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_IMPL(test_name, versioned)                     \
+#define VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_IMPL(test_name, versioned)                           \
     namespace detail                                                                           \
     {                                                                                          \
       template <class T, class A>                                                              \
       struct has_member_##test_name##_impl                                                     \
       {                                                                                        \
         template <class TT, class AA>                                                          \
-        static auto test(int) -> decltype( vide::access::member_save_minimal(                \
+        static auto test(int) -> decltype( vide::access::member_save_minimal(                  \
               std::declval<AA const &>(),                                                      \
               std::declval<TT const &>() versioned ), yes());                                  \
         template <class, class> static no test(...);                                           \
         static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;           \
                                                                                                \
         template <class TT, class AA>                                                          \
-        static auto test2(int) -> decltype( vide::access::member_save_minimal_non_const(     \
+        static auto test2(int) -> decltype( vide::access::member_save_minimal_non_const(       \
               std::declval<AA const &>(),                                                      \
               std::declval<typename std::remove_const<TT>::type&>() versioned ), yes());       \
         template <class, class> static no test2(...);                                          \
@@ -386,19 +373,16 @@ struct is_minimal_type : std::integral_constant<bool,
 	the type has the proper member function for the given archive.
 
 	@param test_name The name to give the test (e.g. save_minimal or versioned_save_minimal) */
-#define VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(test_name)                                                      \
+#define VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(test_name)                                                            \
     template <class T, class A>                                                                                      \
     struct has_member_##test_name : std::integral_constant<bool, detail::has_member_##test_name##_impl<T, A>::value> \
     {                                                                                                                \
       using check = typename detail::has_member_##test_name##_impl<T, A>;                                            \
       static_assert( check::valid,                                                                                   \
-        "cereal detected a non-const member " #test_name ". \n "                                                     \
+        "Vide detected a non-const member " #test_name ". \n "                                                       \
         #test_name " member functions must always be const" );                                                       \
                                                                                                                      \
       using type = typename detail::get_member_##test_name##_type<T, A, check::value>::type;                         \
-      static_assert( (check::value && is_minimal_type<type>::value) || !check::value,                                \
-        "cereal detected a member " #test_name " with an invalid return type. \n "                                   \
-        "return type must be arithmetic or string" );                                                                \
     };
 
 // ######################################################################
@@ -425,21 +409,21 @@ VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(versioned_save_minimal)
 
 	@param test_name The name to give the test (e.g. save_minimal or versioned_save_minimal)
 	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_NON_MEMBER_SAVE_MINIMAL_TEST(test_name, versioned)                                               \
+#define VIDE_MAKE_HAS_NON_MEMBER_SAVE_MINIMAL_TEST(test_name, versioned)                                                     \
     namespace detail                                                                                                         \
     {                                                                                                                        \
       template <class T, class A>                                                                                            \
       struct has_non_member_##test_name##_impl                                                                               \
       {                                                                                                                      \
         template <class TT, class AA>                                                                                        \
-        static auto test(int) -> decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL(                                                \
+        static auto test(int) -> decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL(                                                  \
               std::declval<AA const &>(),                                                                                    \
               std::declval<TT const &>() versioned ), yes());                                                                \
         template <class, class> static no test(...);                                                                         \
         static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;                                         \
                                                                                                                              \
         template <class TT, class AA>                                                                                        \
-        static auto test2(int) -> decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL(                                               \
+        static auto test2(int) -> decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL(                                                 \
               std::declval<AA const &>(),                                                                                    \
               std::declval<typename std::remove_const<TT>::type&>() versioned ), yes());                                     \
         template <class, class> static no test2(...);                                                                        \
@@ -454,7 +438,7 @@ VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(versioned_save_minimal)
       template <class T, class A>                                                                                            \
       struct get_non_member_##test_name##_type <T, A, true>                                                                  \
       {                                                                                                                      \
-        using type = decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL( std::declval<A const &>(),                                 \
+        using type = decltype( VIDE_FUNCTION_NAME_SAVE_MINIMAL( std::declval<A const &>(),                                   \
                                                                   std::declval<T const &>() versioned ) );                   \
       };                                                                                                                     \
     } /* end namespace detail */                                                                                             \
@@ -464,13 +448,10 @@ VIDE_MAKE_HAS_MEMBER_SAVE_MINIMAL_TEST(versioned_save_minimal)
     {                                                                                                                        \
       using check = typename detail::has_non_member_##test_name##_impl<T, A>;                                                \
       static_assert( check::valid,                                                                                           \
-        "cereal detected a non-const type parameter in non-member " #test_name ". \n "                                       \
+        "Vide detected a non-const type parameter in non-member " #test_name ". \n "                                         \
         #test_name " non-member functions must always pass their types as const" );                                          \
                                                                                                                              \
       using type = typename detail::get_non_member_##test_name##_type<T, A, check::value>::type;                             \
-      static_assert( (check::value && is_minimal_type<type>::value) || !check::value,                                        \
-        "cereal detected a non-member " #test_name " with an invalid return type. \n "                                       \
-        "return type must be arithmetic or string" );                                                                        \
     };
 
 // ######################################################################
@@ -497,7 +478,10 @@ struct NoConvertBase {};
 
 //! A struct that prevents implicit conversion
 /*! Any type instantiated with this struct will be unable to implicitly convert
-	to another type.  Is designed to only allow conversion to Source const &.
+	to another type.  Is designed to only allow conversion to const Source&.
+
+	Allows:
+		      Source  -> const Target&
 
 	@tparam Source the type of the original source */
 template <class Source>
@@ -509,7 +493,32 @@ struct NoConvertConstRef : NoConvertBase {
 
 	//! only allow conversion if the types are the same and we are converting into a const reference
 	template <class Dest, class = typename std::enable_if<std::is_same<Source, Dest>::value>::type>
-	operator Dest const&();
+	operator const Dest&();
+};
+
+//! A struct that prevents implicit conversion
+/*! Any type instantiated with this struct will be unable to implicitly convert
+	to another type.  Is designed to only allow conversion to const Source&.
+
+	Allows:
+		const Source& -> const Target&
+		const Source  -> const Target&
+		      Source& -> const Target&
+		      Source  -> const Target&
+
+	@tparam Source the type of the original source */
+template <class Source>
+struct NoConvertConstRefAllowCVREFSource : NoConvertBase {
+	using type = Source; //!< Used to get underlying type easily
+
+	template <class Dest>
+		requires std::is_same_v<std::remove_cvref_t<Source>, std::remove_cvref_t<Dest>>
+	operator Dest() = delete;
+
+	//! only allow conversion if the types are the same and we are converting into a const reference
+	template <class Dest>
+		requires std::is_same_v<std::remove_cvref_t<Source>, std::remove_cvref_t<Dest>>
+	operator const Dest&();
 };
 
 //! A struct that prevents implicit conversion
@@ -540,9 +549,10 @@ struct AnyConvert {
 	operator Dest&();
 
 	template <class Dest>
-	operator Dest const&() const;
+	operator const Dest&() const;
 };
-} // namespace detail
+
+} // namespace detail ------------------------------------------------------------------------------
 
 // =================================================================================================
 // =================================================================================================
@@ -568,20 +578,19 @@ struct AnyConvert {
 //using get_non_member_versioned_save_minimal_type = typename has_non_member_versioned_save_minimal<T, get_output_from_input<Archive>>::type;
 
 template <typename Archive, typename T>
-using get_member_save_minimal_type = typename has_member_save_minimal<T, Archive>::type;
+using get_member_save_minimal_type = std::remove_cvref_t<typename has_member_save_minimal<T, Archive>::type>;
 
 template <typename Archive, typename T>
-using get_non_member_save_minimal_type = typename has_non_member_save_minimal<T, Archive>::type;
+using get_non_member_save_minimal_type = std::remove_cvref_t<typename has_non_member_save_minimal<T, Archive>::type>;
 
 template <typename Archive, typename T>
-using get_member_versioned_save_minimal_type = typename has_member_versioned_save_minimal<T, Archive>::type;
+using get_member_versioned_save_minimal_type = std::remove_cvref_t<typename has_member_versioned_save_minimal<T, Archive>::type>;
 
 template <typename Archive, typename T>
-using get_non_member_versioned_save_minimal_type = typename has_non_member_versioned_save_minimal<T, Archive>::type;
+using get_non_member_versioned_save_minimal_type = std::remove_cvref_t<typename has_non_member_versioned_save_minimal<T, Archive>::type>;
 
 // =================================================================================================
 // =================================================================================================
-
 
 // ######################################################################
 //! Creates a test for whether a member load_minimal function exists
@@ -594,30 +603,30 @@ using get_non_member_versioned_save_minimal_type = typename has_non_member_versi
 
 	@param test_name The name to give the test (e.g. load_minimal or versioned_load_minimal)
 	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(test_name, versioned)              \
-    namespace detail                                                                    \
-    {                                                                                   \
-      template <class T, class A>                                                       \
-      struct has_member_##test_name##_impl                                              \
-      {                                                                                 \
-        template <class TT, class AA>                                                   \
-        static auto test(int) -> decltype( vide::access::member_load_minimal(         \
-              std::declval<AA const &>(),                                               \
-              std::declval<TT &>(), AnyConvert() versioned ), yes());                   \
-        template <class, class> static no test(...);                                    \
-        static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;    \
-      };                                                                                \
-      template <class T, class A, class U>                                              \
-      struct has_member_##test_name##_type_impl                                         \
-      {                                                                                 \
-        template <class TT, class AA, class UU>                                         \
-        static auto test(int) -> decltype( vide::access::member_load_minimal(         \
-              std::declval<AA const &>(),                                               \
-              std::declval<TT &>(), NoConvertConstRef<UU>() versioned ), yes());        \
-        template <class, class, class> static no test(...);                             \
-        static const bool value = std::is_same<decltype(test<T, A, U>(0)), yes>::value; \
-                                                                                        \
-      };                                                                                \
+#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(test_name, versioned)                               \
+    namespace detail                                                                               \
+    {                                                                                              \
+      template <class T, class A>                                                                  \
+      struct has_member_##test_name##_impl                                                         \
+      {                                                                                            \
+        template <class TT, class AA>                                                              \
+        static auto test(int) -> decltype( vide::access::member_load_minimal(                      \
+              std::declval<AA const &>(),                                                          \
+              std::declval<TT &>(), AnyConvert() versioned ), yes());                              \
+        template <class, class> static no test(...);                                               \
+        static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;               \
+      };                                                                                           \
+      template <class T, class A, class U>                                                         \
+      struct has_member_##test_name##_type_impl                                                    \
+      {                                                                                            \
+        template <class TT, class AA, class UU>                                                    \
+        static auto test(int) -> decltype( vide::access::member_load_minimal(                      \
+              std::declval<AA const &>(),                                                          \
+              std::declval<TT &>(), NoConvertConstRefAllowCVREFSource<UU>() versioned ), yes());   \
+        template <class, class, class> static no test(...);                                        \
+        static const bool value = std::is_same<decltype(test<T, A, U>(0)), yes>::value;            \
+                                                                                                   \
+      };                                                                                           \
     } /* end namespace detail */
 
 // ######################################################################
@@ -632,24 +641,24 @@ using get_non_member_versioned_save_minimal_type = typename has_non_member_versi
 						  should match the load name, without the trailing "_minimal" (e.g.
 						  save or versioned_save).  Needed because the preprocessor is an abomination.
 	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_HELPERS_IMPL(load_test_name, save_test_name, save_test_prefix, versioned) \
-    namespace detail                                                                                                      \
-    {                                                                                                                     \
-      template <class T, class A, bool Valid>                                                                             \
-      struct has_member_##load_test_name##_wrapper : std::false_type {};                                                  \
-                                                                                                                          \
-      template <class T, class A>                                                                                         \
-      struct has_member_##load_test_name##_wrapper<T, A, true>                                                            \
-      {                                                                                                                   \
-        using SaveType = typename detail::get_member_##save_test_prefix##_minimal_type<T, A, true>::type;              \
-        const static bool value = has_member_##load_test_name##_impl<T, A>::value;                                        \
-        const static bool valid = has_member_##load_test_name##_type_impl<T, A, SaveType>::value;                         \
-                                                                                                                          \
-        static_assert( valid || !value, "cereal detected different or invalid types in corresponding member "             \
-            #load_test_name " and " #save_test_name " functions. \n "                                                     \
-            "the paramater to " #load_test_name " must be a constant reference to the type that "                         \
-            #save_test_name " returns." );                                                                                \
-      };                                                                                                                  \
+#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_HELPERS_IMPL(load_test_name, save_test_name, save_test_prefix, versioned)     \
+    namespace detail                                                                                                    \
+    {                                                                                                                   \
+      template <class T, class A, bool Valid>                                                                           \
+      struct has_member_##load_test_name##_wrapper : std::false_type {};                                                \
+                                                                                                                        \
+      template <class T, class A>                                                                                       \
+      struct has_member_##load_test_name##_wrapper<T, A, true>                                                          \
+      {                                                                                                                 \
+        using SaveType = typename detail::get_member_##save_test_prefix##_minimal_type<T, A, true>::type;               \
+        const static bool value = has_member_##load_test_name##_impl<T, A>::value;                                      \
+        const static bool valid = has_member_##load_test_name##_type_impl<T, A, SaveType>::value;                       \
+                                                                                                                        \
+        static_assert( valid || !value, "Vide detected different or invalid types in corresponding member "             \
+            #load_test_name " and " #save_test_name " functions. \n "                                                   \
+            "the paramater to " #load_test_name " must be a constant reference to the type that "                       \
+            #save_test_name " returns." );                                                                              \
+      };                                                                                                                \
     } /* end namespace detail */
 
 // ######################################################################
@@ -697,7 +706,7 @@ VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
 
 	@code
 	static_assert( check::const_valid || !check::exists,
-		"cereal detected an invalid serialization type parameter in non-member " #test_name ".  "
+		"Vide detected an invalid serialization type parameter in non-member " #test_name ".  "
 		#test_name " non-member functions must accept their serialization type by non-const reference" );
 	@endcode
 
@@ -741,7 +750,7 @@ VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
         using check = has_non_member_##test_name##_impl<T, A, SaveType>;                                                     \
         static const bool value = check::exists;                                                                             \
                                                                                                                              \
-        static_assert( check::valid || !check::exists, "cereal detected different types in corresponding non-member "        \
+        static_assert( check::valid || !check::exists, "Vide detected different types in corresponding non-member "        \
             #test_name " and " #save_name " functions. \n "                                                                  \
             "the paramater to " #test_name " must be a constant reference to the type that " #save_name " returns." );       \
       };                                                                                                                     \
@@ -1091,6 +1100,7 @@ struct serialization_traits {
 			};
 
 	// --- Conclusions
+
 	static constexpr int count_output_serializers =
 			has_serialize_member +
 			has_serialize_global +
@@ -1126,7 +1136,6 @@ struct serialization_traits {
 // =================================================================================================
 // =================================================================================================
 // =================================================================================================
+// -------------------------------------------------------------------------------------------------
 
 } // namespace vide
-
-#endif // VIDE_DETAILS_TRAITS_HPP_

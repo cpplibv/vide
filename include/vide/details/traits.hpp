@@ -35,7 +35,6 @@
 
 #include <vide/access.hpp>
 #include <vide/macros.hpp>
-#include <vide/specialize.hpp>
 
 
 namespace vide {
@@ -803,108 +802,23 @@ struct has_invalid_input_versioning : std::integral_constant<bool,
 };
 
 // ######################################################################
-namespace detail {
-//! Create a test for a vide::specialization entry
-#define VIDE_MAKE_IS_SPECIALIZED_IMPL(name)                                          \
-      template <class T, class A>                                                            \
-      struct is_specialized_##name : std::integral_constant<bool,                            \
-        !std::is_base_of<std::false_type, specialize<A, T, specialization::name>>::value> {}
-
-VIDE_MAKE_IS_SPECIALIZED_IMPL(member_serialize);
-VIDE_MAKE_IS_SPECIALIZED_IMPL(member_load_save);
-VIDE_MAKE_IS_SPECIALIZED_IMPL(member_load_save_minimal);
-VIDE_MAKE_IS_SPECIALIZED_IMPL(non_member_serialize);
-VIDE_MAKE_IS_SPECIALIZED_IMPL(non_member_load_save);
-VIDE_MAKE_IS_SPECIALIZED_IMPL(non_member_load_save_minimal);
-
-#undef VIDE_MAKE_IS_SPECIALIZED_IMPL
-
-//! Number of specializations detected
-template <class T, class A>
-struct count_specializations : std::integral_constant<int,
-		is_specialized_member_serialize<T, A>::value +
-		is_specialized_member_load_save<T, A>::value +
-		is_specialized_member_load_save_minimal<T, A>::value +
-		is_specialized_non_member_serialize<T, A>::value +
-		is_specialized_non_member_load_save<T, A>::value +
-		is_specialized_non_member_load_save_minimal<T, A>::value> {
-};
-} // namespace detail
-
-//! Check if any specialization exists for a type
-template <class T, class A>
-struct is_specialized : std::integral_constant<bool,
-		detail::is_specialized_member_serialize<T, A>::value ||
-		detail::is_specialized_member_load_save<T, A>::value ||
-		detail::is_specialized_member_load_save_minimal<T, A>::value ||
-		detail::is_specialized_non_member_serialize<T, A>::value ||
-		detail::is_specialized_non_member_load_save<T, A>::value ||
-		detail::is_specialized_non_member_load_save_minimal<T, A>::value> {
-	static_assert(detail::count_specializations<T, A>::value <= 1, "More than one explicit specialization detected for type.");
-};
-
-//! Create the static assertion for some specialization
-/*! This assertion will fail if the type is indeed specialized and does not have the appropriate
-	type of serialization functions */
-#define VIDE_MAKE_IS_SPECIALIZED_ASSERT(name, versioned_name, print_name, spec_name)                      \
-    static_assert( (is_specialized<T, A>::value && detail::is_specialized_##spec_name<T, A>::value &&           \
-                   (has_##name<T, A>::value || has_##versioned_name<T, A>::value))                              \
-                   || !(is_specialized<T, A>::value && detail::is_specialized_##spec_name<T, A>::value),        \
-                   "cereal detected " #print_name " specialization but no " #print_name " serialize function" )
-
-//! Generates a test for specialization for versioned and unversioned functions
-/*! This creates checks that can be queried to see if a given type of serialization function
-	has been specialized for this type */
-#define VIDE_MAKE_IS_SPECIALIZED(name, versioned_name, spec_name)                     \
-    template <class T, class A>                                                             \
-    struct is_specialized_##name : std::integral_constant<bool,                             \
-      is_specialized<T, A>::value && detail::is_specialized_##spec_name<T, A>::value>       \
-    { VIDE_MAKE_IS_SPECIALIZED_ASSERT(name, versioned_name, name, spec_name); };          \
-    template <class T, class A>                                                             \
-    struct is_specialized_##versioned_name : std::integral_constant<bool,                   \
-      is_specialized<T, A>::value && detail::is_specialized_##spec_name<T, A>::value>       \
-    { VIDE_MAKE_IS_SPECIALIZED_ASSERT(name, versioned_name, versioned_name, spec_name); }
-
-VIDE_MAKE_IS_SPECIALIZED(member_serialize, member_versioned_serialize, member_serialize);
-VIDE_MAKE_IS_SPECIALIZED(non_member_serialize, non_member_versioned_serialize, non_member_serialize);
-
-VIDE_MAKE_IS_SPECIALIZED(member_save, member_versioned_save, member_load_save);
-VIDE_MAKE_IS_SPECIALIZED(non_member_save, non_member_versioned_save, non_member_load_save);
-VIDE_MAKE_IS_SPECIALIZED(member_load, member_versioned_load, member_load_save);
-VIDE_MAKE_IS_SPECIALIZED(non_member_load, non_member_versioned_load, non_member_load_save);
-
-VIDE_MAKE_IS_SPECIALIZED(member_save_minimal, member_versioned_save_minimal, member_load_save_minimal);
-VIDE_MAKE_IS_SPECIALIZED(non_member_save_minimal, non_member_versioned_save_minimal, non_member_load_save_minimal);
-VIDE_MAKE_IS_SPECIALIZED(member_load_minimal, member_versioned_load_minimal, member_load_save_minimal);
-VIDE_MAKE_IS_SPECIALIZED(non_member_load_minimal, non_member_versioned_load_minimal, non_member_load_save_minimal);
-
-#undef VIDE_MAKE_IS_SPECIALIZED_ASSERT
-#undef VIDE_MAKE_IS_SPECIALIZED
-
-// ######################################################################
 // detects if a type has any active minimal output serialization
 template <class T, class OutputArchive>
 struct has_minimal_output_serialization : std::integral_constant<bool,
-		is_specialized_member_save_minimal<T, OutputArchive>::value ||
-		((has_member_save_minimal<T, OutputArchive>::value ||
-				has_non_member_save_minimal<T, OutputArchive>::value ||
-				has_member_versioned_save_minimal<T, OutputArchive>::value ||
-				has_non_member_versioned_save_minimal<T, OutputArchive>::value) &&
-				!(is_specialized_member_serialize<T, OutputArchive>::value ||
-						is_specialized_member_save<T, OutputArchive>::value))> {
+		has_member_save_minimal<T, OutputArchive>::value ||
+		has_non_member_save_minimal<T, OutputArchive>::value ||
+		has_member_versioned_save_minimal<T, OutputArchive>::value ||
+		has_non_member_versioned_save_minimal<T, OutputArchive>::value> {
 };
 
 // ######################################################################
 // detects if a type has any active minimal input serialization
 template <class T, class InputArchive>
 struct has_minimal_input_serialization : std::integral_constant<bool,
-		is_specialized_member_load_minimal<T, InputArchive>::value ||
-				((has_member_load_minimal<T, InputArchive>::value ||
-						has_non_member_load_minimal<T, InputArchive>::value ||
-						has_member_versioned_load_minimal<T, InputArchive>::value ||
-						has_non_member_versioned_load_minimal<T, InputArchive>::value) &&
-						!(is_specialized_member_serialize<T, InputArchive>::value ||
-								is_specialized_member_load<T, InputArchive>::value))> {
+		has_member_load_minimal<T, InputArchive>::value ||
+		has_non_member_load_minimal<T, InputArchive>::value ||
+		has_member_versioned_load_minimal<T, InputArchive>::value ||
+		has_non_member_versioned_load_minimal<T, InputArchive>::value> {
 };
 
 // ######################################################################
@@ -913,20 +827,19 @@ namespace detail {
 /*! If specialization is being used, we'll count only those; otherwise we'll count everything */
 template <class T, class OutputArchive>
 struct count_output_serializers : std::integral_constant<int,
-		count_specializations<T, OutputArchive>::value ? count_specializations<T, OutputArchive>::value :
-				has_member_save<T, OutputArchive>::value +
-				has_non_member_save<T, OutputArchive>::value +
-				has_member_serialize<T, OutputArchive>::value +
-				has_non_member_serialize<T, OutputArchive>::value +
-				has_member_save_minimal<T, OutputArchive>::value +
-				has_non_member_save_minimal<T, OutputArchive>::value +
-				/*-versioned---------------------------------------------------------*/
-				has_member_versioned_save<T, OutputArchive>::value +
-				has_non_member_versioned_save<T, OutputArchive>::value +
-				has_member_versioned_serialize<T, OutputArchive>::value +
-				has_non_member_versioned_serialize<T, OutputArchive>::value +
-				has_member_versioned_save_minimal<T, OutputArchive>::value +
-				has_non_member_versioned_save_minimal<T, OutputArchive>::value> {
+		has_member_save<T, OutputArchive>::value +
+		has_non_member_save<T, OutputArchive>::value +
+		has_member_serialize<T, OutputArchive>::value +
+		has_non_member_serialize<T, OutputArchive>::value +
+		has_member_save_minimal<T, OutputArchive>::value +
+		has_non_member_save_minimal<T, OutputArchive>::value +
+		/*-versioned---------------------------------------------------------*/
+		has_member_versioned_save<T, OutputArchive>::value +
+		has_non_member_versioned_save<T, OutputArchive>::value +
+		has_member_versioned_serialize<T, OutputArchive>::value +
+		has_non_member_versioned_serialize<T, OutputArchive>::value +
+		has_member_versioned_save_minimal<T, OutputArchive>::value +
+		has_non_member_versioned_save_minimal<T, OutputArchive>::value> {
 };
 
 }
@@ -942,21 +855,21 @@ namespace detail {
 /*! If specialization is being used, we'll count only those; otherwise we'll count everything */
 template <class T, class InputArchive>
 struct count_input_serializers : std::integral_constant<int,
-		count_specializations<T, InputArchive>::value ? count_specializations<T, InputArchive>::value :
-				has_member_load<T, InputArchive>::value +
-				has_non_member_load<T, InputArchive>::value +
-				has_member_serialize<T, InputArchive>::value +
-				has_non_member_serialize<T, InputArchive>::value +
-				has_member_load_minimal<T, InputArchive>::value +
-				has_non_member_load_minimal<T, InputArchive>::value +
-				/*-versioned---------------------------------------------------------*/
-				has_member_versioned_load<T, InputArchive>::value +
-				has_non_member_versioned_load<T, InputArchive>::value +
-				has_member_versioned_serialize<T, InputArchive>::value +
-				has_non_member_versioned_serialize<T, InputArchive>::value +
-				has_member_versioned_load_minimal<T, InputArchive>::value +
-				has_non_member_versioned_load_minimal<T, InputArchive>::value> {
+		has_member_load<T, InputArchive>::value +
+		has_non_member_load<T, InputArchive>::value +
+		has_member_serialize<T, InputArchive>::value +
+		has_non_member_serialize<T, InputArchive>::value +
+		has_member_load_minimal<T, InputArchive>::value +
+		has_non_member_load_minimal<T, InputArchive>::value +
+		/*-versioned---------------------------------------------------------*/
+		has_member_versioned_load<T, InputArchive>::value +
+		has_non_member_versioned_load<T, InputArchive>::value +
+		has_member_versioned_serialize<T, InputArchive>::value +
+		has_non_member_versioned_serialize<T, InputArchive>::value +
+		has_member_versioned_load_minimal<T, InputArchive>::value +
+		has_non_member_versioned_load_minimal<T, InputArchive>::value> {
 };
+
 }
 
 template <class T, class InputArchive>

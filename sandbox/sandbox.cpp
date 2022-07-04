@@ -102,10 +102,10 @@ class Derived : public Base
     int y;
 };
 
-namespace vide
-{
-  template <class Archive> struct specialize<Archive, Derived, vide::specialization::member_load_save> {};
-}
+//namespace vide
+//{
+//  template <class Archive> struct specialize<Archive, Derived, vide::specialization::member_load_save> {};
+//}
 
 VIDE_REGISTER_TYPE(Derived)
 

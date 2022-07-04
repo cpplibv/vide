@@ -173,11 +173,11 @@ struct TestType
   }
 };
 
-namespace vide
-{
-  template <class Archive> struct specialize<Archive, DerivedVirtual, vide::specialization::member_load_save> {};
-  template <class Archive> struct specialize<Archive, TestType, vide::specialization::member_serialize> {};
-}
+//namespace vide
+//{
+//  template <class Archive> struct specialize<Archive, DerivedVirtual, vide::specialization::member_load_save> {};
+//  template <class Archive> struct specialize<Archive, TestType, vide::specialization::member_serialize> {};
+//}
 
 struct AAA
 {

@@ -436,15 +436,11 @@ private:
 	/*! Requirements:
 		  Has the requested serialization function
 		  Does not have version and unversioned at the same time
-		  Is output serializable AND
-			is specialized for this type of function OR
-			has no specialization at all */
+		  Is output serializable */
 #define PROCESS_IF(name, AsArchiveType)                                                      \
       traits::EnableIf<traits::has_##name<T, AsArchiveType>::value,                          \
                        !traits::has_invalid_output_versioning<T, AsArchiveType>::value,      \
-                       (traits::is_output_serializable<T, AsArchiveType>::value &&           \
-                        (traits::is_specialized_##name<T, AsArchiveType>::value ||           \
-                         !traits::is_specialized<T, AsArchiveType>::value))> = traits::sfinae
+                       traits::is_output_serializable<T, AsArchiveType>::value> = traits::sfinae
 
 	//! Member serialization
 	template <class As, class T, PROCESS_IF(member_serialize, As)>
@@ -802,15 +798,11 @@ private:
 	/*! Requirements:
 		  Has the requested serialization function
 		  Does not have version and unversioned at the same time
-		  Is input serializable AND
-			is specialized for this type of function OR
-			has no specialization at all */
+		  Is input serializable */
 #define PROCESS_IF(name, AsArchiveType)                                                       \
       traits::EnableIf<traits::has_##name<T, AsArchiveType>::value,                           \
                        !traits::has_invalid_input_versioning<T, AsArchiveType>::value,        \
-                       (traits::is_input_serializable<T, AsArchiveType>::value &&             \
-                        (traits::is_specialized_##name<T, AsArchiveType>::value ||            \
-                         !traits::is_specialized<T, AsArchiveType>::value))> = traits::sfinae
+                       traits::is_input_serializable<T, AsArchiveType>::value> = traits::sfinae
 
 	//! Member serialization
 	template <class As, class T, PROCESS_IF(member_serialize, As)>
@@ -883,7 +875,6 @@ private:
 		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value > 1,
 				"cereal found more than one compatible input serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
 				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
 				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
 

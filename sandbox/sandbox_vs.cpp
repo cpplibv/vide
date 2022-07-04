@@ -183,14 +183,14 @@ int main() {
 	std::cout << vide::traits::is_input_serializable<T, Archive>::value << std::endl;
 #endif
 
-	// specialized
-	std::cout << "\tspecialized" << std::endl;
-	std::cout << vide::traits::detail::is_specialized_member_serialize<T, Archive>::value << std::endl;
-	std::cout << vide::traits::detail::is_specialized_member_load_save<T, Archive>::value << std::endl;
-	std::cout << vide::traits::detail::is_specialized_non_member_serialize<T, Archive>::value << std::endl;
-	std::cout << vide::traits::detail::is_specialized_non_member_load_save<T, Archive>::value << std::endl;
-	std::cout << vide::traits::detail::count_specializations<T, Archive>::value << std::endl;
-	std::cout << vide::traits::is_specialized<T, Archive>::value << std::endl;
+//	// specialized
+//	std::cout << "\tspecialized" << std::endl;
+//	std::cout << vide::traits::detail::is_specialized_member_serialize<T, Archive>::value << std::endl;
+//	std::cout << vide::traits::detail::is_specialized_member_load_save<T, Archive>::value << std::endl;
+//	std::cout << vide::traits::detail::is_specialized_non_member_serialize<T, Archive>::value << std::endl;
+//	std::cout << vide::traits::detail::is_specialized_non_member_load_save<T, Archive>::value << std::endl;
+//	std::cout << vide::traits::detail::count_specializations<T, Archive>::value << std::endl;
+//	std::cout << vide::traits::is_specialized<T, Archive>::value << std::endl;
 
 	// counts
 	std::cout << "\tcounts" << std::endl;

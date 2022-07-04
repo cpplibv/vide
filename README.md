@@ -39,7 +39,11 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Add process_as customization point for archives to handle special types
 - Remove prologue and epilogue function support (process_as can take care of it)
 - Add `ar.nvp("var", var)` syntax to allow option to not include any header file and really on dependent lookup only
-- Bump version to 2.1.0
+- Bump version to 2.1.0 and start versioning Vide
+- Version 2.2.0:
+  - Remove specialize/specialization feature that could disambiguate in duplicate serialization methods.  
+    (For now serialization methods consistency is required in a inheritance hierarchy)
+
 
 ### Planned:
 - Allow const reference return type for `save_minimal`

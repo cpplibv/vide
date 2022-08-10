@@ -1,4 +1,4 @@
-**VaderY/vide** - A C++23 library for serialization
+**cpplibv/vide** - A C++23 library for serialization
 ==========================================
 Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
@@ -38,7 +38,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - NOTE: polymorphic serialization will fall back to the underlying archives and not use the proxy
 - Add process_as customization point for archives to handle special types
 - Remove prologue and epilogue function support (process_as can take care of it)
-- Add `ar.nvp("var", var)` syntax to allow option to not include any header file and really on dependent lookup only
+- Add `ar.nvp("var", var)` syntax to allow option to not include any header file and rely on dependent names only
 - Bump version to 2.1.0 and start versioning Vide
 - Version 2.2.0:
   - Remove specialize/specialization feature that could disambiguate in duplicate serialization methods.  
@@ -49,11 +49,11 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 
 
 ### Planned:
-- An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Foreach iteration algorithms
 - Add safe/unsafe data serialization support
   - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
   - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
+- An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Improved compile time performance (by organizing includes)
 - Improved compile time performance (by improving meta programming practices)
 - Improved compile time performance (general)

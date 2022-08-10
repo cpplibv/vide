@@ -222,9 +222,6 @@ inline auto getInputBinding(Archive& ar, const std::uint32_t nameid) {
 //! Serialize a shared_ptr if the 2nd msb in the nameid is set, and if we can actually construct the pointee
 /*! This check lets us try and skip doing polymorphic machinery if we can get away with
 	using the derived class serialize function
-
-	Note that on MSVC 2013 preview, is_default_constructible<T> returns true for abstract classes with
-	default constructors, but on clang/gcc this will return false.  So we also need to check for that here.
 	@internal */
 template <class Archive, class T>
 inline typename std::enable_if<(traits::is_default_constructible<T>::value

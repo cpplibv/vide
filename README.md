@@ -3,7 +3,7 @@
 Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 This is an experimental fork that alters multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
-Neither forward, nor backward compatibility is guaranteed.  
+Neither forward, nor backward compatibility is guaranteed.
 Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2022.03.27 ddd46724).
 
 ### Changes / Differences to Cereal:
@@ -30,7 +30,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Make archives movable
 - Remove the experimental UserDataAdapter (A better solution will come)
 - Remove the ability to call the archives with multiple member at the same times as `ar(member0, member1, member2)`. Chaining is still possible prefer that syntax `ar(member0)(member1)(member2)` or just use multiple calls
-  - Pro: Enables some future shenanigans 
+  - Pro: Enables some future shenanigans
   - Pro: Alternative syntax are more clear and has same number of character, and has better auto formatting
   - Pro: More clear evaluation order, less variadic template
   - Con: More breakage
@@ -41,11 +41,13 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Add `ar.nvp("var", var)` syntax to allow option to not include any header file and rely on dependent names only
 - Bump version to 2.1.0 and start versioning Vide
 - Version 2.2.0:
-  - Remove specialize/specialization feature that could disambiguate in duplicate serialization methods.  
+  - Remove specialize/specialization feature that could disambiguate in duplicate serialization methods.
     (For now serialization methods consistency is required in inheritance hierarchies)
   - Remove string/arithmetic type restriction from `load_minimal`/`save_minimal`
   - Add support for const reference return type during `minimal` serialization
   - Add support for recursive `minimal` serialization (But it is recommended to only use it with primitive/trivial types)
+- Version 2.2.1:
+  - Add support for move reference parameter type for `load_minimal` function
 
 
 ### Planned:
@@ -60,6 +62,14 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments
 - Maybe: Versioned<->type selector
+- Maybe: Patch back location. A way to skip some bytes and write (patch) back the desired values later
+  ```
+  const auto index_body_a_loc = ar.patch<uint32_t>();
+  ar(header);
+  const auto body_a_offset = ar.tellp();
+  ar(body_a);
+  ar(index_body_a_loc, body_a_offset);
+  ```
 
 -------------------------------------------------------------------------------------------------
 
@@ -126,7 +136,7 @@ int main() {
 
 	return 0;
 }
-```    
+```
 
 ### cereal has a mailing list
 

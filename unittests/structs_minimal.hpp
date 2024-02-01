@@ -102,6 +102,24 @@ protected:
 	}
 };
 
+class MemberMinimalContRefOutAndMoveRefIn {
+public:
+	std::string x;
+
+protected:
+	friend class vide::access;
+
+	template <class Archive>
+	const std::string& save_minimal(const Archive&) const {
+		return x;
+	}
+
+	template <class Archive>
+	void load_minimal(const Archive&, std::string&& str) {
+		x = std::move(str);
+	}
+};
+
 class MemberMinimalVersioned {
 public:
 	double x;
@@ -155,6 +173,7 @@ struct TestStruct {
 	MemberMinimalRecursive mm_recursive;
 	MemberMinimalRecursiveNested mm_recursive_nested;
 	MemberMinimalContRef mmcr;
+	MemberMinimalContRefOutAndMoveRefIn mmcrmr;
 	MemberMinimalVersioned mmv;
 	NonMemberMinimal nmm;
 	NonMemberMinimalVersioned nmmv;
@@ -166,6 +185,7 @@ struct TestStruct {
 			mm_recursive(s),
 			mm_recursive_nested(s),
 			mmcr(s),
+			mmcrmr(s),
 			mmv(d),
 			nmm(u),
 			nmmv(b) {}
@@ -176,6 +196,7 @@ struct TestStruct {
 		ar(mm_recursive);
 		ar.nvp("nest", mm_recursive_nested);
 		ar(mmcr);
+		ar(mmcrmr);
 		ar(mmv);
 		ar(nmm);
 		ar(nmmv);
@@ -235,8 +256,8 @@ public:
 
 // -------------------------------------------------------------------------------------------------
 
-template <class IArchive, class OArchive> inline
-void test_structs_minimal() {
+template <class IArchive, class OArchive>
+inline void test_structs_minimal() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
@@ -271,6 +292,7 @@ void test_structs_minimal() {
 		CHECK_EQ(o_struct.mm_recursive.x, i_struct.mm_recursive.x);
 		CHECK_EQ(o_struct.mm_recursive_nested.x, i_struct.mm_recursive_nested.x);
 		CHECK_EQ(o_struct.mmcr.x, i_struct.mmcr.x);
+		CHECK_EQ(o_struct.mmcrmr.x, i_struct.mmcrmr.x);
 		CHECK_EQ(o_struct.mmv.x, doctest::Approx(i_struct.mmv.x).epsilon(1e-5));
 
 		CHECK_EQ(o_struct.nmm.x, i_struct.nmm.x);

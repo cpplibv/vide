@@ -82,20 +82,28 @@ class Derived : public Base
     virtual ~Derived() {}
 
     template <class Archive>
-    void save( Archive & ar ) const
-    {
+    void serialize( Archive & ar ) {
       ar( vide::virtual_base_class<Base>(this) );
-      std::cout << "Derived save" << std::endl;
+      std::cout << "Derived serialize" << std::endl;
       ar( y );
     }
-
-    template <class Archive>
-    void load( Archive & ar )
-    {
-      ar( vide::virtual_base_class<Base>(this) );
-      std::cout << "Derived load" << std::endl;
-      ar( y );
-    }
+    // Changing serialization function type is no longer allowed in inheritance hierarchies
+    // But I can see that this could be a valid usecase. Maybe I will reconsider
+    // template <class Archive>
+    // void save( Archive & ar ) const
+    // {
+    //   ar( vide::virtual_base_class<Base>(this) );
+    //   std::cout << "Derived save" << std::endl;
+    //   ar( y );
+    // }
+    //
+    // template <class Archive>
+    // void load( Archive & ar )
+    // {
+    //   ar( vide::virtual_base_class<Base>(this) );
+    //   std::cout << "Derived load" << std::endl;
+    //   ar( y );
+    // }
 
     void foo() {}
 

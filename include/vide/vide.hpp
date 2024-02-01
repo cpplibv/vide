@@ -507,7 +507,7 @@ private:
 				"    ar(member2);\n"
 				"  }\n\n");
 
-		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value > 1,
+		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value <= 1,
 				"Vide found more than one compatible output serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
@@ -829,19 +829,21 @@ private:
 	}
 
 	//! Member split (load_minimal)
-	template <class As, class T, PROCESS_IF(member_load_minimal, As)>
+	template <class As, class T>
+		requires traits::has_member_load_minimal<T, As>::value
 	inline void processImpl(As& as, T& t) {
 		traits::get_member_save_minimal_type<ArchiveType, T> value;
 		self().process_as(as, value);
-		access::member_load_minimal(as, t, value);
+		access::member_load_minimal(as, t, std::move(value));
 	}
 
 	//! Non member split (load_minimal)
-	template <class As, class T, PROCESS_IF(non_member_load_minimal, As)>
+	template <class As, class T>
+		requires traits::has_non_member_load_minimal<T, As>::value
 	inline void processImpl(As& as, T& t) {
 		traits::get_non_member_save_minimal_type<ArchiveType, T> value;
 		self().process_as(as, value);
-		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, value);
+		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, std::move(value));
 	}
 
 	//! Empty class specialization
@@ -872,7 +874,7 @@ private:
 				"    ar(member2);\n"
 				"  }\n\n");
 
-		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value > 1,
+		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value <= 1,
 				"Vide found more than one compatible input serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
@@ -937,22 +939,24 @@ private:
 
 	//! Member split (load_minimal)
 	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(member_versioned_load_minimal, As)>
+	template <class As, class T>
+		requires traits::has_member_versioned_load_minimal<T, As>::value
 	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
 		traits::get_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self().process_as(as, value);
-		access::member_load_minimal(as, t, value, version);
+		access::member_load_minimal(as, t, std::move(value), version);
 	}
 
 	//! Non member split (load_minimal)
 	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(non_member_versioned_load_minimal, As)>
+	template <class As, class T>
+		requires traits::has_non_member_versioned_load_minimal<T, As>::value
 	inline void processImpl(As& as, T& t) {
 		const auto version = loadClassVersion<T>();
 		traits::get_non_member_versioned_save_minimal_type<ArchiveType, T> value;
 		self().process_as(as, value);
-		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, value, version);
+		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, std::move(value), version);
 	}
 
 #undef PROCESS_IF

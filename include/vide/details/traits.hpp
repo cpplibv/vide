@@ -543,10 +543,24 @@ struct NoConvertRef : NoConvertBase {
 	operator Dest&();
 };
 
+//! A struct that prevents implicit conversion to a different type
+template <class Source>
+	requires (!std::is_void_v<Source>)
+struct NoConvertAnyRef : NoConvertBase {
+	using type = Source; //!< Used to get underlying type easily
+
+	operator Source&();
+	operator Source&&();
+	operator const Source&() const;
+};
+
 //! A type that can implicitly convert to anything else
 struct AnyConvert {
 	template <class Dest>
 	operator Dest&();
+
+	template <class Dest>
+	operator Dest&&();
 
 	template <class Dest>
 	operator const Dest&() const;
@@ -590,186 +604,74 @@ template <typename Archive, typename T>
 using get_non_member_versioned_save_minimal_type = std::remove_cvref_t<typename has_non_member_versioned_save_minimal<T, Archive>::type>;
 
 // =================================================================================================
+
+// TODO P3: Split has_ functions into has_ and diagnose_. has only asks one questions and has no static assert, while diagnose_ tries to check everything. diagnose_ only gets called if a serialize funtion is not found.
+// template<class T, class A>
+// struct has_member_versioned_load_minimal { ...
+// template<class T, class A>
+// struct diagnose_member_versioned_load_minimal { ...
+
+// TODO P2: Modernize the rest of these
+
+template<class T, class A>
+struct has_member_load_minimal {
+	using save_type = get_member_save_minimal_type<A, T>;
+
+	// Strategy: Check if a function matching the signature more or less exists
+	// (allow anything like load_minimal(xxx) using AnyConvert, and then enforce that it has the correct signature using NoConvertAnyRef
+	static constexpr bool exists = requires { access::member_load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::AnyConvert()); };
+	static constexpr bool value = requires { access::member_load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::NoConvertAnyRef<save_type>()); };
+
+	static_assert(exists == value, "Vide detected different or invalid types in corresponding member " "load_minimal" " and " "save_minimal" " functions. \n " "the paramater to " "load_minimal" " must be the type (optionally: value, &, const& or &&) that " "save_minimal" " returns.");
+};
+
+template<class T, class A>
+struct has_member_versioned_load_minimal {
+	using save_type = get_member_versioned_save_minimal_type<A, T>;
+
+	// Strategy: Check if a function matching the signature more or less exists
+	// (allow anything like load_minimal(xxx) using AnyConvert, and then enforce that it has the correct signature using NoConvertAnyRef
+	static constexpr bool exists = requires { access::member_load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::AnyConvert(), detail::AnyConvert()); };
+	static constexpr bool value = requires { access::member_load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::NoConvertAnyRef<save_type>(), std::declval<uint32_t>()); };
+
+	static_assert(exists == value, "Vide detected different or invalid types in corresponding member " "versioned_load_minimal" " and " "versioned_save_minimal" " functions. \n " "the paramater to " "versioned_load_minimal" " must be the type (optionally: value, &, const& or &&) that " "versioned_save_minimal" " returns.");
+};
+
+template<class T, class A>
+struct has_non_member_load_minimal {
+	using save_type = get_non_member_save_minimal_type<A, T>;
+
+	// Note that there should be an additional const check on load_minimal after the valid check,
+	// but this currently interferes with many valid uses of minimal serialization.  It has been
+	// removed (see #565 on github) and previously was:
+	//
+	// @code
+	// static_assert( check::const_valid || !check::exists,
+	// 	"Vide detected an invalid serialization type parameter in non-member " #test_name ".  "
+	// 	#test_name " non-member functions must accept their serialization type by non-const reference" );
+	// @endcode
+
+	static constexpr bool exists = requires { load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::AnyConvert()); };
+	static constexpr bool valid = requires { load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::NoConvertAnyRef<save_type>()); };
+	static constexpr bool const_valid = requires { load_minimal(std::declval<const A&>(), detail::NoConvertRef<T>(), detail::AnyConvert()); };
+
+	static_assert(!exists || (valid && const_valid), "Vide detected different types in corresponding non-member " "load_minimal" " and " "save_minimal" " functions. \n " "the paramater to " "load_minimal" " must be a constant reference to the type that " "save_minimal" " returns.");
+	static constexpr bool value = exists && valid && const_valid;
+};
+
+template<class T, class A>
+struct has_non_member_versioned_load_minimal {
+	using save_type = get_non_member_versioned_save_minimal_type<A, T>;
+
+	static constexpr bool exists = requires { load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::AnyConvert(), std::declval<uint32_t>()); };
+	static constexpr bool valid = requires { load_minimal(std::declval<const A&>(), std::declval<T&>(), detail::NoConvertAnyRef<save_type>(), std::declval<uint32_t>()); };
+	static constexpr bool const_valid = requires { load_minimal(std::declval<const A&>(), detail::NoConvertRef<T>(), detail::AnyConvert(), std::declval<uint32_t>()); };
+
+	static_assert(!exists || (valid && const_valid), "Vide detected different types in corresponding non-member " "versioned_load_minimal" " and " "versioned_save_minimal" " functions. \n " "the paramater to " "versioned_load_minimal" " must be a constant reference to the type that " "versioned_save_minimal" " returns.");
+	static constexpr bool value = exists && valid && const_valid;
+};
+
 // =================================================================================================
-
-// ######################################################################
-//! Creates a test for whether a member load_minimal function exists
-/*! This creates a class derived from std::integral_constant that will be true if
-	the type has the proper member function for the given archive.
-
-	Our strategy here is to first check if a function matching the signature more or less exists
-	(allow anything like load_minimal(xxx) using AnyConvert, and then secondly enforce
-	that it has the correct signature using NoConvertConstRef
-
-	@param test_name The name to give the test (e.g. load_minimal or versioned_load_minimal)
-	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(test_name, versioned)                               \
-    namespace detail                                                                               \
-    {                                                                                              \
-      template <class T, class A>                                                                  \
-      struct has_member_##test_name##_impl                                                         \
-      {                                                                                            \
-        template <class TT, class AA>                                                              \
-        static auto test(int) -> decltype( vide::access::member_load_minimal(                      \
-              std::declval<AA const &>(),                                                          \
-              std::declval<TT &>(), AnyConvert() versioned ), yes());                              \
-        template <class, class> static no test(...);                                               \
-        static const bool value = std::is_same<decltype(test<T, A>(0)), yes>::value;               \
-      };                                                                                           \
-      template <class T, class A, class U>                                                         \
-      struct has_member_##test_name##_type_impl                                                    \
-      {                                                                                            \
-        template <class TT, class AA, class UU>                                                    \
-        static auto test(int) -> decltype( vide::access::member_load_minimal(                      \
-              std::declval<AA const &>(),                                                          \
-              std::declval<TT &>(), NoConvertConstRefAllowCVREFSource<UU>() versioned ), yes());   \
-        template <class, class, class> static no test(...);                                        \
-        static const bool value = std::is_same<decltype(test<T, A, U>(0)), yes>::value;            \
-                                                                                                   \
-      };                                                                                           \
-    } /* end namespace detail */
-
-// ######################################################################
-//! Creates helpers for minimal load functions
-/*! The has_member_*_wrapper structs ensure that the load and save types for the
-	requested function type match appropriately.
-
-	@param load_test_name The name to give the test (e.g. load_minimal or versioned_load_minimal)
-	@param save_test_name The name to give the test (e.g. save_minimal or versioned_save_minimal,
-						  should match the load name.
-	@param save_test_prefix The name to give the test (e.g. save_minimal or versioned_save_minimal,
-						  should match the load name, without the trailing "_minimal" (e.g.
-						  save or versioned_save).  Needed because the preprocessor is an abomination.
-	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_HELPERS_IMPL(load_test_name, save_test_name, save_test_prefix, versioned)     \
-    namespace detail                                                                                                    \
-    {                                                                                                                   \
-      template <class T, class A, bool Valid>                                                                           \
-      struct has_member_##load_test_name##_wrapper : std::false_type {};                                                \
-                                                                                                                        \
-      template <class T, class A>                                                                                       \
-      struct has_member_##load_test_name##_wrapper<T, A, true>                                                          \
-      {                                                                                                                 \
-        using SaveType = typename detail::get_member_##save_test_prefix##_minimal_type<T, A, true>::type;               \
-        const static bool value = has_member_##load_test_name##_impl<T, A>::value;                                      \
-        const static bool valid = has_member_##load_test_name##_type_impl<T, A, SaveType>::value;                       \
-                                                                                                                        \
-        static_assert( valid || !value, "Vide detected different or invalid types in corresponding member "             \
-            #load_test_name " and " #save_test_name " functions. \n "                                                   \
-            "the paramater to " #load_test_name " must be a constant reference to the type that "                       \
-            #save_test_name " returns." );                                                                              \
-      };                                                                                                                \
-    } /* end namespace detail */
-
-// ######################################################################
-//! Creates a test for whether a member load_minimal function exists
-/*! This creates a class derived from std::integral_constant that will be true if
-	the type has the proper member function for the given archive.
-
-	@param load_test_name The name to give the test (e.g. load_minimal or versioned_load_minimal)
-	@param load_test_prefix The above parameter minus the trailing "_minimal" */
-#define VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(load_test_name, load_test_prefix)                                         \
-    template <class T, class A>                                                                                                \
-    struct has_member_##load_test_prefix##_minimal : std::integral_constant<bool,                                              \
-      detail::has_member_##load_test_name##_wrapper<T, A, detail::has_member_##load_test_name##_impl<T, A>::value>::value> {};
-
-// ######################################################################
-// Member Load Minimal
-VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(load_minimal,)
-VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_HELPERS_IMPL(load_minimal, save_minimal, save,)
-VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(load_minimal, load)
-
-// ######################################################################
-// Member Load Minimal (versioned)
-VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL(versioned_load_minimal, VIDE_MAKE_VERSIONED_TEST)
-VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_HELPERS_IMPL(versioned_load_minimal, versioned_save_minimal, versioned_save, VIDE_MAKE_VERSIONED_TEST)
-VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_load)
-
-// ######################################################################
-#undef VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_IMPL
-#undef VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_HELPERS_IMPL
-#undef VIDE_MAKE_HAS_MEMBER_LOAD_MINIMAL_TEST
-
-// ######################################################################
-// Non-Member Load Minimal
-
-// ######################################################################
-//! Creates a test for whether a non-member load_minimal function exists
-/*! This creates a class derived from std::integral_constant that will be true if
-	the type has the proper member function for the given archive.
-
-	See notes from member load_minimal implementation.
-
-	Note that there should be an additional const check on load_minimal after the valid check,
-	but this currently interferes with many valid uses of minimal serialization.  It has been
-	removed (see #565 on github) and previously was:
-
-	@code
-	static_assert( check::const_valid || !check::exists,
-		"Vide detected an invalid serialization type parameter in non-member " #test_name ".  "
-		#test_name " non-member functions must accept their serialization type by non-const reference" );
-	@endcode
-
-	See #132, #436, #263, and #565 on https://github.com/USCiLab/cereal for more details.
-
-	@param test_name The name to give the test (e.g. load_minimal or versioned_load_minimal)
-	@param save_name The corresponding name the save test would have (e.g. save_minimal or versioned_save_minimal)
-	@param versioned Either blank or the macro VIDE_MAKE_VERSIONED_TEST */
-#define VIDE_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(test_name, save_name, versioned)                                    \
-    namespace detail                                                                                                         \
-    {                                                                                                                        \
-      template <class T, class A, class U = void>                                                                            \
-      struct has_non_member_##test_name##_impl                                                                               \
-      {                                                                                                                      \
-        template <class TT, class AA>                                                                                        \
-        static auto test(int) -> decltype( VIDE_FUNCTION_NAME_LOAD_MINIMAL(                                                \
-              std::declval<AA const &>(), std::declval<TT&>(), AnyConvert() versioned ), yes() );                            \
-        template <class, class> static no test( ... );                                                                       \
-        static const bool exists = std::is_same<decltype( test<T, A>( 0 ) ), yes>::value;                                    \
-                                                                                                                             \
-        template <class TT, class AA, class UU>                                                                              \
-        static auto test2(int) -> decltype( VIDE_FUNCTION_NAME_LOAD_MINIMAL(                                               \
-              std::declval<AA const &>(), std::declval<TT&>(), NoConvertConstRef<UU>() versioned ), yes() );                 \
-        template <class, class, class> static no test2( ... );                                                               \
-        static const bool valid = std::is_same<decltype( test2<T, A, U>( 0 ) ), yes>::value;                                 \
-                                                                                                                             \
-        template <class TT, class AA>                                                                                        \
-        static auto test3(int) -> decltype( VIDE_FUNCTION_NAME_LOAD_MINIMAL(                                               \
-              std::declval<AA const &>(), NoConvertRef<TT>(), AnyConvert() versioned ), yes() );                             \
-        template <class, class> static no test3( ... );                                                                      \
-        static const bool const_valid = std::is_same<decltype( test3<T, A>( 0 ) ), yes>::value;                              \
-      };                                                                                                                     \
-                                                                                                                             \
-      template <class T, class A, bool Valid>                                                                                \
-      struct has_non_member_##test_name##_wrapper : std::false_type {};                                                      \
-                                                                                                                             \
-      template <class T, class A>                                                                                            \
-      struct has_non_member_##test_name##_wrapper<T, A, true>                                                                \
-      {                                                                                                                      \
-        using SaveType = typename detail::get_non_member_##save_name##_type<T, A, true>::type;                            \
-        using check = has_non_member_##test_name##_impl<T, A, SaveType>;                                                     \
-        static const bool value = check::exists;                                                                             \
-                                                                                                                             \
-        static_assert( check::valid || !check::exists, "Vide detected different types in corresponding non-member "        \
-            #test_name " and " #save_name " functions. \n "                                                                  \
-            "the paramater to " #test_name " must be a constant reference to the type that " #save_name " returns." );       \
-      };                                                                                                                     \
-    } /* namespace detail */                                                                                                 \
-                                                                                                                             \
-    template <class T, class A>                                                                                              \
-    struct has_non_member_##test_name : std::integral_constant<bool,                                                         \
-      detail::has_non_member_##test_name##_wrapper<T, A, detail::has_non_member_##test_name##_impl<T, A>::exists>::value> {};
-
-// ######################################################################
-
-// Non-Member Load Minimal
-VIDE_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(load_minimal, save_minimal,)
-// Non-Member Load Minimal (versioned)
-VIDE_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST(versioned_load_minimal, versioned_save_minimal, VIDE_MAKE_VERSIONED_TEST)
-
-// ######################################################################
-#undef VIDE_MAKE_HAS_NON_MEMBER_LOAD_MINIMAL_TEST
-
 // ######################################################################
 // End of serialization existence tests
 #undef VIDE_MAKE_VERSIONED_TEST

@@ -15,8 +15,14 @@ include(cmake/wish_util.cmake)
 include(cmake/wish_warning.cmake)
 
 
-#if (APPLE)
-#    option(SKIP_PORTABILITY_TEST "Skip portability (32 bit) tests" ON)
+# https://github.com/USCiLab/cereal/commit/b2d68c522bdc3a3fd9ab65c26dbd0aedbc61e0e8
+#option(SKIP_PORTABILITY_TEST "Skip portability (32 bit) tests" OFF)
+#include(CheckCXXCompilerFlag)
+#set(CMAKE_REQUIRED_FLAGS "-m32")
+#check_cxx_compiler_flag("-m32" COMPILER_SUPPORT_M32)
+#unset(CMAKE_REQUIRED_FLAGS)
+#if (NOT COMPILER_SUPPORT_M32)
+#	set(SKIP_PORTABILITY_TEST ON CACHE BOOL "Skip portability (32 bit) tests" FORCE)
 #endif ()
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -180,10 +186,12 @@ if (VIDE_INSTALL)
 			${configFile}
 			INSTALL_DESTINATION ${configInstallDestination}
 	)
-	write_basic_package_version_file(
-			${versionFile}
-			COMPATIBILITY SameMajorVersion
-	)
+	# https://github.com/USCiLab/cereal/commit/83b6fa06a043e1a9cc4361df79270253439b88ab
+	if (${CMAKE_VERSION} VERSION_GREATER 3.13)
+		write_basic_package_version_file("${versionFile}" COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)
+	else ()
+		write_basic_package_version_file("${versionFile}" COMPATIBILITY SameMajorVersion)
+	endif ()
 
 	install(FILES ${configFile} ${versionFile} DESTINATION ${configInstallDestination})
 	install(

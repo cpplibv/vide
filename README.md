@@ -4,7 +4,7 @@ Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 This is an experimental fork that alters multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
 Neither forward, nor backward compatibility is guaranteed.
-Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2022.03.27 ddd46724).
+Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2023.06.15 d1fcec807).
 
 ### Changes / Differences to Cereal:
 - Change name to `vide` to indicate the incompatibility with upstream
@@ -49,8 +49,8 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Version 2.2.1:
   - Add support for move reference parameter type for `load_minimal` function
 - Version 2.3.0:
-  - Sync with upstream 2023.06.15 d1fcec807
   - Cleanup compiler warnings
+  - Sync with upstream 2023.06.15 d1fcec807
   - Planned: Dependent name for SizeTag, BinaryData, NVP
   - Planned: Dependent query for binary type / serializability
   - Planned: Safe reserve

@@ -170,7 +170,7 @@ public:
 			*/
 		//! @{
 
-		//! Sets the precision used for floaing point numbers
+		//! Sets the precision used for floating point numbers
 		Options& precision(int value) {
 			itsPrecision = value;
 			return *this;

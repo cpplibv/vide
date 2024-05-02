@@ -162,8 +162,8 @@ struct PolymorphicCasters {
 		registered caster. If no matching caster exists, calls the exception function.
 
 		The returned PolymorphicCaster is capable of upcasting or downcasting between the two types. */
-	template <class F> inline
-	static std::vector<PolymorphicCaster const*> const& lookup(std::type_index const& baseIndex, std::type_index const& derivedIndex, F&& exceptionFunc) {
+	template <class F>
+	static inline const std::vector<const PolymorphicCaster*>& lookup(const std::type_index& baseIndex, const std::type_index& derivedIndex, F&& exceptionFunc) {
 		// First phase of lookup - match base type index
 		const auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
 		auto baseIter = baseMap.find(baseIndex);
@@ -180,11 +180,15 @@ struct PolymorphicCasters {
 	}
 
 	//! Performs a downcast to the derived type using a registered mapping
-	template <class Derived> inline
-	static const Derived* downcast(const void* dptr, const std::type_info& baseInfo) {
-		const auto& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(save) });
+	template <class Derived>
+	static inline const Derived* downcast(const void* dptr, const std::type_info& baseInfo) {
+		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(save) };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
+#pragma GCC diagnostic pop
 
-		for (auto const* dmap : mapping)
+		for (const auto* dmap : mapping)
 			dptr = dmap->downcast(dptr);
 
 		return static_cast<Derived const*>( dptr );
@@ -193,9 +197,13 @@ struct PolymorphicCasters {
 	//! Performs an upcast to the registered base type using the given a derived type
 	/*! The return is untyped because the final casting to the base type must happen in the polymorphic
 		serialization function, where the type is known at compile time */
-	template <class Derived> inline
-	static void* upcast(Derived* const dptr, const std::type_info& baseInfo) {
-		const auto& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) });
+	template <class Derived>
+	static inline void* upcast(Derived* const dptr, const std::type_info& baseInfo) {
+		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
+#pragma GCC diagnostic pop
 
 		void* uptr = dptr;
 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
@@ -205,9 +213,13 @@ struct PolymorphicCasters {
 	}
 
 	//! Upcasts for shared pointers
-	template <class Derived> inline
-	static std::shared_ptr<void> upcast(std::shared_ptr<Derived> const& dptr, const std::type_info& baseInfo) {
-		const auto& mapping = lookup(baseInfo, typeid(Derived), [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) });
+	template <class Derived>
+	static inline std::shared_ptr<void> upcast(const std::shared_ptr<Derived>& dptr, const std::type_info& baseInfo) {
+		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-reference"
+		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
+#pragma GCC diagnostic pop
 
 		std::shared_ptr<void> uptr = dptr;
 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)

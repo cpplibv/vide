@@ -110,7 +110,6 @@ class EnableSharedStateHelper {
 	// typedefs for parent type and storage type
 	using BaseType = typename ::vide::traits::get_shared_from_this_base<T>::type;
 	using ParentType = std::enable_shared_from_this<BaseType>;
-	using StorageType = typename std::aligned_storage<sizeof(ParentType), alignof(ParentType)>::type;
 
 public:
 	//! Saves the state of some type inheriting from enable_shared_from_this
@@ -138,7 +137,7 @@ public:
 
 private:
 	ParentType* itsPtr;
-	StorageType itsState;
+	alignas(T) std::byte itsState[sizeof(T)];
 	bool itsRestored;
 }; // end EnableSharedStateHelper
 

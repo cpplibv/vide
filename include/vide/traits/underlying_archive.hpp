@@ -2,9 +2,6 @@
 
 #pragma once
 
-// std
-#include <type_traits>
-
 
 namespace vide {
 

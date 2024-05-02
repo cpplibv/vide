@@ -18,7 +18,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Pro: One less macro that has to be called
   - Pro: Allows single in or out direction archives or type supports
   - Con: load_minimal type deduction is now done with the input archives on the save_minimal function (never called, only instantiated for type deduction)
-  - Con: No check if save_minimal and load_minimal are correctly using the same type
+  - Con: No check if save_minimal and load_minimal are correctly using different types
   - Note: Cons could be negated with a single typedef inside the input archive to the output archive
 - New archive flag `vide::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
 - Move NVP into its own header
@@ -48,6 +48,13 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Add support for recursive `minimal` serialization (But it is recommended to only use it with primitive/trivial types)
 - Version 2.2.1:
   - Add support for move reference parameter type for `load_minimal` function
+- Version 2.3.0:
+  - Sync with upstream 2023.06.15 d1fcec807
+  - Cleanup compiler warnings
+  - Planned: Dependent name for SizeTag, BinaryData, NVP
+  - Planned: Dependent query for binary type / serializability
+  - Planned: Safe reserve
+  - Planned: Archive.reset() and Archive.finish()
 
 
 ### Planned:

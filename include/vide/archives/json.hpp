@@ -29,9 +29,10 @@
 #ifndef VIDE_ARCHIVES_JSON_HPP_
 #define VIDE_ARCHIVES_JSON_HPP_
 
-#include <vide/vide.hpp>
+#include <vide/access.hpp>
 #include <vide/concept.hpp>
 #include <vide/details/util.hpp>
+#include <vide/vide.hpp>
 
 
 namespace vide {
@@ -417,23 +418,20 @@ public:
 
 	template <class As, class T>
 	inline void process_as(As& as, const T& t) {
-		/// Prologue for all node types
-		/// Starts a new node, named either automatically or by some NVP,
-		/// hat may be given data by the type about to be archived
-		/// Minimal types do not start or finish nodes
-		if constexpr(
-				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONOutputArchive>::value &&
-				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
+		// Use prologue/epilogue for all non-minimal types for JSON archives
+		// Minimal types do not start or end nodes
+		static constexpr bool useNode =
+				!access::has_minimal_output_serialization<As, T> &&
+				!access::has_minimal_output_serialization<As, detail::get_base_class_t<T>>;
+
+		if constexpr(useNode)
+			// Starts a new node, named either automatically or by some NVP,
+			// that may be given data by the type about to be archived
 			startNode();
 
 		OutputArchive::process_as(as, t);
 
-		/// Epilogue for all node types
-		/// Finishes the node created in the prologue
-		/// Minimal types do not start or finish nodes
-		if constexpr (
-				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONOutputArchive>::value &&
-				!traits::has_minimal_input_serialization<T, JSONOutputArchive>::value)
+		if constexpr(useNode)
 			finishNode();
 	}
 
@@ -855,20 +853,18 @@ public:
 
 	template <class As, class T>
 	inline void process_as(As& as, T& t) {
-		/// Prologue for all node types
-		/// Minimal types do not start or finish nodes
-		if constexpr(
-				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
-				!traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
+		// Use prologue/epilogue for all non-minimal types for JSON archives
+		// Minimal types do not start or end nodes
+		static constexpr bool useNode =
+				!access::has_minimal_input_serialization<As, T> &&
+				!access::has_minimal_input_serialization<As, detail::get_base_class_t<T>>;
+
+		if constexpr(useNode)
 			startNode();
 
 		InputArchive::process_as(as, t);
 
-		/// Epilogue for all node types
-		/// Minimal types do not start or finish nodes
-		if constexpr (
-				!traits::has_minimal_base_class_serialization<T, traits::has_minimal_input_serialization, JSONInputArchive>::value &&
-				!traits::has_minimal_input_serialization<T, JSONInputArchive>::value)
+		if constexpr(useNode)
 			finishNode();
 	}
 };

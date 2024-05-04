@@ -158,8 +158,33 @@ option(BUILD_DOC "Build documentation" ON)
 option(BUILD_SANDBOX "Build sandbox examples" ON)
 option(SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
 option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
+option(VIDE_ALTERNATIVE_LINKER "Use an alternative linker. Leave empty for system default; alternatives are 'gold', 'lld', 'bfd', 'mold'" FALSE)
 
 # -------------------------------------------------------------------------------------------------
+
+function(vide_alternative_linker linker_name)
+	if (NOT linker_name)
+		return()
+	endif ()
+
+	find_program(linker_executable ld.${linker_name} ${linker_name})
+	if (linker_executable)
+		if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND "${CMAKE_CXX_COMPILER_VERSION}" VERSION_LESS 12.0.0)
+			add_link_options("-ld-path=${linker_name}")
+		else ()
+			add_link_options("-fuse-ld=${linker_name}")
+		endif ()
+		message(STATUS "Vide: Alternative linker: ${linker_name}")
+	else ()
+		message(FATAL_ERROR "Vide: Could not enable alternative linker: ${linker_name} program was not found")
+	endif ()
+endfunction()
+
+vide_alternative_linker(${VIDE_ALTERNATIVE_LINKER})
+
+# -------------------------------------------------------------------------------------------------
+
+add_compile_options(-ftemplate-backtrace-limit=30)
 
 add_library(vide INTERFACE)
 add_library(vide::vide ALIAS vide)

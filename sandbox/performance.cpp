@@ -90,7 +90,7 @@ loadData( std::ostringstream const & dataStream, std::function<void(std::istring
   return {data, std::chrono::duration_cast<std::chrono::nanoseconds>( std::chrono::high_resolution_clock::now() - start )};
 }
 
-struct cerealBinary
+struct videBinary
 {
   //! Saves data to a vide binary archive
   template <class T>
@@ -131,7 +131,7 @@ struct boostBinary
 struct binary
 {
   typedef boostBinary  boost;
-  typedef cerealBinary cereal;
+  typedef videBinary vide;
 };
 
 //! Times how long it takes to serialize (load and store) some data
@@ -139,23 +139,23 @@ struct binary
     some data.  Result is output to standard out.
 
     @tparam SerializationT The serialization struct that has all save and load functions
-    @tparam DataTCereal The type of data to test for cereal
+    @tparam DataTVide The type of data to test for vide
     @tparam DataTBoost The type of data to test for boost
     @param name The name for this test
-    @param data The data to serialize for cereal
+    @param data The data to serialize for vide
     @param data The data to serialize for boost
     @param numAverages The number of times to average
     @param validateData Whether data should be validated (input == output) */
-template <class SerializationT, class DataTCereal, class DataTBoost>
+template <class SerializationT, class DataTVide, class DataTBoost>
 void test( std::string const & name,
-            DataTCereal const & dataC,
+            DataTVide const & dataC,
             DataTBoost const & dataB,
             size_t numAverages = 100,
             bool validateData = false );
 
-template <class SerializationT, class DataTCereal, class DataTBoost>
+template <class SerializationT, class DataTVide, class DataTBoost>
 void test( std::string const & name,
-            DataTCereal const & dataC,
+            DataTVide const & dataC,
             DataTBoost const & dataB,
             size_t numAverages,
             bool /*validateData*/ )
@@ -166,11 +166,11 @@ void test( std::string const & name,
   std::chrono::nanoseconds totalBoostSave{0};
   std::chrono::nanoseconds totalBoostLoad{0};
 
-  std::chrono::nanoseconds totalCerealSave{0};
-  std::chrono::nanoseconds totalCerealLoad{0};
+  std::chrono::nanoseconds totalVideSave{0};
+  std::chrono::nanoseconds totalVideLoad{0};
 
   size_t boostSize = 0;
-  size_t cerealSize = 0;
+  size_t videSize = 0;
 
   for(size_t i = 0; i < numAverages; ++i)
   {
@@ -186,7 +186,7 @@ void test( std::string const & name,
       totalBoostLoad += loadResult.second;
     }
 
-    // Cereal
+    // Vide
     {
       std::ostringstream os;
       auto saveResult = saveData<DataTCereal>( dataC, {SerializationT::vide::template save<DataTCereal>}, os );

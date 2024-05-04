@@ -120,9 +120,27 @@ protected:
 	}
 };
 
+class MemberMinimalContRefOutAndMoveRefInVersioned {
+public:
+	std::string x;
+
+protected:
+	friend class vide::access;
+
+	template <class Archive>
+	const std::string& save_minimal(const Archive&, const std::uint32_t) const {
+		return x;
+	}
+
+	template <class Archive>
+	void load_minimal(const Archive&, std::string&& str, const std::uint32_t) {
+		x = std::move(str);
+	}
+};
+
 class MemberMinimalVersioned {
 public:
-	double x;
+	double x = 42;
 
 protected:
 	friend class vide::access;
@@ -133,37 +151,65 @@ protected:
 	}
 
 	template <class Archive>
-	void load_minimal(const Archive&, double const& d, const std::uint32_t) {
+	void load_minimal(const Archive&, const double& d, const std::uint32_t) {
 		x = d;
 	}
 };
 
-struct NonMemberMinimal {
-	std::uint32_t x;
+struct GlobalMinimal {
+	std::uint32_t x = 42;
 };
 
 template <class Archive> inline
-std::uint32_t save_minimal(const Archive&, NonMemberMinimal const& nmm) {
+std::uint32_t save_minimal(const Archive&, const GlobalMinimal& nmm) {
 	return nmm.x;
 }
 
 template <class Archive> inline
-void load_minimal(const Archive&, NonMemberMinimal& nmm, const std::uint32_t& data) {
+void load_minimal(const Archive&, GlobalMinimal& nmm, const std::uint32_t& data) {
 	nmm.x = data;
 }
 
-struct NonMemberMinimalVersioned {
+struct GlobalMinimalVersioned {
 	bool x;
 };
 
 template <class Archive> inline
-bool save_minimal(const Archive&, NonMemberMinimalVersioned const& nmm, const std::uint32_t) {
+bool save_minimal(const Archive&, const GlobalMinimalVersioned& nmm, const std::uint32_t) {
 	return nmm.x;
 }
 
 template <class Archive> inline
-void load_minimal(const Archive&, NonMemberMinimalVersioned& nmm, bool const& data, const std::uint32_t) {
+void load_minimal(const Archive&, GlobalMinimalVersioned& nmm, const bool& data, const std::uint32_t) {
 	nmm.x = data;
+}
+
+struct GlobalMinimalContRefOutAndMoveRefIn {
+	std::string x;
+};
+
+template <class Archive>
+const std::string& save_minimal(const Archive&, const GlobalMinimalContRefOutAndMoveRefIn& var) {
+	return var.x;
+}
+
+template <class Archive>
+void load_minimal(const Archive&, GlobalMinimalContRefOutAndMoveRefIn& var, std::string&& str) {
+	var.x = std::move(str);
+}
+
+struct GlobalMinimalContRefOutAndMoveRefInVersioned {
+	std::string x;
+};
+
+template <class Archive>
+const std::string& save_minimal(const Archive&, const GlobalMinimalContRefOutAndMoveRefInVersioned& var, const std::uint32_t) {
+	return var.x;
+}
+
+template <class Archive>
+void load_minimal(const Archive&, GlobalMinimalContRefOutAndMoveRefInVersioned& var, std::string&& str, const std::uint32_t) {
+	var.x = std::move(str);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -174,9 +220,12 @@ struct TestStruct {
 	MemberMinimalRecursiveNested mm_recursive_nested;
 	MemberMinimalContRef mmcr;
 	MemberMinimalContRefOutAndMoveRefIn mmcrmr;
+	MemberMinimalContRefOutAndMoveRefInVersioned mmcrmrv;
 	MemberMinimalVersioned mmv;
-	NonMemberMinimal nmm;
-	NonMemberMinimalVersioned nmmv;
+	GlobalMinimal nmm;
+	GlobalMinimalVersioned nmmv;
+	GlobalMinimalContRefOutAndMoveRefIn gmcrmr;
+	GlobalMinimalContRefOutAndMoveRefInVersioned gmcrmrv;
 
 	TestStruct() = default;
 
@@ -186,9 +235,12 @@ struct TestStruct {
 			mm_recursive_nested(s),
 			mmcr(s),
 			mmcrmr(s),
+			mmcrmrv(s),
 			mmv(d),
 			nmm(u),
-			nmmv(b) {}
+			nmmv(b),
+			gmcrmr(s),
+			gmcrmrv(s) {}
 
 	template <class Archive>
 	void serialize(Archive& ar) {
@@ -197,9 +249,12 @@ struct TestStruct {
 		ar.nvp("nest", mm_recursive_nested);
 		ar(mmcr);
 		ar(mmcrmr);
+		ar(mmcrmrv);
 		ar(mmv);
 		ar(nmm);
 		ar(nmmv);
+		ar(gmcrmr);
+		ar(gmcrmrv);
 	}
 };
 

@@ -93,7 +93,7 @@ namespace detail {
 	even though void pointers are used, which normally have no type information.
 	Runtime type information is used instead to index a compile-time made mapping
 	that can perform the proper cast. In the case of multiple levels of inheritance,
-	cereal will attempt to find the shortest path by using registered relationships to
+	vide will attempt to find the shortest path by using registered relationships to
 	perform the cast.
 
 	This class will be allocated as a StaticObject and only referenced by pointer,
@@ -485,7 +485,7 @@ auto& getBindingMapInput() {
 	return detail::StaticObject<detail::InputBindingMap<underlying_archive_t<Archive>>>::getInstance().map;
 }
 
-// forward decls for archives from cereal.hpp
+// forward decls for archives from vide.hpp
 class InputArchiveBase;
 class OutputArchiveBase;
 
@@ -708,13 +708,14 @@ struct polymorphic_serialization_support {
 // instantiate implementation
 template <class Archive, class T>
 VIDE_DLL_EXPORT void polymorphic_serialization_support<Archive, T>::instantiate() {
-	create_bindings<Archive, T>::save(std::integral_constant<bool,
-			std::is_base_of<detail::OutputArchiveBase, Archive>::value &&
-					traits::is_output_serializable<T, Archive>::value>{});
-
-	create_bindings<Archive, T>::load(std::integral_constant<bool,
-			std::is_base_of<detail::InputArchiveBase, Archive>::value &&
-					traits::is_input_serializable<T, Archive>::value>{});
+	if constexpr (Archive::is_output)
+		create_bindings<Archive, T>::save(std::integral_constant<bool,
+				std::is_base_of<detail::OutputArchiveBase, Archive>::value &&
+						access::is_output_serializable<Archive, T>>{});
+	if constexpr (Archive::is_input)
+		create_bindings<Archive, T>::load(std::integral_constant<bool,
+				std::is_base_of<detail::InputArchiveBase, Archive>::value &&
+						access::is_output_serializable<Archive, T>>{});
 }
 
 //! Begins the binding process of a type to all registered archives

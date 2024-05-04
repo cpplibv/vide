@@ -33,144 +33,150 @@
 #include <fstream>
 #include <iostream>
 
-struct Base
-{
-  int y;
-  virtual void foo() = 0;
-  virtual ~Base() {}
+struct Base {
+	int y;
+	virtual void foo() = 0;
 
-  template<class Archive>
-    void save(Archive & ar) const
-    {
-      std::cout << "Saving Base" << std::endl;
-      ar( y );
-    }
+	virtual ~Base() {
+	}
 
-  template<class Archive>
-    void load(Archive & ar)
-    {
-      std::cout << "Loading Base" << std::endl;
-      ar( y );
-    }
+	template <class Archive>
+	void save(Archive& ar) const {
+		std::cout << "Saving Base" << std::endl;
+		ar(y);
+	}
+
+	template <class Archive>
+	void load(Archive& ar) {
+		std::cout << "Loading Base" << std::endl;
+		ar(y);
+	}
 };
 
-struct MyType : public Base
-{
-  virtual ~MyType() {}
+struct MyType : public Base {
+	int x = -1;
 
-  int x;
+	virtual ~MyType() {
+	}
 
-  void foo() {}
+	void foo() {
+	}
 
-  template<class Archive>
-    void save(Archive & ar) const
-    {
-      std::cout << "Saving MyType" << std::endl;
-      ar( vide::virtual_base_class<Base>( this ) );
-    }
+	template <class Archive>
+	void save(Archive& ar) const {
+		std::cout << "Saving MyType" << std::endl;
+		ar(vide::virtual_base_class<Base>(this));
+		ar(x);
+	}
 
-  template<class Archive>
-    void load(Archive & ar)
-    {
-      std::cout << "Loading MyType" << std::endl;
-      ar( vide::base_class<Base>( this ) );
-    }
+	template <class Archive>
+	void load(Archive& ar) {
+		std::cout << "Loading MyType" << std::endl;
+		ar(vide::base_class<Base>(this));
+		ar(x);
+	}
 };
+
 VIDE_REGISTER_TYPE(MyType)
 
-struct YourType : public Base
-{
-  virtual ~YourType() {}
+struct YourType : public Base {
+	int x = -1;
 
-  YourType(int xx) : x(xx) {}
-  YourType() : x(-1) {}
-  int x;
+	YourType() = default;
 
-  void foo() {}
+	explicit YourType(int xx) : x(xx) {
+	}
 
-  template<class Archive>
-    void save(Archive & ar) const
-    {
-      std::cout << "Saving YourType" << std::endl;
-      ar( x );
-    }
+	virtual ~YourType() {
+	}
 
-  template<class Archive>
-    void load(Archive & ar)
-    {
-      std::cout << "Loading YourType" << std::endl;
-      ar( x );
-    }
+	void foo() {
+	}
+
+	template <class Archive>
+	void save(Archive& ar) const {
+		std::cout << "Saving YourType" << std::endl;
+		ar(x);
+	}
+
+	template <class Archive>
+	void load(Archive& ar) {
+		std::cout << "Loading YourType" << std::endl;
+		ar(x);
+	}
 };
 
 VIDE_REGISTER_TYPE(YourType)
 VIDE_REGISTER_POLYMORPHIC_RELATION(Base, YourType)
 
-struct OurBase
-{
-  virtual void foo() {}
+struct OurBase {
+	virtual void foo() {
+	}
 
-  template<class Archive>
-    void serialize(Archive &)
-    { }
+	template <class Archive>
+	void serialize(Archive&) {
+	}
 };
 
-struct OurType : public OurBase
-{
-  OurType() : OurBase(), x() {}
-  OurType(int x_) : x(x_) {}
-  virtual ~OurType() {}
+struct OurType : public OurBase {
+	int x;
 
-  void foo() {}
+	OurType() : OurBase(), x() {
+	}
 
-  int x;
+	OurType(int x_) : x(x_) {
+	}
 
-  template<class Archive>
-    void serialize(Archive & ar)
-    {
-      ar( x );
-    }
+	virtual ~OurType() {
+	}
+
+	void foo() {
+	}
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(x);
+	}
 };
 
-struct BaseVirtual
-{
-  int x;
-  template <class Archive>
-  void serialize( Archive & ar )
-  { ar( x ); }
-  virtual void foo() = 0;
+struct BaseVirtual {
+	int x;
+
+	template <class Archive>
+	void serialize(Archive& ar) { ar(x); }
+
+	virtual void foo() = 0;
 };
 
-struct DerivedVirtual : public virtual BaseVirtual
-{
-  virtual ~DerivedVirtual() {}
+struct DerivedVirtual : public virtual BaseVirtual {
+	virtual ~DerivedVirtual() {
+	}
 
-  int y;
-  virtual void foo() {}
+	int y;
 
-  template <class Archive>
-  void save( Archive & ar ) const
-  {
-    ar( vide::virtual_base_class<BaseVirtual>( this ) );
-    ar( y );
-  }
+	virtual void foo() {
+	}
 
-  template <class Archive>
-  void load( Archive & ar )
-  {
-    ar( vide::virtual_base_class<BaseVirtual>( this ) );
-    ar( y );
-  }
+	template <class Archive>
+	void save(Archive& ar) const {
+		ar(vide::virtual_base_class<BaseVirtual>(this));
+		ar(y);
+	}
+
+	template <class Archive>
+	void load(Archive& ar) {
+		ar(vide::virtual_base_class<BaseVirtual>(this));
+		ar(y);
+	}
 };
 
-struct TestType
-{
-  int x;
-  template <class Archive>
-  void serialize( Archive & ar )
-  {
-    ar( x );
-  }
+struct TestType {
+	int x;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(x);
+	}
 };
 
 //namespace vide
@@ -179,63 +185,65 @@ struct TestType
 //  template <class Archive> struct specialize<Archive, TestType, vide::specialization::member_serialize> {};
 //}
 
-struct AAA
-{
-  virtual void foo() = 0;
+struct AAA {
+	virtual void foo() = 0;
 };
 
-struct BBB : AAA
-{
-  virtual ~BBB() {}
-  void foo() {}
-  template <class Archive>
-  void serialize( Archive & ) {}
+struct BBB : AAA {
+	virtual ~BBB() {
+	}
+
+	void foo() {
+	}
+
+	template <class Archive>
+	void serialize(Archive&) {
+	}
 };
 
 VIDE_REGISTER_TYPE(BBB)
 
-template <class T> void nop(T&&) {}
+template <class T>
+void nop(T&&) {
+}
 
-int main()
-{
-  {
-    std::ofstream ostream("rtti.txt");
-    //vide::BinaryOutputArchive oarchive(ostream);
-    vide::XMLOutputArchive oarchive(ostream);
+int main() {
+	{
+		std::ofstream ostream("rtti.txt");
+		//vide::BinaryOutputArchive oarchive(ostream);
+		vide::XMLOutputArchive oarchive(ostream);
 
-    std::shared_ptr<Base> ptr1 = std::make_shared<MyType>();
-    std::shared_ptr<Base> ptr2 = std::make_shared<YourType>(33);
-    std::unique_ptr<Base> ptr3(new MyType());
-    std::weak_ptr<Base>   ptr4 = ptr2;
+		std::shared_ptr<Base> ptr1 = std::make_shared<MyType>();
+		std::shared_ptr<Base> ptr2 = std::make_shared<YourType>(33);
+		std::unique_ptr<Base> ptr3(new MyType());
+		std::weak_ptr<Base> ptr4 = ptr2;
 
-    std::shared_ptr<OurType> ptr5 = std::make_shared<OurType>(99);
+		std::shared_ptr<OurType> ptr5 = std::make_shared<OurType>(99);
 
-    oarchive(ptr1);
-    oarchive(ptr2);
-    oarchive(ptr3);
-    oarchive(ptr4);
-    oarchive(ptr5);
+		oarchive(ptr1);
+		oarchive(ptr2);
+		oarchive(ptr3);
+		oarchive(ptr4);
+		oarchive(ptr5);
 
-    //std::shared_ptr<AAA> a = std::make_shared<BBB>();
-    //oarchive(a);
-  }
+		//std::shared_ptr<AAA> a = std::make_shared<BBB>();
+		//oarchive(a);
+	} {
+		std::ifstream istream("rtti.txt");
+		//vide::BinaryInputArchive iarchive(istream);
+		vide::XMLInputArchive iarchive(istream);
 
-  {
-    std::ifstream istream("rtti.txt");
-    //vide::BinaryInputArchive iarchive(istream);
-    vide::XMLInputArchive iarchive(istream);
+		std::shared_ptr<Base> ptr1;
+		std::shared_ptr<Base> ptr2;
+		std::unique_ptr<Base> ptr3;
+		std::weak_ptr<Base> ptr4;
 
-    std::shared_ptr<Base> ptr1;
-    std::shared_ptr<Base> ptr2;
-    std::unique_ptr<Base> ptr3;
-    std::weak_ptr<Base>   ptr4;
+		std::shared_ptr<OurType> ptr5;
 
-    std::shared_ptr<OurType> ptr5;
-
-    iarchive(ptr1);
-    iarchive(ptr2);
-    iarchive(ptr3);
-    iarchive(ptr4);
-    iarchive(ptr5);
-  }
+		iarchive(ptr1);
+		iarchive(ptr2);
+		iarchive(ptr3);
+		iarchive(ptr4);
+		iarchive(ptr5);
+	}
 }

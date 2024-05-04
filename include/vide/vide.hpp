@@ -1,4 +1,4 @@
-/*! \file cereal.hpp
+/*! \file vide.hpp
     \brief Main vide functionality */
 /*
   Copyright (c) 2013-2022, Randolph Voorhies, Shane Grant
@@ -26,8 +26,7 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef VIDE_VIDE_HPP_
-#define VIDE_VIDE_HPP_
+#pragma once
 
 #include <concepts>
 #include <cstddef>
@@ -116,7 +115,7 @@ inline DeferredData<T> defer(T&& value) {
 	  intended serialization functions may not be called.  You can manually
 	  ensure that your classes that have custom serialization are correct
 	  by using the traits is_output_serializable and is_input_serializable
-	  in cereal/details/traits.hpp.
+	  in vide/details/traits.hpp.
 	@ingroup Internal */
 enum Flags {
 	AllowEmptyClassElision = 1u << 0u,
@@ -128,7 +127,7 @@ enum Flags {
 };
 
 // ######################################################################
-//! Registers a specific Archive type with cereal
+//! Registers a specific Archive type with vide
 /*! This registration should be done once per archive.  A good place to
 	put this is immediately following the definition of your archive.
 	Archive registration is only strictly necessary if you wish to
@@ -220,6 +219,38 @@ enum Flags {
     }; /* end Version */                                                         \
   } } // end namespaces
 
+// -------------------------------------------------------------------------------------------------
+// Base Class Support
+
+namespace detail {
+
+struct base_class_id {
+	std::type_index type;
+	const void* ptr;
+	size_t hash;
+
+	template <class T>
+	base_class_id(T const* const t) :
+		type(typeid(T)),
+		ptr(t),
+		hash(std::hash<std::type_index>()(typeid(T)) ^ (std::hash<const void*>()(t) << 1)) {
+	}
+
+	bool operator==(base_class_id const& other) const {
+		return type == other.type && ptr == other.ptr;
+	}
+};
+
+struct base_class_id_hash {
+	size_t operator()(base_class_id const& id) const {
+		return id.hash;
+	}
+};
+
+} // namespace detail
+
+// -------------------------------------------------------------------------------------------------
+
 // ######################################################################
 //! The base output archive class
 /*! This is the base output archive for all output archives.  If you create
@@ -233,7 +264,7 @@ enum Flags {
 	epilogue functions together with specializations of serialize, save,
 	and load to alter the functionality of their serialization.
 
-	@tparam ArchiveType The archive type that derives from OutputArchive
+	@tparam ArchiveType The archive type that derives from OutputArchive (CRTP)
 	@tparam Flags Flags to control advanced functionality.  See the Flags
 				  enum for more information.
 	@ingroup Internal */
@@ -260,7 +291,7 @@ public:
 
 private:
 	//! A set of all base classes that have been serialized
-	std::unordered_set<traits::detail::base_class_id, traits::detail::base_class_id_hash> itsBaseClassSet;
+	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> itsBaseClassSet;
 
 	//! Maps from addresses to pointer ids
 	std::unordered_map<const void*, std::uint32_t> itsSharedPointerMap;
@@ -323,12 +354,12 @@ public:
 
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
-		a large project from Boost to cereal.  The preferred interface for vide is using operator(). */
+		a large project from Boost to vide.  The preferred interface for vide is using operator(). */
 	//! @{
 
 	//! Serializes passed in data
 	/*! This is a boost compatability layer and is not the preferred way of using
-		cereal.  If you are transitioning from boost, use this until you can
+		vide.  If you are transitioning from boost, use this until you can
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator&(T&& arg) {
@@ -338,7 +369,7 @@ public:
 
 	//! Serializes passed in data
 	/*! This is a boost compatability layer and is not the preferred way of using
-		cereal.  If you are transitioning from boost, use this until you can
+		vide.  If you are transitioning from boost, use this until you can
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator<<(T&& arg) {
@@ -400,133 +431,6 @@ public:
 			return id->second;
 	}
 
-public:
-	//! Alternative process function to use a different wrapper type for hierarchy traversal
-	template <class As, class T>
-	inline void process_as(As& as, const T& var) {
-		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
-			self().processImpl(self(), var);
-		else
-			self().processImpl(as, var);
-	}
-
-private:
-	//! Serializes data
-	template <class T>
-	inline void process(T&& var) {
-		self().process_as(self(), var);
-	}
-
-	//! Serialization of a virtual_base_class wrapper
-	/*! \sa virtual_base_class */
-	template <class As, class T>
-	inline void processImpl(As& as, virtual_base_class<T> const& b) {
-		traits::detail::base_class_id id(b.base_ptr);
-		if (itsBaseClassSet.count(id) == 0) {
-			itsBaseClassSet.insert(id);
-			self().processImpl(as, *b.base_ptr);
-		}
-	}
-
-	//! Serialization of a base_class wrapper
-	/*! \sa base_class */
-	template <class As, class T>
-	inline void processImpl(As& as, base_class<T> const& b) {
-		self().processImpl(as, *b.base_ptr);
-	}
-
-	template <class As, class T>
-	inline void processImpl(As& as, DeferredData<T> const& d) {
-		(void) as;
-		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
-		itsDeferments.emplace_back(std::move(deferment));
-	}
-
-	//! Helper macro that expands the requirements for activating an overload
-	/*! Requirements:
-		  Has the requested serialization function
-		  Does not have version and unversioned at the same time
-		  Is output serializable */
-#define PROCESS_IF(name, AsArchiveType)                                                      \
-      traits::EnableIf<traits::has_##name<T, AsArchiveType>::value,                          \
-                       !traits::has_invalid_output_versioning<T, AsArchiveType>::value,      \
-                       traits::is_output_serializable<T, AsArchiveType>::value> = traits::sfinae
-
-	//! Member serialization
-	template <class As, class T, PROCESS_IF(member_serialize, As)>
-	inline void processImpl(As& as, const T& t) {
-		access::member_serialize(as, const_cast<T&>(t));
-	}
-
-	//! Non member serialization
-	template <class As, class T, PROCESS_IF(non_member_serialize, As)>
-	inline void processImpl(As& as, const T& t) {
-		VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(t));
-	}
-
-	//! Member split (save)
-	template <class As, class T, PROCESS_IF(member_save, As)>
-	inline void processImpl(As& as, const T& t) {
-		access::member_save(as, t);
-	}
-
-	//! Non member split (save)
-	template <class As, class T, PROCESS_IF(non_member_save, As)>
-	inline void processImpl(As& as, const T& t) {
-		VIDE_FUNCTION_NAME_SAVE(as, t);
-	}
-
-	//! Member split (save_minimal)
-	template <class As, class T, PROCESS_IF(member_save_minimal, As)>
-	inline void processImpl(As& as, const T& t) {
-		self().process_as(as, access::member_save_minimal(as, t));
-	}
-
-	//! Non member split (save_minimal)
-	template <class As, class T, PROCESS_IF(non_member_save_minimal, As)>
-	inline void processImpl(As& as, const T& t) {
-		self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t));
-	}
-
-	//! Empty class specialization
-	template <class As, class T, traits::EnableIf<(Flags & AllowEmptyClassElision),
-			!traits::is_output_serializable<T, As>::value,
-			std::is_empty<T>::value> = traits::sfinae>
-	inline void processImpl(As&, const T&) {
-	}
-
-	//! No matching serialization
-	/*! Invalid if we have invalid output versioning or
-		we are not output serializable, and either
-		don't allow empty class ellision or allow it but are not serializing an empty class */
-	template <class As, class T, traits::EnableIf<
-			traits::has_invalid_output_versioning<T, As>::value ||
-			(!traits::is_output_serializable<T, As>::value &&
-					(!(Flags & AllowEmptyClassElision) || ((Flags & AllowEmptyClassElision) && !std::is_empty<T>::value)))> = traits::sfinae>
-	//	void processImpl(const T&) {
-	inline unserializable_type_tag processImpl(As& as, const T&) {
-		(void) as;
-
-		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value != 0,
-				"Vide could not find any output serialization functions for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Serialize functions generally have the following signature:\n\n"
-				"  template<class Archive>\n"
-				"  void serialize(Archive& ar) {\n"
-				"    ar(member1);\n"
-				"    ar(member2);\n"
-				"  }\n\n");
-
-		static_assert(traits::detail::count_output_serializers<T, ArchiveType>::value <= 1,
-				"Vide found more than one compatible output serialization function for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
-				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
-				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
-
-		return unserializable_type_tag{};
-	}
-
 	//! Registers a class version with the archive and serializes it if necessary
 	/*! If this is the first time this class has been serialized, we will record its
 		version number and serialize that.
@@ -546,49 +450,124 @@ private:
 		return version;
 	}
 
-	//! Member serialization
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(member_versioned_serialize, As)>
-	inline void processImpl(As& as, const T& t) {
-		access::member_serialize(as, const_cast<T&>(t), registerClassVersion<T>());
+public:
+	//! Alternative process function to use a different wrapper type for hierarchy traversal
+	template <class As, class T>
+	inline void process_as(As& as, const T& var) {
+		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
+			self().processImpl(self(), var);
+		else
+			self().processImpl(as, var);
 	}
 
-	//! Non member serialization
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(non_member_versioned_serialize, As)>
-	inline void processImpl(As& as, const T& t) {
-		VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(t), registerClassVersion<T>());
+private:
+	//! Serializes data
+	template <class T>
+	inline void process(T&& var) {
+		self().process_as(self(), var);
 	}
 
-	//! Member split (save)
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(member_versioned_save, As)>
-	inline void processImpl(As& as, const T& t) {
-		access::member_save(as, t, registerClassVersion<T>());
+	template <class As, class T>
+	inline void processImpl(As& as, const base_class<T>& b) {
+		self().processImpl(as, *b.base_ptr);
 	}
 
-	//! Non member split (save)
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(non_member_versioned_save, As)>
-	inline void processImpl(As& as, const T& t) {
-		VIDE_FUNCTION_NAME_SAVE(as, t, registerClassVersion<T>());
+	template <class As, class T>
+	inline void processImpl(As& as, const virtual_base_class<T>& b) {
+		detail::base_class_id id(b.base_ptr);
+		if (itsBaseClassSet.emplace(id).second)
+			self().processImpl(as, *b.base_ptr);
 	}
 
-	//! Member split (save_minimal)
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(member_versioned_save_minimal, As)>
-	inline void processImpl(As& as, const T& t) {
-		self().process_as(as, access::member_save_minimal(as, t, registerClassVersion<T>()));
+	template <class As, class T>
+	inline void processImpl(As& as, DeferredData<T> const& d) {
+		(void) as;
+		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
+		itsDeferments.emplace_back(std::move(deferment));
 	}
 
-	//! Non member split (save_minimal)
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(non_member_versioned_save_minimal, As)>
-	inline void processImpl(As& as, const T& t) {
-		self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, t, registerClassVersion<T>()));
+	//! Empty class specialization
+	template <class As, class T>
+			requires (!access::is_output_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && std::is_empty_v<T>)
+	inline void processImpl(As& as, const T& var) {
+		(void) as;
+		(void) var;
 	}
 
-#undef PROCESS_IF
+	//! Generic serialization case
+	template <class As, class T>
+			requires access::is_output_serializable<As, T>
+	inline void processImpl(As& as, const T& var) {
+		if constexpr (access::has_member_serialize<As, T>)
+			access::member_serialize(as, const_cast<T&>(var));
+
+		else if constexpr (access::has_global_serialize<As, T>)
+			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var));
+
+		else if constexpr (access::has_member_save<As, T>)
+			access::member_save(as, var);
+
+		else if constexpr (access::has_global_save<As, T>)
+			VIDE_FUNCTION_NAME_SAVE(as, var);
+
+		else if constexpr (access::has_member_save_minimal<As, T>) {
+			self().process_as(as, access::member_save_minimal(as, var));
+
+		} else if constexpr (access::has_global_save_minimal<As, T>) {
+			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var));
+
+		} else if constexpr (access::has_member_serialize_versioned<As, T>) {
+			const auto version = registerClassVersion<T>();
+			access::member_serialize(as, const_cast<T&>(var), version);
+
+		} else if constexpr (access::has_global_serialize_versioned<As, T>) {
+			const auto version = registerClassVersion<T>();
+			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var), version);
+
+		} else if constexpr (access::has_member_save_versioned<As, T>) {
+			const auto version = registerClassVersion<T>();
+			access::member_save(as, var, version);
+
+		} else if constexpr (access::has_global_save_versioned<As, T>) {
+			const auto version = registerClassVersion<T>();
+			VIDE_FUNCTION_NAME_SAVE(as, var, version);
+
+		} else if constexpr (access::has_member_save_minimal_versioned<As, T>) {
+			self().process_as(as, access::member_save_minimal(as, var, registerClassVersion<T>()));
+
+		} else if constexpr (access::has_global_save_minimal_versioned<As, T>) {
+			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var, registerClassVersion<T>()));
+		}
+	}
+
+	//! No matching serialization
+	/*! Invalid if we have invalid output versioning or
+		we are not output serializable, and either
+		don't allow empty class ellision or allow it but are not serializing an empty class */
+	template <class As, class T>
+		requires (!access::is_output_serializable<As, T>)
+	inline unserializable_type_tag processImpl(As& as, const T&) {
+		(void) as;
+
+		static_assert(access::count_output_serializers<ArchiveType, T> != 0,
+				"Vide could not find any output serialization functions for the provided type and archive combination.\n\n"
+				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
+				"Serialize functions generally have the following signature:\n\n"
+				"  template<class Archive>\n"
+				"  void serialize(Archive& ar) {\n"
+				"    ar(member1);\n"
+				"    ar(member2);\n"
+				"  }\n\n");
+
+		static_assert(access::count_output_serializers<ArchiveType, T> <= 1,
+				"Vide found more than one compatible output serialization function for the provided type and archive combination.\n\n"
+				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
+				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
+				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
+				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
+
+		return unserializable_type_tag{};
+	}
 }; // class OutputArchive
 
 // ######################################################################
@@ -604,7 +583,7 @@ private:
 	epilogue functions together with specializations of serialize, save,
 	and load to alter the functionality of their serialization.
 
-	@tparam ArchiveType The archive type that derives from InputArchive
+	@tparam ArchiveType The archive type that derives from InputArchive (CRTP)
 	@tparam Flags Flags to control advanced functionality.  See the Flags
 				  enum for more information.
 	@ingroup Internal */
@@ -631,7 +610,7 @@ public:
 
 private:
 	//! A set of all base classes that have been serialized
-	std::unordered_set<traits::detail::base_class_id, traits::detail::base_class_id_hash> itsBaseClassSet;
+	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> itsBaseClassSet;
 
 	//! Maps from pointer ids to metadata
 	std::unordered_map<std::uint32_t, std::shared_ptr<void>> itsSharedPointerMap;
@@ -682,12 +661,12 @@ public:
 
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
-		a large project from Boost to cereal.  The preferred interface for vide is using operator(). */
+		a large project from Boost to vide.  The preferred interface for vide is using operator(). */
 	//! @{
 
 	//! Serializes passed in data
 	/*! This is a boost compatability layer and is not the preferred way of using
-		cereal.  If you are transitioning from boost, use this until you can
+		vide.  If you are transitioning from boost, use this until you can
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator&(T&& arg) {
@@ -697,7 +676,7 @@ public:
 
 	//! Serializes passed in data
 	/*! This is a boost compatability layer and is not the preferred way of using
-		cereal.  If you are transitioning from boost, use this until you can
+		vide.  If you are transitioning from boost, use this until you can
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator>>(T&& arg) {
@@ -772,137 +751,6 @@ public:
 		itsPolymorphicTypeMap.insert({stripped_id, name});
 	}
 
-public:
-	//! Alternative process function to use a different wrapper type for hierarchy traversal
-	template <class As, class T>
-	inline void process_as(As& as, T& var) {
-		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
-			self().processImpl(self(), var);
-		else
-			self().processImpl(as, var);
-	}
-
-private:
-	//! Serializes data
-	template <class T>
-	inline void process(T&& var) {
-		self().process_as(self(), var);
-	}
-
-	//! Serialization of a virtual_base_class wrapper
-	/*! \sa virtual_base_class */
-	template <class As, class T>
-	inline void processImpl(As& as, virtual_base_class<T>& b) {
-		traits::detail::base_class_id id(b.base_ptr);
-		if (itsBaseClassSet.count(id) == 0) {
-			itsBaseClassSet.insert(id);
-			self().processImpl(as, *b.base_ptr);
-		}
-	}
-
-	//! Serialization of a base_class wrapper
-	/*! \sa base_class */
-	template <class As, class T>
-	inline void processImpl(As& as, base_class<T>& b) {
-		self().processImpl(as, *b.base_ptr);
-	}
-
-	template <class As, class T>
-	inline void processImpl(As& as, DeferredData<T> const& d) {
-		(void) as;
-		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
-		itsDeferments.emplace_back(std::move(deferment));
-	}
-
-	//! Helper macro that expands the requirements for activating an overload
-	/*! Requirements:
-		  Has the requested serialization function
-		  Does not have version and unversioned at the same time
-		  Is input serializable */
-#define PROCESS_IF(name, AsArchiveType)                                                       \
-      traits::EnableIf<traits::has_##name<T, AsArchiveType>::value,                           \
-                       !traits::has_invalid_input_versioning<T, AsArchiveType>::value,        \
-                       traits::is_input_serializable<T, AsArchiveType>::value> = traits::sfinae
-
-	//! Member serialization
-	template <class As, class T, PROCESS_IF(member_serialize, As)>
-	inline void processImpl(As& as, T& t) {
-		access::member_serialize(as, t);
-	}
-
-	//! Non member serialization
-	template <class As, class T, PROCESS_IF(non_member_serialize, As)>
-	inline void processImpl(As& as, T& t) {
-		VIDE_FUNCTION_NAME_SERIALIZE(as, t);
-	}
-
-	//! Member split (load)
-	template <class As, class T, PROCESS_IF(member_load, As)>
-	inline void processImpl(As& as, T& t) {
-		access::member_load(as, t);
-	}
-
-	//! Non member split (load)
-	template <class As, class T, PROCESS_IF(non_member_load, As)>
-	inline void processImpl(As& as, T& t) {
-		VIDE_FUNCTION_NAME_LOAD(as, t);
-	}
-
-	//! Member split (load_minimal)
-	template <class As, class T>
-		requires traits::has_member_load_minimal<T, As>::value
-	inline void processImpl(As& as, T& t) {
-		traits::get_member_save_minimal_type<ArchiveType, T> value;
-		self().process_as(as, value);
-		access::member_load_minimal(as, t, std::move(value));
-	}
-
-	//! Non member split (load_minimal)
-	template <class As, class T>
-		requires traits::has_non_member_load_minimal<T, As>::value
-	inline void processImpl(As& as, T& t) {
-		traits::get_non_member_save_minimal_type<ArchiveType, T> value;
-		self().process_as(as, value);
-		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, std::move(value));
-	}
-
-	//! Empty class specialization
-	template <class As, class T, traits::EnableIf<(Flags & AllowEmptyClassElision),
-			!traits::is_input_serializable<T, As>::value,
-			std::is_empty<T>::value> = traits::sfinae>
-	inline void processImpl(As& as, const T&) {
-		(void) as;
-	}
-
-	//! No matching serialization
-	/*! Invalid if we have invalid input versioning or
-		we are not input serializable, and either
-		don't allow empty class ellision or allow it but are not serializing an empty class */
-	template <class As, class T, traits::EnableIf<traits::has_invalid_input_versioning<T, As>::value ||
-			(!traits::is_input_serializable<T, As>::value &&
-					(!(Flags & AllowEmptyClassElision) || ((Flags & AllowEmptyClassElision) && !std::is_empty<T>::value)))> = traits::sfinae>
-	inline unserializable_type_tag processImpl(As& as, const T&) {
-		(void) as;
-
-		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value != 0,
-				"Vide could not find any input serialization functions for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Serialize functions generally have the following signature:\n\n"
-				"  template <class Archive>\n"
-				"  void serialize(Archive& ar) {\n"
-				"    ar(member1);\n"
-				"    ar(member2);\n"
-				"  }\n\n");
-
-		static_assert(traits::detail::count_input_serializers<T, ArchiveType>::value <= 1,
-				"Vide found more than one compatible input serialization function for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
-				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
-
-		return unserializable_type_tag{};
-	}
-
 	//! Registers a class version with the archive and serializes it if necessary
 	/*! If this is the first time this class has been serialized, we will record its
 		version number and serialize that.
@@ -925,67 +773,136 @@ private:
 		}
 	}
 
-	//! Member serialization
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(member_versioned_serialize, As)>
-	inline void processImpl(As& as, T& t) {
-		const auto version = loadClassVersion<T>();
-		access::member_serialize(as, t, version);
-	}
-
-	//! Non member serialization
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(non_member_versioned_serialize, As)>
-	inline void processImpl(As& as, T& t) {
-		const auto version = loadClassVersion<T>();
-		VIDE_FUNCTION_NAME_SERIALIZE(as, t, version);
-	}
-
-	//! Member split (load)
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(member_versioned_load, As)>
-	inline void processImpl(As& as, T& t) {
-		const auto version = loadClassVersion<T>();
-		access::member_load(as, t, version);
-	}
-
-	//! Non member split (load)
-	/*! Versioning implementation */
-	template <class As, class T, PROCESS_IF(non_member_versioned_load, As)>
-	inline void processImpl(As& as, T& t) {
-		const auto version = loadClassVersion<T>();
-		VIDE_FUNCTION_NAME_LOAD(as, t, version);
-	}
-
-	//! Member split (load_minimal)
-	/*! Versioning implementation */
+public:
+	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
-		requires traits::has_member_versioned_load_minimal<T, As>::value
-	inline void processImpl(As& as, T& t) {
-		const auto version = loadClassVersion<T>();
-		traits::get_member_versioned_save_minimal_type<ArchiveType, T> value;
-		self().process_as(as, value);
-		access::member_load_minimal(as, t, std::move(value), version);
+	inline void process_as(As& as, T& var) {
+		if constexpr (std::is_same_v<decltype(self().processImpl(as, var)), unserializable_type_tag>)
+			self().processImpl(self(), var);
+		else
+			self().processImpl(as, var);
 	}
 
-	//! Non member split (load_minimal)
-	/*! Versioning implementation */
+private:
+	//! Serializes data
+	template <class T>
+	inline void process(T&& var) {
+		self().process_as(self(), var);
+	}
+
 	template <class As, class T>
-		requires traits::has_non_member_versioned_load_minimal<T, As>::value
-	inline void processImpl(As& as, T& t) {
-		const auto version = loadClassVersion<T>();
-		traits::get_non_member_versioned_save_minimal_type<ArchiveType, T> value;
-		self().process_as(as, value);
-		VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, t, std::move(value), version);
+	inline void processImpl(As& as, base_class<T>& b) {
+		self().processImpl(as, *b.base_ptr);
 	}
 
-#undef PROCESS_IF
+	template <class As, class T>
+	inline void processImpl(As& as, virtual_base_class<T>& b) {
+		detail::base_class_id id(b.base_ptr);
+		if (itsBaseClassSet.emplace(id).second)
+			self().processImpl(as, *b.base_ptr);
+	}
+
+	template <class As, class T>
+	inline void processImpl(As& as, DeferredData<T> const& d) {
+		(void) as;
+		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
+		itsDeferments.emplace_back(std::move(deferment));
+	}
+
+	//! Empty class specialization
+	template <class As, class T>
+			requires (!access::is_input_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && std::is_empty_v<T>)
+	inline void processImpl(As& as, const T& var) {
+		(void) as;
+		(void) var;
+	}
+
+	//! Generic serialization case
+	template <class As, class T>
+			requires access::is_input_serializable<As, T>
+	inline void processImpl(As& as, T& var) {
+		if constexpr (access::has_member_serialize<As, T>)
+			access::member_serialize(as, var);
+
+		else if constexpr (access::has_global_serialize<As, T>)
+			VIDE_FUNCTION_NAME_SERIALIZE(as, var);
+
+		else if constexpr (access::has_member_load<As, T>)
+			access::member_load(as, var);
+
+		else if constexpr (access::has_global_load<As, T>)
+			VIDE_FUNCTION_NAME_LOAD(as, var);
+
+		else if constexpr (access::has_member_load_minimal<As, T>) {
+			access::get_member_save_minimal_t<As, T> value;
+			self().process_as(as, value);
+			access::member_load_minimal(as, var, std::move(value));
+
+		} else if constexpr (access::has_global_load_minimal<As, T>) {
+			access::get_global_save_minimal_t<As, T> value;
+			self().process_as(as, value);
+			VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, var, std::move(value));
+
+		} else if constexpr (access::has_member_serialize_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			access::member_serialize(as, var, version);
+
+		} else if constexpr (access::has_global_serialize_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			VIDE_FUNCTION_NAME_SERIALIZE(as, var, version);
+
+		} else if constexpr (access::has_member_load_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			access::member_load(as, var, version);
+
+		} else if constexpr (access::has_global_load_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			VIDE_FUNCTION_NAME_LOAD(as, var, version);
+
+		} else if constexpr (access::has_member_load_minimal_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			access::get_member_save_minimal_versioned_t<As, T> value;
+			self().process_as(as, value);
+			access::member_load_minimal(as, var, std::move(value), version);
+
+		} else if constexpr (access::has_global_load_minimal_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			access::get_global_save_minimal_versioned_t<As, T> value;
+			self().process_as(as, value);
+			VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, var, std::move(value), version);
+		}
+	}
+
+	//! No matching serialization
+	/*! Invalid if we have invalid input versioning or
+		we are not input serializable, and either
+		don't allow empty class ellision or allow it but are not serializing an empty class */
+	template <class As, class T>
+		requires (!access::is_input_serializable<As, T>)
+	inline unserializable_type_tag processImpl(As& as, const T&) {
+		(void) as;
+
+		static_assert(access::count_input_serializers<ArchiveType, T> != 0,
+				"Vide could not find any input serialization functions for the provided type and archive combination.\n\n"
+				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
+				"Serialize functions generally have the following signature:\n\n"
+				"  template <class Archive>\n"
+				"  void serialize(Archive& ar) {\n"
+				"    ar(member1);\n"
+				"    ar(member2);\n"
+				"  }\n\n");
+
+		static_assert(access::count_input_serializers<ArchiveType, T> <= 1,
+				"Vide found more than one compatible input serialization function for the provided type and archive combination.\n\n"
+				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
+				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
+				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
+
+		return unserializable_type_tag{};
+	}
 }; // class InputArchive
 
 } // namespace vide
 
 // This include needs to come after things such as binary_data, make_nvp, etc
 #include <vide/types/common.hpp>
-
-
-#endif // VIDE_VIDE_HPP_

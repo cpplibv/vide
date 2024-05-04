@@ -4,11 +4,11 @@
 20220623 :  7:27
 20240502 : 10:07
 
-Type files that still have to be cleaned from cereal/cereal.hpp include:
-    !!! memory (transitive via cereal/traits/shared_from_this.hpp)
+Type files that still have to be cleaned from vide/vide.hpp include:
+    !!! memory (transitive via vide/traits/shared_from_this.hpp)
     base_class
     polymorphic
-    common (archives will need cereal.hpp anyways, common is included after each archive (not by user), so this one is not that important)
+    common (archives will need vide.hpp anyways, common is included after each archive (not by user), so this one is not that important)
 
 
 
@@ -23,11 +23,6 @@ Type files that still have to be cleaned from cereal/cereal.hpp include:
 
 
 
-patch notes:
-	add .size_tag()
-	add ::size_type
-	rename could_serialize -> supports_type
-	add supports_binary<T>
 
 
 
@@ -35,7 +30,6 @@ patch notes:
 
 
 SizeTag is still a bit wierd
-
 
 
 

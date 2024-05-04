@@ -1,39 +1,39 @@
 if (CMAKE_VERSION LESS 3.0)
-    message(FATAL_ERROR "Cereal can't be installed with CMake < 3.0")
+    message(FATAL_ERROR "Vide can't be installed with CMake < 3.0")
 endif ()
 
 get_filename_component(BINARY_DIR ${CMAKE_BINARY_DIR}/build ABSOLUTE)
 get_filename_component(INSTALL_DIR ${CMAKE_BINARY_DIR}/out ABSOLUTE)
 
-# cmake configure step for cereal
-file(MAKE_DIRECTORY ${BINARY_DIR}/cereal)
+# cmake configure step for vide
+file(MAKE_DIRECTORY ${BINARY_DIR}/vide)
 execute_process(
         COMMAND ${CMAKE_COMMAND}
-        -DJUST_INSTALL_CEREAL=1
+        -DJUST_INSTALL_VIDE=1
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/..
-        WORKING_DIRECTORY ${BINARY_DIR}/cereal
+        WORKING_DIRECTORY ${BINARY_DIR}/vide
         RESULT_VARIABLE result
 )
 if (result)
-    message(FATAL_ERROR "Cereal cmake configure-step failed")
+    message(FATAL_ERROR "Vide cmake configure-step failed")
 endif ()
 
-# cmake install cereal
+# cmake install vide
 execute_process(
         COMMAND ${CMAKE_COMMAND}
-        --build ${BINARY_DIR}/cereal
+        --build ${BINARY_DIR}/vide
         --target install
         RESULT_VARIABLE result
 )
 if (result)
-    message(FATAL_ERROR "Cereal cmake install-step failed")
+    message(FATAL_ERROR "Vide cmake install-step failed")
 endif ()
 
 # create test project sources
 file(WRITE ${BINARY_DIR}/test_source/CMakeLists.txt "
   cmake_minimum_required(VERSION ${CMAKE_VERSION})
-  project(cereal-test-config-module)
+  project(vide-test-config-module)
   if(NOT MSVC)
       if(CMAKE_VERSION VERSION_LESS 3.1)
           set(CMAKE_CXX_FLAGS \"-std=c++11 \${CMAKE_CXX_FLAGS}\")
@@ -42,9 +42,9 @@ file(WRITE ${BINARY_DIR}/test_source/CMakeLists.txt "
           set(CMAKE_CXX_STANDARD_REQUIRED ON)
       endif()
   endif()
-  find_package(cereal REQUIRED)
-  add_executable(cereal-test-config-module main.cpp)
-  target_link_libraries(cereal-test-config-module vide::cereal)
+  find_package(vide REQUIRED)
+  add_executable(vide-test-config-module main.cpp)
+  target_link_libraries(vide-test-config-module vide::vide)
   enable_testing()
   add_test(NAME test-cereal-test-config-module COMMAND cereal-test-config-module)
 ")

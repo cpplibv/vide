@@ -189,127 +189,104 @@ void load_minimal(const Archive& ar, TestMinimalGlobalVersioned& var, const int&
 template <class IArchive, class OArchive>
 inline void test_traits() {
 	{
-		using I = vide::serialization_traits<IArchive, TestSerializeMember>;
-		using O = vide::serialization_traits<OArchive, TestSerializeMember>;
+		using T = TestSerializeMember;
 
-		CHECK(I::has_serialize_member);
-		CHECK(O::has_serialize_member);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSerializeGlobal>;
-		using O = vide::serialization_traits<OArchive, TestSerializeGlobal>;
+		CHECK(vide::access::has_member_serialize<IArchive, T>);
+		CHECK(vide::access::has_member_serialize<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSerializeGlobal;
 
-		CHECK(I::has_serialize_global);
-		CHECK(O::has_serialize_global);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSplitMember>;
-		using O = vide::serialization_traits<OArchive, TestSplitMember>;
+		CHECK(vide::access::has_global_serialize<IArchive, T>);
+		CHECK(vide::access::has_global_serialize<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSplitMember;
 
-		CHECK(I::has_save_member);
-		CHECK(I::has_load_member);
-		CHECK(O::has_save_member);
-		CHECK(O::has_load_member);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSplitGlobal>;
-		using O = vide::serialization_traits<OArchive, TestSplitGlobal>;
+		CHECK(vide::access::has_member_save<IArchive, T>);
+		CHECK(vide::access::has_member_load<IArchive, T>);
+		CHECK(vide::access::has_member_save<OArchive, T>);
+		CHECK(vide::access::has_member_load<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSplitGlobal;
 
-		CHECK(I::has_save_global);
-		CHECK(I::has_load_global);
-		CHECK(O::has_save_global);
-		CHECK(O::has_load_global);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestMinimalMember>;
-		using O = vide::serialization_traits<OArchive, TestMinimalMember>;
+		CHECK(vide::access::has_global_save<IArchive, T>);
+		CHECK(vide::access::has_global_load<IArchive, T>);
+		CHECK(vide::access::has_global_save<OArchive, T>);
+		CHECK(vide::access::has_global_load<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestMinimalMember;
 
-		CHECK(I::has_save_minimal_member);
-		CHECK(I::has_load_minimal_member);
-		CHECK(O::has_save_minimal_member);
-		CHECK(O::has_load_minimal_member);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestMinimalGlobal>;
-		using O = vide::serialization_traits<OArchive, TestMinimalGlobal>;
+		CHECK(vide::access::has_member_save_minimal<IArchive, T>);
+		CHECK(vide::access::has_member_load_minimal<IArchive, T>);
+		CHECK(vide::access::has_member_save_minimal<OArchive, T>);
+		CHECK(vide::access::has_member_load_minimal<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestMinimalGlobal;
 
-		CHECK(I::has_save_minimal_global);
-		CHECK(I::has_load_minimal_global);
-		CHECK(O::has_save_minimal_global);
-		CHECK(O::has_load_minimal_global);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSerializeMemberVersioned>;
-		using O = vide::serialization_traits<OArchive, TestSerializeMemberVersioned>;
+		CHECK(vide::access::has_global_save_minimal<IArchive, T>);
+		CHECK(vide::access::has_global_load_minimal<IArchive, T>);
+		CHECK(vide::access::has_global_save_minimal<OArchive, T>);
+		CHECK(vide::access::has_global_load_minimal<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSerializeMemberVersioned;
 
-		CHECK(I::has_serialize_member_versioned);
-		CHECK(O::has_serialize_member_versioned);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSerializeGlobalVersioned>;
-		using O = vide::serialization_traits<OArchive, TestSerializeGlobalVersioned>;
+		CHECK(vide::access::has_member_serialize_versioned<IArchive, T>);
+		CHECK(vide::access::has_member_serialize_versioned<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSerializeGlobalVersioned;
 
-		CHECK(I::has_serialize_global_versioned);
-		CHECK(O::has_serialize_global_versioned);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSplitMemberVersioned>;
-		using O = vide::serialization_traits<OArchive, TestSplitMemberVersioned>;
+		CHECK(vide::access::has_global_serialize_versioned<IArchive, T>);
+		CHECK(vide::access::has_global_serialize_versioned<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSplitMemberVersioned;
 
-		CHECK(I::has_save_member_versioned);
-		CHECK(I::has_load_member_versioned);
-		CHECK(O::has_save_member_versioned);
-		CHECK(O::has_load_member_versioned);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestSplitGlobalVersioned>;
-		using O = vide::serialization_traits<OArchive, TestSplitGlobalVersioned>;
+		CHECK(vide::access::has_member_save_versioned<IArchive, T>);
+		CHECK(vide::access::has_member_load_versioned<IArchive, T>);
+		CHECK(vide::access::has_member_save_versioned<OArchive, T>);
+		CHECK(vide::access::has_member_load_versioned<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestSplitGlobalVersioned;
 
-		CHECK(I::has_save_global_versioned);
-		CHECK(I::has_load_global_versioned);
-		CHECK(O::has_save_global_versioned);
-		CHECK(O::has_load_global_versioned);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestMinimalMemberVersioned>;
-		using O = vide::serialization_traits<OArchive, TestMinimalMemberVersioned>;
+		CHECK(vide::access::has_global_save_versioned<IArchive, T>);
+		CHECK(vide::access::has_global_load_versioned<IArchive, T>);
+		CHECK(vide::access::has_global_save_versioned<OArchive, T>);
+		CHECK(vide::access::has_global_load_versioned<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestMinimalMemberVersioned;
 
-		CHECK(I::has_save_minimal_member_versioned);
-		CHECK(I::has_load_minimal_member_versioned);
-		CHECK(O::has_save_minimal_member_versioned);
-		CHECK(O::has_load_minimal_member_versioned);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
-	}
-	{
-		using I = vide::serialization_traits<IArchive, TestMinimalGlobalVersioned>;
-		using O = vide::serialization_traits<OArchive, TestMinimalGlobalVersioned>;
+		CHECK(vide::access::has_member_save_minimal_versioned<IArchive, T>);
+		CHECK(vide::access::has_member_load_minimal_versioned<IArchive, T>);
+		CHECK(vide::access::has_member_save_minimal_versioned<OArchive, T>);
+		CHECK(vide::access::has_member_load_minimal_versioned<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
+	} {
+		using T = TestMinimalGlobalVersioned;
 
-		CHECK(I::has_save_minimal_global_versioned);
-		CHECK(I::has_load_minimal_global_versioned);
-		CHECK(O::has_save_minimal_global_versioned);
-		CHECK(O::has_load_minimal_global_versioned);
-		CHECK(I::is_input_serializable);
-		CHECK(O::is_output_serializable);
+		CHECK(vide::access::has_global_save_minimal_versioned<IArchive, T>);
+		CHECK(vide::access::has_global_load_minimal_versioned<IArchive, T>);
+		CHECK(vide::access::has_global_save_minimal_versioned<OArchive, T>);
+		CHECK(vide::access::has_global_load_minimal_versioned<OArchive, T>);
+		CHECK(vide::access::is_input_serializable<IArchive, T>);
+		CHECK(vide::access::is_output_serializable<OArchive, T>);
 	}
 }

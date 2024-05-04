@@ -27,177 +27,176 @@
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#ifndef VIDE_TYPES_BASE_CLASS_HPP_
-#define VIDE_TYPES_BASE_CLASS_HPP_
+#pragma once
 
-#include <vide/details/traits.hpp>
 #include <vide/details/polymorphic_impl_fwd.hpp>
 
-namespace vide
-{
-  namespace base_class_detail
-  {
-    //! Used to register polymorphic relations and avoid the need to include
-    //! polymorphic.hpp when no polymorphism is used
-    /*! @internal */
-    template <class Base, class Derived, bool IsPolymorphic = std::is_polymorphic<Base>::value>
-    struct RegisterPolymorphicBaseClass
-    {
-      static void bind()
-      { }
-    };
 
-    //! Polymorphic version
-    /*! @internal */
-    template <class Base, class Derived>
-    struct RegisterPolymorphicBaseClass<Base, Derived, true>
-    {
-      static void bind()
-      { detail::RegisterPolymorphicCaster<Base, Derived>::bind(); }
-    };
-  }
+namespace vide { // --------------------------------------------------------------------------------
+namespace base_class_detail {
 
-  //! Casts a derived class to its non-virtual base class in a way that safely supports abstract classes
-  /*! This should be used in cases when a derived type needs to serialize its base type. This is better than directly
-      using static_cast, as it allows for serialization of pure virtual (abstract) base classes.
+//! Used to register polymorphic relations and avoid the need to include
+//! polymorphic.hpp when no polymorphism is used
+/*! @internal */
+template <class Base, class Derived, bool IsPolymorphic = std::is_polymorphic<Base>::value>
+struct RegisterPolymorphicBaseClass {
+	static void bind() {
+	}
+};
 
-      This also automatically registers polymorphic relation between the base and derived class, assuming they
-      are indeed polymorphic. Note this is not the same as polymorphic type registration. For more information
-      see the documentation on polymorphism. If using a polymorphic class, be sure to include support for
-      polymorphism (cereal/types/polymorphic.hpp).
+//! Polymorphic version
+/*! @internal */
+template <class Base, class Derived>
+struct RegisterPolymorphicBaseClass<Base, Derived, true> {
+	static void bind() { detail::RegisterPolymorphicCaster<Base, Derived>::bind(); }
+};
 
-      \sa virtual_base_class
+} // namespace base_class_detail -------------------------------------------------------------------
 
-      @code{.cpp}
-      struct MyBase
-      {
-        int x;
+//! Casts a derived class to its non-virtual base class in a way that safely supports abstract classes
+/*! This should be used in cases when a derived type needs to serialize its base type. This is better than directly
+	using static_cast, as it allows for serialization of pure virtual (abstract) base classes.
 
-        virtual void foo() = 0;
+	This also automatically registers polymorphic relation between the base and derived class, assuming they
+	are indeed polymorphic. Note this is not the same as polymorphic type registration. For more information
+	see the documentation on polymorphism. If using a polymorphic class, be sure to include support for
+	polymorphism (vide/types/polymorphic.hpp).
 
-        template <class Archive>
-        void serialize( Archive & ar )
-        {
-          ar( x );
-        }
-      };
+	\sa virtual_base_class
 
-      struct MyDerived : public MyBase //<-- Note non-virtual inheritance
-      {
-        int y;
+	@code{.cpp}
+	struct MyBase {
+		int x;
 
-        virtual void foo() {};
+		virtual void foo() = 0;
 
-        template <class Archive>
-        void serialize( Archive & ar )
-        {
-          ar( vide::base_class<MyBase>(this) );
-          ar( y );
-        }
-      };
-      @endcode */
-  template<class Base>
-    struct base_class : private traits::detail::BaseCastBase
-    {
-      template<class Derived>
-        base_class(Derived const * derived) :
-          base_ptr(const_cast<Base*>(static_cast<Base const *>(derived)))
-      {
-        static_assert( std::is_base_of<Base, Derived>::value, "Can only use base_class on a valid base class" );
-        base_class_detail::RegisterPolymorphicBaseClass<Base, Derived>::bind();
-      }
+		template <class Archive>
+		void serialize(Archive & ar) {
+			ar(x);
+		}
+	};
 
-        Base * base_ptr;
-    };
+	struct MyDerived : public MyBase { //<-- Note non-virtual inheritance
+		int y;
 
-  //! Casts a derived class to its virtual base class in a way that allows vide to track inheritance
-  /*! This should be used in cases when a derived type features virtual inheritance from some
-      base type.  This allows vide to track the inheritance and to avoid making duplicate copies
-      during serialization.
+		virtual void foo() {};
 
-      It is safe to use virtual_base_class in all circumstances for serializing base classes, even in cases
-      where virtual inheritance does not take place, though it may be slightly faster to utilize
-      vide::base_class<> if you do not need to worry about virtual inheritance.
+		template <class Archive>
+		void serialize(Archive & ar) {
+			ar(vide::base_class<MyBase>(this));
+			ar(y);
+		}
+	};
+	@endcode */
+template <class Base>
+struct base_class {
+	Base* base_ptr;
 
-      This also automatically registers polymorphic relation between the base and derived class, assuming they
-      are indeed polymorphic. Note this is not the same as polymorphic type registration. For more information
-      see the documentation on polymorphism. If using a polymorphic class, be sure to include support for
-      polymorphism (cereal/types/polymorphic.hpp).
+	template <class Derived>
+	explicit base_class(const Derived* derived) :
+		base_ptr(const_cast<Base*>(static_cast<const Base*>(derived))) {
+		static_assert(std::is_base_of<Base, Derived>::value, "Can only use base_class on a valid base class");
+		base_class_detail::RegisterPolymorphicBaseClass<Base, Derived>::bind();
+	}
+};
 
-      \sa base_class
+//! Casts a derived class to its virtual base class in a way that allows vide to track inheritance
+/*! This should be used in cases when a derived type features virtual inheritance from some
+	base type.  This allows vide to track the inheritance and to avoid making duplicate copies
+	during serialization.
 
-      @code{.cpp}
-      struct MyBase
-      {
-        int x;
+	It is safe to use virtual_base_class in all circumstances for serializing base classes, even in cases
+	where virtual inheritance does not take place, though it may be slightly faster to utilize
+	vide::base_class<> if you do not need to worry about virtual inheritance.
 
-        template <class Archive>
-        void serialize( Archive & ar )
-        {
-          ar( x );
-        }
-      };
+	This also automatically registers polymorphic relation between the base and derived class, assuming they
+	are indeed polymorphic. Note this is not the same as polymorphic type registration. For more information
+	see the documentation on polymorphism. If using a polymorphic class, be sure to include support for
+	polymorphism (vide/types/polymorphic.hpp).
 
-      struct MyLeft : virtual MyBase //<-- Note the virtual inheritance
-      {
-        int y;
+	\sa base_class
 
-        template <class Archive>
-        void serialize( Archive & ar )
-        {
-          ar( vide::virtual_base_class<MyBase>( this ) );
-          ar( y );
-        }
-      };
+	@code{.cpp}
+	struct MyBase {
+		int x;
 
-      struct MyRight : virtual MyBase
-      {
-        int z;
+		template <class Archive>
+		void serialize(Archive & ar) {
+			ar(x);
+		}
+	};
 
-        template <class Archive>
-        void serialize( Archive & ar )
-        {
-          ar( vide::virtual_base_clas<MyBase>( this ) );
-          ar( z );
-        }
-      };
+	struct MyLeft : virtual MyBase { //<-- Note the virtual inheritance
+		int y;
 
-      // diamond virtual inheritance; contains one copy of each base class
-      struct MyDerived : virtual MyLeft, virtual MyRight
-      {
-        int a;
+		template <class Archive>
+		void serialize(Archive & ar) {
+			ar(vide::virtual_base_class<MyBase>(this));
+			ar(y);
+		}
+	};
 
-        template <class Archive>
-        void serialize( Archive & ar )
-        {
-          ar( vide::virtual_base_class<MyLeft>( this ) );  // safely serialize data members in MyLeft
-          ar( vide::virtual_base_class<MyRight>( this ) ); // safely serialize data members in MyRight
-          ar( a );
+	struct MyRight : virtual MyBase {
+		int z;
 
-          // Because we used virtual_base_class, vide will ensure that only one instance of MyBase is
-          // serialized as we traverse the inheritance heirarchy. This means that there will be one copy
-          // each of the variables x, y, z, and a
+		template <class Archive>
+		void serialize(Archive & ar) {
+			ar(vide::virtual_base_clas<MyBase>(this));
+			ar(z);
+		}
+	};
 
-          // If we had chosen to use static_cast<> instead, vide would perform no tracking and
-          // assume that every base class should be serialized (in this case leading to a duplicate
-          // serialization of MyBase due to diamond inheritance
-      };
-     }
-     @endcode */
-  template<class Base>
-    struct virtual_base_class : private traits::detail::BaseCastBase
-    {
-      template<class Derived>
-        virtual_base_class(Derived const * derived) :
-          base_ptr(const_cast<Base*>(static_cast<Base const *>(derived)))
-      {
-        static_assert( std::is_base_of<Base, Derived>::value, "Can only use virtual_base_class on a valid base class" );
-        base_class_detail::RegisterPolymorphicBaseClass<Base, Derived>::bind();
-      }
+	// diamond virtual inheritance; contains one copy of each base class
+	struct MyDerived : virtual MyLeft, virtual MyRight {
+		int a;
 
-        Base * base_ptr;
-    };
+		template <class Archive>
+		void serialize(Archive & ar) {
+			ar(vide::virtual_base_class<MyLeft>(this));  // safely serialize data members in MyLeft
+			ar(vide::virtual_base_class<MyRight>(this)); // safely serialize data members in MyRight
+			ar(a);
 
+			// Because we used virtual_base_class, vide will ensure that only one instance of MyBase is
+			// serialized as we traverse the inheritance heirarchy. This means that there will be one copy
+			// each of the variables x, y, z, and a
+
+			// If we had chosen to use static_cast<> instead, vide would perform no tracking and
+			// assume that every base class should be serialized (in this case leading to a duplicate
+			// serialization of MyBase due to diamond inheritance
+		};
+	}
+	@endcode */
+template <class Base>
+struct virtual_base_class {
+	Base* base_ptr;
+
+	template <class Derived>
+	explicit virtual_base_class(const Derived* derived) :
+		base_ptr(const_cast<Base*>(static_cast<const Base*>(derived))) {
+		static_assert(std::is_base_of<Base, Derived>::value, "Can only use virtual_base_class on a valid base class");
+		base_class_detail::RegisterPolymorphicBaseClass<Base, Derived>::bind();
+	}
+};
+
+namespace detail { // ------------------------------------------------------------------------------
+
+template <typename>
+struct get_base_class {
+	using type = void;
+};
+
+template <typename T>
+struct get_base_class<base_class<T>> {
+	using type = T;
+};
+
+template <typename T>
+struct get_base_class<virtual_base_class<T>> {
+	using type = T;
+};
+
+template <typename T>
+using get_base_class_t = typename get_base_class<T>::type;
+
+} // namespace detail
 } // namespace vide --------------------------------------------------------------------------------
-
-#endif // VIDE_TYPES_BASE_CLASS_HPP_

@@ -154,7 +154,7 @@ int main( int, char ** argv )
 
   if( std::string(argv[1]) == "load" )
   {
-    std::ifstream is("portable.cereal", std::ios::binary);
+    std::ifstream is("portable.vide", std::ios::binary);
     vide::PortableBinaryInputArchive ar( is );
 
     std::vector<Another> vec_i;
@@ -186,7 +186,7 @@ int main( int, char ** argv )
   }
   else if( std::string(argv[1]) == "save" )
   {
-    std::ofstream os("portable.cereal", std::ios::binary);
+    std::ofstream os("portable.vide", std::ios::binary);
     vide::PortableBinaryOutputArchive ar( os );
 
     ar( int_o );
@@ -195,7 +195,7 @@ int main( int, char ** argv )
   }
   else // clean
   {
-    std::remove( "portable.cereal" );
+    std::remove( "portable.vide" );
   }
 
   return 0;

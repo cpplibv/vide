@@ -142,60 +142,56 @@ int main() {
 
 	// serialize
 	std::cout << "\tserialize" << std::endl;
-	std::cout << vide::traits::has_member_serialize<T, Archive>::value << std::endl;
-	std::cout << vide::traits::has_non_member_serialize<T, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_serialize<Archive, T> << std::endl;
+	std::cout << vide::access::has_global_serialize<Archive, T> << std::endl;
 
 	// load
 	std::cout << "\tload" << std::endl;
-	std::cout << vide::traits::has_member_load<T, Archive>::value << std::endl;
-	std::cout << vide::traits::has_non_member_load<T, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_load<Archive, T> << std::endl;
+	std::cout << vide::access::has_global_load<Archive, T> << std::endl;
 
 	// load minimal
 	std::cout << "\tload minimal" << std::endl;
-	std::cout << vide::traits::has_member_load<T, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_load<Archive, T> << std::endl;
 
 	// save
 	std::cout << "\tsave" << std::endl;
-	std::cout << vide::traits::has_member_save<T, Archive>::value << std::endl;
-	std::cout << vide::traits::has_non_member_save<T, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_save<Archive, T> << std::endl;
+	std::cout << vide::access::has_global_save<Archive, T> << std::endl;
 
 	// save_minimal
 	std::cout << "\tsave_minimal" << std::endl;
-	std::cout << vide::traits::has_member_save_minimal<T, Archive>::value << std::endl;
-	std::cout << vide::traits::has_non_member_save_minimal<T, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_save_minimal<Archive, T> << std::endl;
+	std::cout << vide::access::has_global_save_minimal<Archive, T> << std::endl;
 
 	// save_minimal_versioned
 	std::cout << "\tsave_minimal versioned" << std::endl;
-	std::cout << vide::traits::has_member_versioned_save_minimal<T, Archive>::value << std::endl;
-	std::cout << vide::traits::has_non_member_versioned_save_minimal<T, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_save_minimal_versioned<Archive, T> << std::endl;
+	std::cout << vide::access::has_global_save_minimal_versioned<Archive, T> << std::endl;
 
 	// splittable
 	std::cout << "\t splittable" << std::endl;
-	std::cout << vide::traits::has_member_split<T, Archive, Archive>::value << std::endl;
-	std::cout << vide::traits::has_non_member_split<T, Archive, Archive>::value << std::endl;
+	// std::cout << vide::access::has_member_split<Archive, T, Archive> << std::endl;
+	// std::cout << vide::access::has_global_split<Archive, T, Archive> << std::endl;
 
 	// serialiable
 	std::cout << "\toutput serializable" << std::endl;
-	std::cout << vide::traits::is_output_serializable<T, Archive>::value << std::endl;
-
-#if !defined(__INTEL_COMPILER)
-	//! TODO: This causes icc to crash
-	std::cout << vide::traits::is_input_serializable<T, Archive>::value << std::endl;
-#endif
+	std::cout << vide::access::is_output_serializable<Archive, T> << std::endl;
+	std::cout << vide::access::is_input_serializable<Archive, T> << std::endl;
 
 //	// specialized
 //	std::cout << "\tspecialized" << std::endl;
-//	std::cout << vide::traits::detail::is_specialized_member_serialize<T, Archive>::value << std::endl;
-//	std::cout << vide::traits::detail::is_specialized_member_load_save<T, Archive>::value << std::endl;
-//	std::cout << vide::traits::detail::is_specialized_non_member_serialize<T, Archive>::value << std::endl;
-//	std::cout << vide::traits::detail::is_specialized_non_member_load_save<T, Archive>::value << std::endl;
-//	std::cout << vide::traits::detail::count_specializations<T, Archive>::value << std::endl;
-//	std::cout << vide::traits::is_specialized<T, Archive>::value << std::endl;
+//	std::cout << vide::access::is_specialized_member_serialize<Archive, T> << std::endl;
+//	std::cout << vide::access::is_specialized_member_load_save<Archive, T> << std::endl;
+//	std::cout << vide::access::is_specialized_non_member_serialize<Archive, T> << std::endl;
+//	std::cout << vide::access::is_specialized_non_member_load_save<Archive, T> << std::endl;
+//	std::cout << vide::access::count_specializations<Archive, T> << std::endl;
+//	std::cout << vide::access::is_specialized<Archive, T> << std::endl;
 
 	// counts
 	std::cout << "\tcounts" << std::endl;
-	std::cout << vide::traits::detail::count_output_serializers<T, Archive>::value << std::endl;
-	std::cout << vide::traits::detail::count_input_serializers<T, Archive>::value << std::endl;
+	std::cout << vide::access::count_output_serializers<Archive, T> << std::endl;
+	std::cout << vide::access::count_input_serializers<Archive, T> << std::endl;
 
 	// array size
 	std::cout << "\tarray size" << std::endl;
@@ -203,8 +199,8 @@ int main() {
 
 	// extra testing
 	std::cout << "\textra" << std::endl;
-	std::cout << vide::traits::has_member_save_minimal<MemberMinimal, Archive>::value << std::endl;
-	std::cout << vide::traits::has_member_load_minimal<MemberMinimal, Archive>::value << std::endl;
+	std::cout << vide::access::has_member_save_minimal<MemberMinimal, Archive> << std::endl;
+	std::cout << vide::access::has_member_load_minimal<MemberMinimal, Archive> << std::endl;
 
 	// DLL testing
 	std::cout << "------DLL TESTING------" << std::endl;

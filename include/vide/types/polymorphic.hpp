@@ -39,7 +39,7 @@
 #include <vide/details/polymorphic_impl.hpp>
 
 
-//! Registers a derived polymorphic type with cereal
+//! Registers a derived polymorphic type with vide
 /*! Polymorphic types must be registered before smart
     pointers to them can be serialized.  Note that base
     classes do not need to be registered.
@@ -85,7 +85,7 @@
   } } /* end namespaces */                                               \
   VIDE_BIND_TO_ARCHIVES(__VA_ARGS__)
 
-//! Registers a polymorphic type with cereal, giving it a
+//! Registers a polymorphic type with vide, giving it a
 //! user defined name
 /*! In some cases the default name used with
     VIDE_REGISTER_TYPE (the name of the type) may not be
@@ -224,11 +224,8 @@ inline auto getInputBinding(Archive& ar, const std::uint32_t nameid) {
 	using the derived class serialize function
 	@internal */
 template <class Archive, class T>
-inline typename std::enable_if<(traits::is_default_constructible<T>::value
-//                             || traits::has_load_and_construct<T, Archive>::value
-)
-		&& !std::is_abstract<T>::value, bool>::type
-serialize_wrapper(Archive& ar, std::shared_ptr<T>& ptr, const std::uint32_t nameid) {
+		requires (traits::is_default_constructible<T> && !std::is_abstract_v<T>)
+inline bool serialize_wrapper(Archive& ar, std::shared_ptr<T>& ptr, const std::uint32_t nameid) {
 	if (nameid & detail::msb2_32bit) {
 		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 		return true;
@@ -241,11 +238,8 @@ serialize_wrapper(Archive& ar, std::shared_ptr<T>& ptr, const std::uint32_t name
 	using the derived class serialize function
 	@internal */
 template <class Archive, class T, class D>
-inline typename std::enable_if<(traits::is_default_constructible<T>::value
-//                             || traits::has_load_and_construct<T, Archive>::value
-)
-		&& !std::is_abstract<T>::value, bool>::type
-serialize_wrapper(Archive& ar, std::unique_ptr<T, D>& ptr, const std::uint32_t nameid) {
+		requires (traits::is_default_constructible<T> && !std::is_abstract_v<T>)
+inline bool serialize_wrapper(Archive& ar, std::unique_ptr<T, D>& ptr, const std::uint32_t nameid) {
 	if (nameid & detail::msb2_32bit) {
 		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
 		return true;
@@ -260,11 +254,8 @@ serialize_wrapper(Archive& ar, std::unique_ptr<T, D>& ptr, const std::uint32_t n
 	this was a polymorphic type serialized by its proper pointer type
 	@internal */
 template <class Archive, class T>
-inline typename std::enable_if<(!traits::is_default_constructible<T>::value
-//                             && !traits::has_load_and_construct<T, Archive>::value
-)
-		|| std::is_abstract<T>::value, bool>::type
-serialize_wrapper(Archive&, std::shared_ptr<T>&, const std::uint32_t nameid) {
+		requires (!traits::is_default_constructible<T> || std::is_abstract_v<T>)
+inline bool serialize_wrapper(Archive&, std::shared_ptr<T>&, const std::uint32_t nameid) {
 	if (nameid & detail::msb2_32bit)
 		throw vide::Exception("Cannot load a polymorphic type that is not default constructable and does not have a load_and_construct function");
 	return false;
@@ -277,11 +268,8 @@ serialize_wrapper(Archive&, std::shared_ptr<T>&, const std::uint32_t nameid) {
 	this was a polymorphic type serialized by its proper pointer type
 	@internal */
 template <class Archive, class T, class D>
-inline typename std::enable_if<(!traits::is_default_constructible<T>::value
-//                               && !traits::has_load_and_construct<T, Archive>::value
-)
-		|| std::is_abstract<T>::value, bool>::type
-serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint32_t nameid) {
+		requires (!traits::is_default_constructible<T> || std::is_abstract_v<T>)
+inline bool serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint32_t nameid) {
 	if (nameid & detail::msb2_32bit)
 		throw vide::Exception("Cannot load a polymorphic type that is not default constructable and does not have a load_and_construct function");
 	return false;
@@ -293,7 +281,7 @@ serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint32_t nameid) 
 
 //! Saving std::shared_ptr for polymorphic types, abstract
 template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract<T>::value, void>::type
+inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract_v<T>, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
@@ -318,7 +306,7 @@ VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 
 //! Saving std::shared_ptr for polymorphic types, not abstract
 template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract<T>::value, void>::type
+inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract_v<T>, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
@@ -384,7 +372,7 @@ VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::weak_ptr<T>& ptr) {
 
 //! Saving std::unique_ptr for polymorphic types that are abstract
 template <class Archive, class T, class D>
-inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract<T>::value, void>::type
+inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract_v<T>, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation
@@ -409,7 +397,7 @@ VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 
 //! Saving std::unique_ptr for polymorphic types, not abstract
 template <class Archive, class T, class D>
-inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract<T>::value, void>::type
+inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract_v<T>, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	if (!ptr) {
 		// same behavior as nullptr in memory implementation

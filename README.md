@@ -51,20 +51,26 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Version 2.3.0:
   - Cleanup compiler warnings
   - Sync with upstream 2024.05.02 d1fcec807
-  - Planned: Dependent name for SizeTag, BinaryData, NVP
-  - Planned: Dependent query for binary type / serializability
+  - Refactor and modernize type traits
+  - Add archive dependent name .size_tag() for vide::make_size_tag
+  - Add archive dependent name ::size_type for vide::size_type
+  - Add archive supports_binary<T> to test if the archive can binary serialize T
+  - Rename could_serialize<T> to supports_type<T>
+  - Improve compile time performance
+  - Improve and modernize meta programming practices and techniques
+  -
+  - Planned: BinaryData, NVP
   - Planned: Safe reserve
   - Planned: Archive.reset() and Archive.finish()
 
 
 ### Planned:
-- Foreach iteration algorithms
+- Foreach iteration/visitor algorithms
 - Add safe/unsafe data serialization support
   - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
   - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
 - An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Improved compile time performance (by organizing includes)
-- Improved compile time performance (by improving meta programming practices)
 - Improved compile time performance (general)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments

@@ -3,7 +3,7 @@
 
     These macros can assist in determining the version of Vide. Be
     warned that vide is not guaranteed to be compatible across
-    different versions. For more information on releases of cereal,
+    different versions. For more information on releases of vide,
     see https://github.com/USCiLab/cereal/releases.
 
     \ingroup utility */

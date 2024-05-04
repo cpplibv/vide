@@ -39,9 +39,7 @@
 #include <vide/types/string.hpp>
 
 
-namespace vide {
-
-// -------------------------------------------------------------------------------------------------
+namespace vide { // --------------------------------------------------------------------------------
 
 namespace bitset_detail {
 
@@ -59,7 +57,7 @@ enum class type : uint8_t {
 //! Serializing (save) for std::bitset
 template <class Archive, size_t N>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::bitset<N>& bits) {
-	constexpr bool serialize_as_binary = Archive::template could_serialize<BinaryData<std::uint32_t>>;
+	constexpr bool serialize_as_binary = Archive::template supports_type<BinaryData<std::uint32_t>>;
 
 	if constexpr (serialize_as_binary) { // when BinaryData optimization supported
 		ar(VIDE_NVP_("type", bitset_detail::type::bits));
@@ -160,6 +158,4 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::bitset<N>& bits) {
 	}
 }
 
-// -------------------------------------------------------------------------------------------------
-
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

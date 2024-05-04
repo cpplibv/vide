@@ -5,7 +5,6 @@
 
 
 namespace vide {
-
 // -------------------------------------------------------------------------------------------------
 
 //! A wrapper around data that can be serialized in a binary fashion
@@ -14,18 +13,20 @@ namespace vide {
 	best represent this during serialization.
 
 	@internal */
-template <class T>
+template<class T>
 struct BinaryData {
 	//! Internally store the pointer as a void *, keeping const if created with
 	//! a const pointer
 	using PT = std::conditional_t<std::is_const_v<std::remove_pointer_t<std::remove_reference_t<T>>>,
-			const void*,
-			void*>;
+		const void*,
+		void*>;
 
-	BinaryData(T&& d, uint64_t s) : data(std::forward<T>(d)), size(s) {}
-
-	PT data;       //!< pointer to beginning of data
+	PT data; //!< pointer to beginning of data
 	uint64_t size; //!< size in bytes
+
+	BinaryData(T&& d, uint64_t s) :
+		data(std::forward<T>(d)),
+		size(s) { }
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -35,11 +36,10 @@ struct BinaryData {
 	@param size The size in bytes of the data
 	@relates BinaryData
 	@ingroup Utility */
-template <class T> inline
-BinaryData<T> binary_data(T&& data, size_t size) {
+template<class T>
+inline BinaryData<T> binary_data(T&& data, size_t size) {
 	return {std::forward<T>(data), size};
 }
 
 // -------------------------------------------------------------------------------------------------
-
 } // namespace vide

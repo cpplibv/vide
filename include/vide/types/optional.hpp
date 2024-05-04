@@ -6,9 +6,7 @@
 #include <vide/nvp.hpp>
 
 
-namespace vide {
-
-// -------------------------------------------------------------------------------------------------
+namespace vide { // --------------------------------------------------------------------------------
 
 //! Saving for std::optional
 template <class Archive, typename T>
@@ -34,7 +32,4 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::optional<T>& optional) {
 		ar(VIDE_NVP_("data", *optional));
 	}
 }
-
-// -------------------------------------------------------------------------------------------------
-
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

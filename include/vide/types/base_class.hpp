@@ -198,6 +198,6 @@ namespace vide
         Base * base_ptr;
     };
 
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------
 
 #endif // VIDE_TYPES_BASE_CLASS_HPP_

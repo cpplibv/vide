@@ -6,9 +6,7 @@
 #include <vide/nvp.hpp>
 
 
-namespace vide {
-
-// -------------------------------------------------------------------------------------------------
+namespace vide { // --------------------------------------------------------------------------------
 
 //! Serializing (save) for std::complex
 template <class Archive, class T>
@@ -26,6 +24,4 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::complex<T>& bits) {
 	bits = {real, imag};
 }
 
-// -------------------------------------------------------------------------------------------------
-
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

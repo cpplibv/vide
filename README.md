@@ -50,7 +50,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Add support for move reference parameter type for `load_minimal` function
 - Version 2.3.0:
   - Cleanup compiler warnings
-  - Sync with upstream 2023.06.15 d1fcec807
+  - Sync with upstream 2024.05.02 d1fcec807
   - Planned: Dependent name for SizeTag, BinaryData, NVP
   - Planned: Dependent query for binary type / serializability
   - Planned: Safe reserve

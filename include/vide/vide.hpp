@@ -247,10 +247,16 @@ public:
 	static constexpr bool is_text_archive = (Flags & vide::TextArchive) != 0;
 
 	template <typename T>
-	static constexpr bool could_serialize = requires(ArchiveType& ar, const T& t) {
+	static constexpr bool supports_type = requires(ArchiveType& ar, const T& t) {
 		// unserializable_type_tag is returned on the fault branch
 		{ ar.processImpl(ar, t) } -> std::same_as<void>;
 	};
+
+	template <typename T>
+	static constexpr bool supports_binary = binary_serializable_type<T> && supports_type<BinaryData<T>>;
+
+public:
+	using size_type = vide::size_type;
 
 private:
 	//! A set of all base classes that have been serialized
@@ -309,6 +315,10 @@ public:
 	template <typename T>
 	inline ArchiveType& nvp(const char* name, T&& arg) {
 		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+	}
+
+	inline ArchiveType& size_tag(size_type size) {
+		return (*this)(::vide::SizeTag<size_type>(size));
 	}
 
 	/*! @name Boost Transition Layer
@@ -608,10 +618,16 @@ public:
 	static constexpr bool is_text_archive = (Flags & vide::TextArchive) != 0;
 
 	template <typename T>
-	static constexpr bool could_serialize = requires(ArchiveType& ar, T& t) {
+	static constexpr bool supports_type = requires(ArchiveType& ar, T& t) {
 		// unserializable_type_tag is returned on the fault branch
 		{ ar.processImpl(ar, t) } -> std::same_as<void>;
 	};
+
+	template <typename T>
+	static constexpr bool supports_binary = binary_serializable_type<T> && supports_type<BinaryData<T>>;
+
+public:
+	using size_type = vide::size_type;
 
 private:
 	//! A set of all base classes that have been serialized
@@ -658,6 +674,10 @@ public:
 	template <typename T>
 	inline ArchiveType& nvp(const char* name, T&& arg) {
 		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+	}
+
+	inline ArchiveType& size_tag(size_type& size) {
+		return (*this)(::vide::SizeTag<size_type&>(size));
 	}
 
 	/*! @name Boost Transition Layer

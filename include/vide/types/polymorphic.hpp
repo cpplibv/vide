@@ -458,4 +458,4 @@ VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
 
 #undef UNREGISTERED_POLYMORPHIC_EXCEPTION
 
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

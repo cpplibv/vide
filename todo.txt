@@ -23,6 +23,21 @@ Type files that still have to be cleaned from cereal/cereal.hpp include:
 
 
 
+patch notes:
+	add .size_tag()
+	add ::size_type
+	rename could_serialize -> supports_type
+	add supports_binary<T>
+
+
+
+
+
+
+SizeTag is still a bit wierd
+
+
+
 
 
 

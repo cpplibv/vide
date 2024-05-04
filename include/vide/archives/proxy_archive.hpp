@@ -23,9 +23,14 @@ public:
 	static constexpr bool is_text_archive = Ar::is_text_archive;
 
 	template <typename T>
-	static constexpr bool could_serialize = Ar::template could_serialize<T>;
+	static constexpr bool supports_type = Ar::template supports_type<T>;
 
+	template <typename T>
+	static constexpr bool supports_binary = Ar::template supports_binary<T>;
+
+public:
 	using underlying_archive = underlying_archive_t<Ar>;
+	using size_type = typename Ar::size_type;
 
 private:
 	Ar& ar;
@@ -57,6 +62,15 @@ public:
 	template <typename T>
 	inline CRTP& nvp(const char* name, T&& arg) {
 		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+	}
+
+	inline CRTP& size_tag(size_type size) requires is_output {
+		ar.size_tag(size);
+		return static_cast<CRTP&>(*this);
+	}
+	inline CRTP& size_tag(size_type& size) requires is_input {
+		ar.size_tag(size);
+		return static_cast<CRTP&>(*this);
 	}
 
 public:

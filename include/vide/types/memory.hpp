@@ -36,10 +36,8 @@
 //#include <vide/access.hpp>
 
 
-namespace vide {
+namespace vide { // --------------------------------------------------------------------------------
 namespace memory_detail {
-
-// -------------------------------------------------------------------------------------------------
 
 //! A wrapper class to notify vide that it is ok to serialize the contained pointer
 /*! This mechanism allows us to intercept and properly handle polymorphic pointers
@@ -264,6 +262,4 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, memory_detail::PtrWrapper<std::
 	}
 }
 
-// -------------------------------------------------------------------------------------------------
-
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

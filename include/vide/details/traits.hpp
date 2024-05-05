@@ -98,64 +98,6 @@ concept is_default_constructible = requires { vide::access::construct<T>(); };
 // template<class T, class A>
 // struct diagnose_member_load_minimal_versioned { ...
 
-// // Load Minimal Utilities
-// namespace detail {
-//
-// //! Used to help strip away conversion wrappers
-// /*! If someone writes a non-member load/save minimal function that accepts its
-// 	parameter as some generic template type and needs to perform trait checks
-// 	on that type, our NoConvert wrappers will interfere with this.  Using
-// 	the struct strip_minmal, users can strip away our wrappers to get to
-// 	the underlying type, allowing traits to work properly */
-// struct NoConvertBase {};
-//
-// //! A struct that prevents implicit conversion
-// /*! Any type instantiated with this struct will be unable to implicitly convert
-// 	to another type.  Is designed to only allow conversion to Source &.
-//
-// 	@tparam Source the type of the original source */
-// template <class Source>
-// struct NoConvertRef : NoConvertBase {
-// 	using type = Source; //!< Used to get underlying type easily
-//
-// 	template <class Dest, class = typename std::enable_if<std::is_same<Source, Dest>::value>::type>
-// 	operator Dest() = delete;
-//
-// #ifdef __clang__
-// 	template <class Dest, class = typename std::enable_if<std::is_same<Source, Dest>::value>::type>
-// 	operator Dest const & () = delete;
-// #endif // __clang__
-//
-// 	//! only allow conversion if the types are the same and we are converting into a const reference
-// 	template <class Dest, class = typename std::enable_if<std::is_same<Source, Dest>::value>::type>
-// 	operator Dest&();
-// };
-//
-// //! A struct that prevents implicit conversion to a different type
-// template <class Source>
-// 	requires (!std::is_void_v<Source>)
-// struct NoConvertAnyRef : NoConvertBase {
-// 	using type = Source; //!< Used to get underlying type easily
-//
-// 	operator Source&();
-// 	operator Source&&();
-// 	operator const Source&() const;
-// };
-//
-// //! A type that can implicitly convert to anything else
-// struct AnyConvert {
-// 	template <class Dest>
-// 	operator Dest&();
-//
-// 	template <class Dest>
-// 	operator Dest&&();
-//
-// 	template <class Dest>
-// 	operator const Dest&() const;
-// };
-//
-// } // namespace detail ------------------------------------------------------------------------------
-
 template <typename Archive, typename T>
 struct diagnose_type {
 	// When a request for serialization fails, instantiate this type and

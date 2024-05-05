@@ -535,6 +535,8 @@ public:
 		@param stream The stream to read from.  Can be a stringstream or a file. */
 	explicit XMLInputArchive(std::istream& stream) :
 			itsData(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()) {
+		reserveMemoryBudget = itsData.size() * VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER;
+
 		try {
 			itsData.push_back('\0'); // rapidxml will do terrible things without the data being null terminated
 			itsXML.parse<rapidxml::parse_trim_whitespace | rapidxml::parse_no_data_nodes | rapidxml::parse_declaration_node>(reinterpret_cast<char*>( itsData.data()));

@@ -3,15 +3,14 @@
 #include <list>
 
 #include <vide/macros.hpp>
-#include <vide/size_tag.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
 //! Saving for std::list
 template <class Archive, class T, class A>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::list<T, A> const& list) {
-	ar.size_tag(static_cast<size_type>(list.size()));
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::list<T, A>& list) {
+	ar.size_tag(list.size());
 
 	for (auto const& i : list)
 		ar(i);
@@ -20,13 +19,19 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::list<T, A> const& list) {
 //! Loading for std::list
 template <class Archive, class T, class A>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::list<T, A>& list) {
-	size_type size;
-	ar.size_tag(size);
+	const auto size = ar.size_tag();
+	const auto reserveable = ar.template safe_to_reserve<T>(size);
 
-	list.resize(static_cast<size_t>(size));
-
-	for (auto& i : list)
-		ar(i);
+	if (reserveable == size) {
+		list.resize(reserveable);
+		for (auto& i : list)
+			ar(i);
+	} else {
+		for (typename Archive::size_type i = 0; i < size; ++i) {
+			T& element = list.emplace_back();
+			ar(element);
+		}
+	}
 }
 
 } // namespace vide --------------------------------------------------------------------------------

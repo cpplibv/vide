@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(vide LANGUAGES CXX VERSION 2.2.1)
+project(vide LANGUAGES CXX VERSION 2.3.0)
 
 if (PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set(VIDE_MASTER_PROJECT ON)
@@ -127,7 +127,7 @@ wish_warning(
 # -------------------------------------------------------------------------------------------------
 
 if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-	add_compile_options(-Og)
+	#add_compile_options(-Og)
 	add_compile_options(-ggdb3)
 	#	add_compile_options(-fno-omit-frame-pointer)
 

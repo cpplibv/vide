@@ -3,7 +3,6 @@
 #include <optional>
 
 #include <vide/macros.hpp>
-#include <vide/nvp.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
@@ -11,25 +10,23 @@ namespace vide { // ------------------------------------------------------------
 //! Saving for std::optional
 template <class Archive, typename T>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::optional<T>& optional) {
-	if (!optional) {
-		ar(VIDE_NVP_("nullopt", true));
-	} else {
-		ar(VIDE_NVP_("nullopt", false));
-		ar(VIDE_NVP_("data", *optional));
-	}
+	ar.nvp("has_value", optional.has_value());
+	if (optional)
+		ar.nvp("value", *optional);
 }
 
 //! Loading for std::optional
 template <class Archive, typename T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::optional<T>& optional) {
-	bool nullopt;
-	ar(VIDE_NVP_("nullopt", nullopt));
+	bool has_value;
+	ar.nvp("has_value", has_value);
 
-	if (nullopt) {
-		optional = std::nullopt;
-	} else {
+	if (has_value) {
 		optional.emplace();
-		ar(VIDE_NVP_("data", *optional));
+		ar.nvp("value", *optional);
+	} else {
+		optional = std::nullopt;
 	}
 }
+
 } // namespace vide --------------------------------------------------------------------------------

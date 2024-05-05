@@ -3,7 +3,6 @@
 #include <set>
 
 #include <vide/macros.hpp>
-#include <vide/size_tag.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
@@ -12,7 +11,7 @@ namespace set_detail {
 //! @internal
 template <class Archive, class SetT>
 inline void save(Archive& ar, SetT const& set) {
-	ar.size_tag(static_cast<size_type>(set.size()));
+	ar.size_tag(set.size());
 
 	for (const auto& i : set)
 		ar(i);
@@ -21,13 +20,12 @@ inline void save(Archive& ar, SetT const& set) {
 //! @internal
 template <class Archive, class SetT>
 inline void load(Archive& ar, SetT& set) {
-	size_type size;
-	ar.size_tag(size);
+	const auto size = ar.size_tag();
 
 	set.clear();
 
 	auto hint = set.begin();
-	for (size_type i = 0; i < size; ++i) {
+	for (typename Archive::size_type i = 0; i < size; ++i) {
 		typename SetT::key_type key;
 
 		ar(key);
@@ -60,4 +58,5 @@ template <class Archive, class K, class C, class A>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::multiset<K, C, A>& multiset) {
 	set_detail::load(ar, multiset);
 }
+
 } // namespace vide --------------------------------------------------------------------------------

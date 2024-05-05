@@ -31,7 +31,6 @@
 
 #include <vide/details/bits.hpp>
 #include <vide/macros.hpp>
-#include <vide/nvp.hpp>
 #include <vide/traits/shared_from_this.hpp>
 //#include <vide/access.hpp>
 
@@ -145,14 +144,14 @@ private:
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
-	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+	ar.nvp("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr));
 }
 
 //! Loading std::shared_ptr, case when no user load and construct for non polymorphic types
 template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
 VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& ptr) {
-	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+	ar.nvp("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr));
 }
 
 //! Saving std::weak_ptr for non polymorphic types
@@ -160,7 +159,7 @@ template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::weak_ptr<T> const& ptr) {
 	auto const sptr = ptr.lock();
-	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(sptr)));
+	ar.nvp("ptr_wrapper", memory_detail::make_ptr_wrapper(sptr));
 }
 
 //! Loading std::weak_ptr for non polymorphic types
@@ -168,7 +167,7 @@ template <class Archive, class T> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
 VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::weak_ptr<T>& ptr) {
 	std::shared_ptr<T> sptr;
-	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(sptr)));
+	ar.nvp("ptr_wrapper", memory_detail::make_ptr_wrapper(sptr));
 	ptr = sptr;
 }
 
@@ -176,14 +175,14 @@ VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::weak_ptr<T>& ptr) {
 template <class Archive, class T, class D> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
 VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
-	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+	ar.nvp("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr));
 }
 
 //! Loading std::unique_ptr, case when user provides load_and_construct for non polymorphic types
 template <class Archive, class T, class D> inline
 typename std::enable_if<!std::is_polymorphic<T>::value, void>::type
 VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
-	ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+	ar.nvp("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr));
 }
 
 // ######################################################################
@@ -196,10 +195,10 @@ void VIDE_FUNCTION_NAME_SAVE(Archive& ar, memory_detail::PtrWrapper<const std::s
 	auto& ptr = wrapper.ptr;
 
 	uint32_t id = ar.registerSharedPointer(ptr);
-	ar(VIDE_NVP_("id", id));
+	ar.nvp("id", id);
 
 	if (id & detail::msb_32bit) {
-		ar(VIDE_NVP_("data", *ptr));
+		ar.nvp("data", *ptr);
 	}
 }
 
@@ -209,7 +208,7 @@ template <class Archive, class T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, memory_detail::PtrWrapper<std::shared_ptr<T>&>& wrapper) {
 	uint32_t id;
 
-	ar(VIDE_NVP_("id", id));
+	ar.nvp("id", id);
 
 	if (id & detail::msb_32bit) {
 		using NonConstT = typename std::remove_const<T>::type;
@@ -221,7 +220,7 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, memory_detail::PtrWrapper<std::
 		std::shared_ptr<NonConstT> ptr(::vide::access::construct<NonConstT>());
 
 		ar.registerSharedPointer(id, ptr);
-		ar(VIDE_NVP_("data", *ptr));
+		ar.nvp("data", *ptr);
 		wrapper.ptr = std::move(ptr);
 	} else
 		wrapper.ptr = std::static_pointer_cast<T>(ar.getSharedPointer(id));
@@ -238,10 +237,10 @@ void VIDE_FUNCTION_NAME_SAVE(Archive& ar, memory_detail::PtrWrapper<std::unique_
 	// 1 == not null
 
 	if (!ptr)
-		ar(VIDE_NVP_("valid", uint8_t(0)));
+		ar.nvp("valid", uint8_t(0));
 	else {
-		ar(VIDE_NVP_("valid", uint8_t(1)));
-		ar(VIDE_NVP_("data", *ptr));
+		ar.nvp("valid", uint8_t(1));
+		ar.nvp("data", *ptr);
 	}
 }
 
@@ -250,12 +249,12 @@ void VIDE_FUNCTION_NAME_SAVE(Archive& ar, memory_detail::PtrWrapper<std::unique_
 template <class Archive, class T, class D>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, memory_detail::PtrWrapper<std::unique_ptr<T, D>&>& wrapper) {
 	uint8_t isValid;
-	ar(VIDE_NVP_("valid", isValid));
+	ar.nvp("valid", isValid);
 
 	if (isValid) {
 		using NonConstT = typename std::remove_const<T>::type;
 		std::unique_ptr<NonConstT, D> ptr(::vide::access::construct<NonConstT>());
-		ar(VIDE_NVP_("data", *ptr));
+		ar.nvp("data", *ptr);
 		wrapper.ptr = std::move(ptr);
 	} else {
 		wrapper.ptr.reset(nullptr);

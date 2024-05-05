@@ -28,7 +28,7 @@
 */
 #pragma once
 
-#include <concepts>
+#include <iostream>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -121,6 +121,7 @@ enum Flags {
 	AllowEmptyClassElision = 1u << 0u,
 	IgnoreNVP = 1u << 1u,
 	TextArchive = 1u << 2u,
+	BinaryArchive = 1u << 3u,
 	//	____ = 1u << 3u,
 	//	____ = 1u << 4u,
 	//	____ = 1u << 5u,
@@ -276,15 +277,10 @@ public:
 	static constexpr bool is_output = true;
 	static constexpr bool is_input = false;
 	static constexpr bool is_text_archive = (Flags & vide::TextArchive) != 0;
+	static constexpr bool is_binary_archive = (Flags & vide::BinaryArchive) != 0;
 
 	template <typename T>
-	static constexpr bool supports_type = requires(ArchiveType& ar, const T& t) {
-		// unserializable_type_tag is returned on the fault branch
-		{ ar.processImpl(ar, t) } -> std::same_as<void>;
-	};
-
-	template <typename T>
-	static constexpr bool supports_binary = binary_serializable_type<T> && supports_type<BinaryData<T>>;
+	static constexpr bool supports_binary = binary_serializable_type<T> && is_binary_archive;
 
 public:
 	using size_type = vide::size_type;
@@ -339,7 +335,7 @@ public:
 	/*! This is the primary interface for serializing data with an archive */
 	template <class T>
 	inline ArchiveType& operator()(T&& arg) {
-		self().process(std::forward<T>(arg));
+		process_self(std::forward<T>(arg));
 		return self();
 	}
 
@@ -348,9 +344,17 @@ public:
 		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}
 
-	inline ArchiveType& size_tag(size_type size) {
+	inline ArchiveType& size_tag(uint32_t size) {
 		return (*this)(::vide::SizeTag<size_type>(size));
 	}
+
+	inline ArchiveType& size_tag(uint64_t size) {
+		return (*this)(::vide::SizeTag<size_type>(size));
+	}
+
+	// inline ArchiveType& binary_data(uint64_t size) {
+	// 	return (*this)(::vide::SizeTag<size_type>(size));
+	// }
 
 	/*! @name Boost Transition Layer
 		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
@@ -363,7 +367,7 @@ public:
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator&(T&& arg) {
-		self().process(std::forward<T>(arg));
+		process_self(std::forward<T>(arg));
 		return self();
 	}
 
@@ -373,12 +377,13 @@ public:
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator<<(T&& arg) {
-		self().process(std::forward<T>(arg));
+		process_self(std::forward<T>(arg));
 		return self();
 	}
 
 	//! @}
 
+public:
 	//! Serializes any data marked for deferment using defer
 	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
 	void serializeDeferments() {
@@ -445,7 +450,7 @@ public:
 				detail::StaticObject<detail::Versions>::getInstance().find(hash, detail::Version<T>::version);
 
 		if (insertResult.second) // insertion took place, serialize the version number
-			process(make_nvp<ArchiveType>("vide_class_version", version));
+			process_self(make_nvp<ArchiveType>("vide_class_version", version));
 
 		return version;
 	}
@@ -463,7 +468,7 @@ public:
 private:
 	//! Serializes data
 	template <class T>
-	inline void process(T&& var) {
+	inline void process_self(T&& var) {
 		self().process_as(self(), var);
 	}
 
@@ -482,7 +487,7 @@ private:
 	template <class As, class T>
 	inline void processImpl(As& as, DeferredData<T> const& d) {
 		(void) as;
-		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
+		std::function<void(void)> deferment([this, d]() { process_self(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
 	}
 
@@ -549,7 +554,7 @@ private:
 	inline unserializable_type_tag processImpl(As& as, const T&) {
 		(void) as;
 
-		static_assert(access::count_output_serializers<ArchiveType, T> != 0,
+		static_assert(access::count_output_serializers<ArchiveType, T> != 0, "\n"
 				"Vide could not find any output serialization functions for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Serialize functions generally have the following signature:\n\n"
@@ -559,7 +564,7 @@ private:
 				"    ar(member2);\n"
 				"  }\n\n");
 
-		static_assert(access::count_output_serializers<ArchiveType, T> <= 1,
+		static_assert(access::count_output_serializers<ArchiveType, T> <= 1, "\n"
 				"Vide found more than one compatible output serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
@@ -595,15 +600,10 @@ public:
 	static constexpr bool is_output = false;
 	static constexpr bool is_input = true;
 	static constexpr bool is_text_archive = (Flags & vide::TextArchive) != 0;
+	static constexpr bool is_binary_archive = (Flags & vide::BinaryArchive) != 0;
 
 	template <typename T>
-	static constexpr bool supports_type = requires(ArchiveType& ar, T& t) {
-		// unserializable_type_tag is returned on the fault branch
-		{ ar.processImpl(ar, t) } -> std::same_as<void>;
-	};
-
-	template <typename T>
-	static constexpr bool supports_binary = binary_serializable_type<T> && supports_type<BinaryData<T>>;
+	static constexpr bool supports_binary = binary_serializable_type<T> && is_binary_archive;
 
 public:
 	using size_type = vide::size_type;
@@ -623,6 +623,14 @@ private:
 
 	//! Deferments
 	std::vector<std::function<void(void)>> itsDeferments;
+
+protected:
+	/// Stores the amount of bytes that can be resaonably safely reserved during deserialization.
+	/// This is a security requirement as a single malicious size_tag could allocage all of system memory.
+	/// To improve performance this budget can be used.
+	/// Each archive has to initialize this: recommended value is 2-8x times the original raw data size.
+	// std::size_t reserveMemoryBudget = 1 * 1024 * 1024; // Defaults to 1 MB but archives are expected to override it.
+	std::size_t reserveMemoryBudget = 0; // Defaults to 1 MB but archives are expected to override it.
 
 public:
 	//! Construct the output archive
@@ -646,7 +654,7 @@ public:
 	/*! This is the primary interface for serializing data with an archive */
 	template <class T>
 	inline ArchiveType& operator()(T&& arg) {
-		self().process(std::forward<T>(arg));
+		process_self(std::forward<T>(arg));
 		return self();
 	}
 
@@ -657,6 +665,27 @@ public:
 
 	inline ArchiveType& size_tag(size_type& size) {
 		return (*this)(::vide::SizeTag<size_type&>(size));
+	}
+
+	inline size_type size_tag() {
+		size_type size;
+		size_tag(size);
+		return size;
+	}
+
+	template <typename T>
+	[[nodiscard]] std::size_t safe_to_reserve(size_type numElements) {
+		const auto requestedBytes = numElements * sizeof(T);
+		const auto numSafeElements = requestedBytes <= reserveMemoryBudget ? numElements : reserveMemoryBudget / sizeof(T);
+		reserveMemoryBudget -= numSafeElements * sizeof(T);
+		return numSafeElements;
+	}
+
+	template <typename T> requires is_binary_archive
+	inline void validate_read_size(size_type numElements) {
+		const auto requestedBytes = numElements * sizeof(T);
+		if (requestedBytes > self().maximumBinaryReadSize())
+			throw Exception("Read size validation of " + std::to_string(requestedBytes) + " bytes failed.");
 	}
 
 	/*! @name Boost Transition Layer
@@ -670,7 +699,7 @@ public:
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator&(T&& arg) {
-		self().process(std::forward<T>(arg));
+		process_self(std::forward<T>(arg));
 		return self();
 	}
 
@@ -680,12 +709,13 @@ public:
 		transition to the operator() overload */
 	template <class T>
 	inline ArchiveType& operator>>(T&& arg) {
-		self().process(std::forward<T>(arg));
+		process_self(std::forward<T>(arg));
 		return self();
 	}
 
 	//! @}
 
+public:
 	//! Serializes any data marked for deferment using defer
 	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
 	void serializeDeferments() {
@@ -766,7 +796,7 @@ public:
 		else { // need to load
 			std::uint32_t version;
 
-			process(make_nvp<ArchiveType>("vide_class_version", version));
+			process_self(make_nvp<ArchiveType>("vide_class_version", version));
 			itsVersionedTypes.emplace_hint(lookupResult, hash, version);
 
 			return version;
@@ -786,7 +816,7 @@ public:
 private:
 	//! Serializes data
 	template <class T>
-	inline void process(T&& var) {
+	inline void process_self(T&& var) {
 		self().process_as(self(), var);
 	}
 
@@ -805,7 +835,7 @@ private:
 	template <class As, class T>
 	inline void processImpl(As& as, DeferredData<T> const& d) {
 		(void) as;
-		std::function<void(void)> deferment([this, d]() { self().process(d.value); });
+		std::function<void(void)> deferment([this, d]() { process_self(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
 	}
 
@@ -882,7 +912,7 @@ private:
 	inline unserializable_type_tag processImpl(As& as, const T&) {
 		(void) as;
 
-		static_assert(access::count_input_serializers<ArchiveType, T> != 0,
+		static_assert(access::count_input_serializers<ArchiveType, T> != 0, "\n"
 				"Vide could not find any input serialization functions for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Serialize functions generally have the following signature:\n\n"
@@ -892,7 +922,7 @@ private:
 				"    ar(member2);\n"
 				"  }\n\n");
 
-		static_assert(access::count_input_serializers<ArchiveType, T> <= 1,
+		static_assert(access::count_input_serializers<ArchiveType, T> <= 1, "\n"
 				"Vide found more than one compatible input serialization function for the provided type and archive combination.\n\n"
 				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
 				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"

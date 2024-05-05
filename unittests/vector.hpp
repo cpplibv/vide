@@ -79,7 +79,7 @@ void test_vector()
     std::vector<StructExternalSerialize> i_eservector;
     std::vector<StructExternalSplit>     i_esplvector;
 
-    std::istringstream is(os.str());
+    std::istringstream is(os.str(), std::ios::binary | std::ios::in);
     {
       IArchive iar(is);
 

@@ -21,9 +21,7 @@ public:
 	static constexpr bool is_output = Ar::is_output;
 	static constexpr bool is_input = Ar::is_input;
 	static constexpr bool is_text_archive = Ar::is_text_archive;
-
-	template <typename T>
-	static constexpr bool supports_type = Ar::template supports_type<T>;
+	static constexpr bool is_binary_archive = Ar::is_binary_archive;
 
 	template <typename T>
 	static constexpr bool supports_binary = Ar::template supports_binary<T>;
@@ -64,13 +62,34 @@ public:
 		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}
 
-	inline CRTP& size_tag(size_type size) requires is_output {
+	inline CRTP& size_tag(uint32_t size) requires is_output {
+		ar.size_tag(size);
+		return static_cast<CRTP&>(*this);
+	}
+	inline CRTP& size_tag(uint64_t size) requires is_output {
 		ar.size_tag(size);
 		return static_cast<CRTP&>(*this);
 	}
 	inline CRTP& size_tag(size_type& size) requires is_input {
 		ar.size_tag(size);
 		return static_cast<CRTP&>(*this);
+	}
+	inline size_type size_tag() requires is_input {
+		return ar.size_tag();
+	}
+
+	template <typename T>
+	[[nodiscard]] inline std::size_t safe_to_reserve(size_type numElements) requires is_input {
+		return ar.template safe_to_reserve<T>(numElements);
+	}
+
+	template <typename T>
+	inline void validate_read_size(size_type numElements) requires (is_input && is_binary_archive) {
+		ar.template validate_read_size<T>(numElements);
+	}
+
+	[[nodiscard]] inline std::size_t maximumBinaryReadSize() const requires (is_input && is_binary_archive) {
+		return ar.maximumBinaryReadSize();
 	}
 
 public:

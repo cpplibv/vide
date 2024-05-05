@@ -72,6 +72,14 @@
 #define VIDE_SIZE_TYPE uint32_t
 #endif // VIDE_SIZE_TYPE
 
+#ifndef VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER
+/// Multipler of the input data size which deretmines the memory budget that can be used to reserve containers.
+/// Typical values are 1 .. 8. It is meant as a reasonable upper estimate on how much C++ object memory
+/// can be extracted from the archive.
+/// If the budget ever runs out the deserialization will fall back to element wise non-reserved allocation patterns.
+#define VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER 8
+#endif // VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER
+
 // =================================================================================================
 
 #ifndef VIDE_FUNCTION_NAME_SERIALIZE

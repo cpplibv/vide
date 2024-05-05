@@ -49,18 +49,23 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Version 2.2.1:
   - Add support for move reference parameter type for `load_minimal` function
 - Version 2.3.0:
-  - Cleanup compiler warnings
+  - Breaking change: Serialized data format changed breaking compatibility with data generated before this version
   - Sync with upstream 2024.05.02 d1fcec807
-  - Refactor and modernize type traits
-  - Add archive dependent name .size_tag() for vide::make_size_tag
-  - Add archive dependent name ::size_type for vide::size_type
-  - Add archive supports_binary<T> to test if the archive can binary serialize T
-  - Rename could_serialize<T> to supports_type<T>
+  - Security: Safe reserve! Invalid data can no longer allocate unbounded amount of memory during deserialization
+    - Add archive.validate_read_size<T>() to check if the archive has enough data for binary deserialization
+    - Add archive.safe_to_reserve<T>() to check and clamp the amount of memory reserved
+  	- Add archive.maximumBinaryReadSize() to report how much data could be extracted during binary deserialization
+  - Add archive.size_tag() as a dependent name for vide::make_size_tag
+  - Add Archive::is_binary_archive
+  - Add Archive::size_type as a dependent name for vide::size_type
+  - Add Archive::supports_binary<T> to test if the archive can binary serialize T
+  - Remove Archive::could_serialize<T>
   - Improve compile time performance
   - Improve and modernize meta programming practices and techniques
-  -
-  - Planned: BinaryData, NVP
-  - Planned: Safe reserve
+  - Refactor and modernize type traits
+  - Cleanup compiler warnings
+  - Planned: dependent name or function for BinaryData
+  - Planned: Archive allow skipping NVP
   - Planned: Archive.reset() and Archive.finish()
 
 

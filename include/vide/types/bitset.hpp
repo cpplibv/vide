@@ -35,7 +35,6 @@
 #include <vide/binary_data.hpp>
 #include <vide/details/exception.hpp>
 #include <vide/macros.hpp>
-#include <vide/nvp.hpp>
 #include <vide/types/string.hpp>
 
 
@@ -46,10 +45,10 @@ namespace bitset_detail {
 //! The type the bitset is encoded with
 /*! @internal */
 enum class type : uint8_t {
-	ulong,
-	ullong,
-	string,
-	bits
+	ulong = 0,
+	ullong = 1,
+	string = 2,
+	bits = 3,
 };
 
 } // namespace bitset_detail -----------------------------------------------------------------------
@@ -57,10 +56,9 @@ enum class type : uint8_t {
 //! Serializing (save) for std::bitset
 template <class Archive, size_t N>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::bitset<N>& bits) {
-	constexpr bool serialize_as_binary = Archive::template supports_type<BinaryData<std::uint32_t>>;
-
-	if constexpr (serialize_as_binary) { // when BinaryData optimization supported
-		ar(VIDE_NVP_("type", bitset_detail::type::bits));
+	if constexpr (Archive::template supports_binary<std::uint32_t>) {
+		// when BinaryData optimization supported
+		ar.nvp("type", bitset_detail::type::bits);
 
 		// Serialize 8 bit chunks
 		std::uint8_t chunk = 0;
@@ -84,22 +82,20 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::bitset<N>& bits) {
 		// serialize remainder, if it exists
 		if (mask != 0x80)
 			ar(chunk);
-
-	} else { // when BinaryData is not supported
+	} else {
+		// when BinaryData is not supported
 		try {
 			auto const b = bits.to_ulong();
-			ar(VIDE_NVP_("type", bitset_detail::type::ulong));
-			ar(VIDE_NVP_("data", b));
-
+			ar.nvp("type", bitset_detail::type::ulong);
+			ar.nvp("data", b);
 		} catch (const std::overflow_error&) {
 			try {
 				auto const b = bits.to_ullong();
-				ar(VIDE_NVP_("type", bitset_detail::type::ullong));
-				ar(VIDE_NVP_("data", b));
-
+				ar.nvp("type", bitset_detail::type::ullong);
+				ar.nvp("data", b);
 			} catch (const std::overflow_error&) {
-				ar(VIDE_NVP_("type", bitset_detail::type::string));
-				ar(VIDE_NVP_("data", bits.to_string()));
+				ar.nvp("type", bitset_detail::type::string);
+				ar.nvp("data", bits.to_string());
 			}
 		}
 	}
@@ -109,25 +105,29 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::bitset<N>& bits) {
 template <class Archive, size_t N>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::bitset<N>& bits) {
 	bitset_detail::type t;
-	ar(VIDE_NVP_("type", t));
+	ar.nvp("type", t);
 
 	switch (t) {
 	case bitset_detail::type::ulong: {
 		unsigned long b;
-		ar(VIDE_NVP_("data", b));
+		ar.nvp("data", b);
 		bits = std::bitset<N>(b);
 		break;
 	}
 	case bitset_detail::type::ullong: {
 		unsigned long long b;
-		ar(VIDE_NVP_("data", b));
+		ar.nvp("data", b);
 		bits = std::bitset<N>(b);
 		break;
 	}
 	case bitset_detail::type::string: {
 		std::string b;
-		ar(VIDE_NVP_("data", b));
-		bits = std::bitset<N>(b);
+		ar.nvp("data", b);
+		try {
+			bits = std::bitset<N>(b);
+		} catch (const std::invalid_argument&) {
+			throw Exception("Invalid bitset data string");
+		}
 		break;
 	}
 	case bitset_detail::type::bits: {

@@ -22,7 +22,7 @@ namespace vide {
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
+class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
 private:
 	std::ostream& itsStream;
 
@@ -41,7 +41,7 @@ public:
 		auto const writtenSize = itsStream.rdbuf()->sputn(reinterpret_cast<const char*>(data), size);
 
 		if (writtenSize != size)
-			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
+			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream. Wrote " + std::to_string(writtenSize));
 	}
 
 	// --- process_as remapping ------------------------------------------------------------------------
@@ -81,14 +81,25 @@ public:
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP> {
+class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
 private:
+	std::istream::pos_type end;
 	std::istream& itsStream;
 
 public:
 	//! Construct, loading from the provided stream
 	explicit BinaryInputArchive(std::istream& stream) :
 		itsStream(stream) {
+
+		const auto begin = itsStream.tellg();
+		itsStream.seekg(0, std::ios::end);
+		if (itsStream.fail())
+			throw Exception("Failed to seek stream to determine binary size.");
+		end = itsStream.tellg();
+		itsStream.seekg(begin, std::ios::beg);
+		if (itsStream.fail())
+			throw Exception("Failed to seek stream to determine binary size.");
+		reserveMemoryBudget = static_cast<std::size_t>(end - begin) * VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER;
 	}
 
 	~BinaryInputArchive() noexcept = default;
@@ -98,7 +109,12 @@ public:
 		const auto readSize = itsStream.rdbuf()->sgetn(reinterpret_cast<char*>(data), size);
 
 		if (readSize != size)
-			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
+			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream. Read " + std::to_string(readSize));
+	}
+
+	[[nodiscard]] inline std::size_t maximumBinaryReadSize() const {
+		const auto pos = itsStream.tellg();
+		return end - pos;
 	}
 
 	// --- process_as remapping ------------------------------------------------------------------------

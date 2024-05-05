@@ -3,7 +3,6 @@
 #include <tuple>
 
 #include <vide/macros.hpp>
-#include <vide/nvp.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
@@ -63,7 +62,7 @@ struct serialize {
 	template <class Archive, class... Types>
 	inline static void apply(Archive& ar, std::tuple<Types...>& tuple) {
 		serialize<Height - 1>::template apply(ar, tuple);
-		ar(VIDE_NVP_(tuple_element_name<Height - 1>::c_str(), std::get<Height - 1>(tuple)));
+		ar.nvp(tuple_element_name<Height - 1>::c_str(), std::get<Height - 1>(tuple));
 	}
 };
 

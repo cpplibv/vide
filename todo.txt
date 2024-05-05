@@ -4,11 +4,6 @@
 20220623 :  7:27
 20240502 : 10:07
 
-Type files that still have to be cleaned from vide/vide.hpp include:
-    !!! memory (transitive via vide/traits/shared_from_this.hpp)
-    base_class
-    polymorphic
-    common (archives will need vide.hpp anyways, common is included after each archive (not by user), so this one is not that important)
 
 
 
@@ -21,6 +16,9 @@ Type files that still have to be cleaned from vide/vide.hpp include:
 
 
 
+05.03 3:15
+05.04 12:30
+05.05 16:30
 
 
 
@@ -29,25 +27,32 @@ Type files that still have to be cleaned from vide/vide.hpp include:
 
 
 
-SizeTag is still a bit wierd
+release 2.3.0
 
 
 
 
 
-vide: Safe reserve: get rid of unsafe reserves / resizes in serializers
-		This includes every:
-			vide/types
-			libv/serial/types
-			libv/utility/entity/entity_ptr_serial
-			libv/container/small_vector_serial
-			any *_serial file that serializes a size_type
-		resize / reserves can be allowed it their memory footprint is smaller than the rest of the buffer
-		archive buffer size detection
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
 vide: size_type from dependent name: Archive.size(v.size()) or Archive::SizeTag or other option
 vide: binary from dependent name: Archive.as_binary() / Archive.can_serialize_as_binary<T>()
 vide: .nvp -> do not always create NVP, let the archive decide
 
-update version numbers, update patch notes, release 2.3.0
+
+cleanup SizeTag
+
+Files that should remove the vide/vide.hpp include:
+    types/memory.hpp (transitive via vide/traits/shared_from_this.hpp)
+    types/polymorphic.hpp
+
+remove operator>>
+remove operator<<
+remove operator&
+
+Better document:
+	validate_read_size
+	safe_to_reserve
+	is_binary_archive
+	maximumBinaryReadSize
+

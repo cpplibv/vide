@@ -78,7 +78,7 @@ inline void swap_bytes(std::uint8_t* data) {
 
   \ingroup Archives */
 class PortableBinaryOutputArchive :
-		public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP> {
+		public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
 
 private:
 	std::ostream& itsStream;
@@ -142,7 +142,7 @@ public:
 			writtenSize = itsStream.rdbuf()->sputn(reinterpret_cast<const char*>( data ), size);
 
 		if (writtenSize != size)
-			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream! Wrote " + std::to_string(writtenSize));
+			throw Exception("Failed to write " + std::to_string(size) + " bytes to output stream. Wrote " + std::to_string(writtenSize));
 	}
 
 	// --- process_as remapping ------------------------------------------------------------------------
@@ -205,8 +205,9 @@ public:
 			 <a href="www.github.com/USCiLab/cereal">the project github</a>.
 
   \ingroup Archives */
-class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP> {
+class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
 private:
+	std::istream::pos_type end;
 	std::istream& itsStream;
 	uint8_t itsConvertEndianness; //!< If set to true, we will need to swap bytes upon loading
 
@@ -250,6 +251,17 @@ public:
 	explicit PortableBinaryInputArchive(std::istream& stream, Options const& options = Options::Default()) :
 			itsStream(stream),
 			itsConvertEndianness(false) {
+
+		const auto begin = itsStream.tellg();
+		itsStream.seekg(0, std::ios::end);
+		if (itsStream.fail())
+			throw Exception("Failed to seek stream to determine binary size.");
+		end = itsStream.tellg();
+		itsStream.seekg(begin, std::ios::beg);
+		if (itsStream.fail())
+			throw Exception("Failed to seek stream to determine binary size.");
+		reserveMemoryBudget = static_cast<std::size_t>(end - begin) * VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER;
+
 		uint8_t streamLittleEndian;
 		this->operator()(streamLittleEndian);
 		itsConvertEndianness = options.is_little_endian() ^ streamLittleEndian;
@@ -267,7 +279,7 @@ public:
 		auto const readSize = itsStream.rdbuf()->sgetn(reinterpret_cast<char*>( data ), size);
 
 		if (readSize != size)
-			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream! Read " + std::to_string(readSize));
+			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream. Read " + std::to_string(readSize));
 
 		// flip bits if needed
 		if (itsConvertEndianness) {
@@ -275,6 +287,11 @@ public:
 			for (std::streamsize i = 0; i < size; i += DataSize)
 				portable_binary_detail::swap_bytes<DataSize>(ptr + i);
 		}
+	}
+
+	[[nodiscard]] inline std::size_t maximumBinaryReadSize() const {
+		const auto pos = itsStream.tellg();
+		return end - pos;
 	}
 
 	// --- process_as remapping ------------------------------------------------------------------------

@@ -376,9 +376,7 @@ public:
 
 	//! @}
 
-	// --- process_as remapping ------------------------------------------------------------------------
-public:
-//	using OutputArchive::process_as;
+public: // --- process_as remapping --------------------------------------------------------------------
 
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
@@ -571,6 +569,32 @@ private:
 	std::vector<Iterator> itsIteratorStack; //!< 'Stack' of rapidJSON iterators
 	VIDE_RAPIDJSON_NAMESPACE::Document itsDocument; //!< Rapidjson document
 
+private:
+	static std::size_t mesureStreamSize(std::istream& stream) {
+		const auto begin = stream.tellg();
+		stream.seekg(0, std::ios::end);
+		if (stream.fail())
+			throw Exception("Failed to seek stream to determine binary size.");
+		const auto end = stream.tellg();
+		stream.seekg(begin, std::ios::beg);
+		if (stream.fail())
+			throw Exception("Failed to seek stream to determine binary size.");
+		return static_cast<std::size_t>(end - begin);
+	}
+
+	JSONInputArchive(std::istream& stream, std::size_t streamSize) :
+		itsNextName(nullptr),
+		itsReadStream(stream) {
+
+		reserveMemoryBudget = streamSize * VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER;
+
+		itsDocument.ParseStream<>(itsReadStream);
+		if (itsDocument.IsArray())
+			itsIteratorStack.emplace_back(itsDocument.Begin(), itsDocument.End());
+		else
+			itsIteratorStack.emplace_back(itsDocument.MemberBegin(), itsDocument.MemberEnd());
+	}
+
 public:
 	/*! @name Common Functionality
 		Common use cases for directly interacting with an JSONInputArchive */
@@ -579,13 +603,7 @@ public:
 	//! Construct, reading from the provided stream
 	/*! @param stream The stream to read from */
 	explicit JSONInputArchive(std::istream& stream) :
-			itsNextName(nullptr),
-			itsReadStream(stream) {
-		itsDocument.ParseStream<>(itsReadStream);
-		if (itsDocument.IsArray())
-			itsIteratorStack.emplace_back(itsDocument.Begin(), itsDocument.End());
-		else
-			itsIteratorStack.emplace_back(itsDocument.MemberBegin(), itsDocument.MemberEnd());
+		JSONInputArchive(stream, mesureStreamSize(stream)) {
 	}
 
 	~JSONInputArchive() noexcept = default;
@@ -818,8 +836,8 @@ public:
 
 	//! @}
 
-	// --- process_as remapping ------------------------------------------------------------------------
-public:
+public: // --- process_as remapping --------------------------------------------------------------------
+
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
 		setNextName(t.name);

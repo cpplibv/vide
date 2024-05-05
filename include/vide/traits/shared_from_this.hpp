@@ -25,16 +25,18 @@ struct shared_from_this_wrapper {
 
 //! Determine if T or any base class of T has inherited from std::enable_shared_from_this
 template <class T>
-struct has_shared_from_this : decltype((detail::shared_from_this_wrapper::check)(std::declval<T>())) {};
+struct has_shared_from_this : decltype((detail::shared_from_this_wrapper::check)(std::declval<T>())) {
+};
 
 //! Get the type of the base class of T which inherited from std::enable_shared_from_this
 template <class T>
 struct get_shared_from_this_base {
 private:
 	using PtrType = decltype(detail::shared_from_this_wrapper::get(std::declval<T>()));
+
 public:
 	//! The type of the base of T that inherited from std::enable_shared_from_this
-	using type = typename std::decay<typename PtrType::element_type>::type;
+	using type = std::decay_t<typename PtrType::element_type>;
 };
 
 // -------------------------------------------------------------------------------------------------

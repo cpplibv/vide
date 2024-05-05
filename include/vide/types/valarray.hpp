@@ -1,10 +1,10 @@
 #pragma once
 
 #include <valarray>
+#include <vector>
 
 #include <vide/binary_data.hpp>
 #include <vide/macros.hpp>
-#include <vide/size_tag.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
@@ -12,37 +12,46 @@ namespace vide { // ------------------------------------------------------------
 //! Saving for std::valarray all other types
 template <class Archive, class T>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::valarray<T>& valarray) {
-	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
-	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
-	constexpr bool serialize_as_binary = binary_serializable && Archive::template supports_type<BinaryData<T>>;
+	ar.size_tag(valarray.size()); // number of elements
 
-	ar.size_tag(static_cast<size_type>(valarray.size())); // number of elements
-
-	if constexpr (serialize_as_binary) {
+	if constexpr (Archive::template supports_binary<T>)
 		ar(binary_data(&valarray[0], valarray.size() * sizeof(T)));
-	} else {
+	else
 		for (const auto& i : valarray)
 			ar(i);
-	}
 }
 
 //! Loading for std::valarray all other types
 template <class Archive, class T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::valarray<T>& valarray) {
-	// TODO P1: Switch to a more generic concept from is_arithmetic_v to determine if a type is binary serializable
-	constexpr bool binary_serializable = std::is_arithmetic_v<T>;
-	constexpr bool serialize_as_binary = binary_serializable && Archive::template supports_type<BinaryData<T>>;
+	const auto size = ar.size_tag();
 
-	size_type valarraySize;
-	ar.size_tag(valarraySize);
+	if constexpr (Archive::template supports_binary<T>) {
+		ar.template validate_read_size<T>(size);
+		valarray.resize(size);
+		ar(binary_data(&valarray[0], valarray.size() * sizeof(T)));
 
-	valarray.resize(static_cast<size_t>(valarraySize));
-
-	if constexpr (serialize_as_binary) {
-		ar(binary_data(&valarray[0], static_cast<std::size_t>(valarraySize) * sizeof(T)));
 	} else {
-		for (auto&& i : valarray)
-			ar(i);
+		const auto reserveable = ar.template safe_to_reserve<T>(size);
+		if (reserveable == size) {
+			valarray.resize(reserveable);
+			for (T& element : valarray)
+				ar(element);
+
+		} else {
+			// std::valarray doesnt play nicely with modifications so fallback to vector emplace_back
+			std::vector<T> temp;
+			temp.reserve(reserveable);
+			for (typename Archive::size_type i = 0; i < size; ++i) {
+				T& element = temp.emplace_back();
+				ar(element);
+			}
+
+			// Resize is now safe as we successfully extracted this from the archive
+			valarray.resize(size);
+			for (typename Archive::size_type i = 0; i < size; ++i)
+				valarray[i] = std::move(temp[i]);
+		}
 	}
 }
 

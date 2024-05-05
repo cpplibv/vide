@@ -4,7 +4,6 @@
 #include <utility>
 
 #include <vide/macros.hpp>
-#include <vide/nvp.hpp>
 
 
 namespace vide {
@@ -55,8 +54,8 @@ struct MapItem {
 	//! Serialize the MapItem with the NVPs "key" and "value"
 	template <class Archive>
 	inline void VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar) {
-		ar(VIDE_NVP(key));
-		ar(VIDE_NVP(value));
+		ar.nvp("key", key);
+		ar.nvp("value", value);
 	}
 };
 

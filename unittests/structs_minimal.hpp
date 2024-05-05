@@ -102,6 +102,24 @@ protected:
 	}
 };
 
+class MemberMinimalValueOutAndValueIn {
+public:
+	std::string x;
+
+protected:
+	friend class vide::access;
+
+	template <class Archive>
+	std::string save_minimal(const Archive&) const {
+		return x;
+	}
+
+	template <class Archive>
+	void load_minimal(const Archive&, std::string str) {
+		x = std::move(str);
+	}
+};
+
 class MemberMinimalContRefOutAndMoveRefIn {
 public:
 	std::string x;
@@ -212,6 +230,36 @@ void load_minimal(const Archive&, GlobalMinimalContRefOutAndMoveRefInVersioned& 
 	var.x = std::move(str);
 }
 
+// gmtgsplbv
+
+struct TrivialGSPL {
+	int x = 4;
+};
+
+template <class Archive>
+void load(Archive& ar, TrivialGSPL& t) { ar(t.x); }
+
+template <class Archive>
+void save(Archive& ar, const TrivialGSPL& t) { ar(t.x); }
+
+class GlobalMinimalTrivialGSPLByValue {
+public:
+	TrivialGSPL x;
+
+protected:
+	friend class vide::access;
+};
+
+template <class Archive>
+TrivialGSPL save_minimal(const Archive&, const GlobalMinimalTrivialGSPLByValue& var) {
+	return var.x;
+}
+
+template <class Archive>
+void load_minimal(const Archive&, GlobalMinimalTrivialGSPLByValue& var, TrivialGSPL v) {
+	var.x = std::move(v);
+}
+
 // -------------------------------------------------------------------------------------------------
 
 struct TestStruct {
@@ -219,6 +267,7 @@ struct TestStruct {
 	MemberMinimalRecursive mm_recursive;
 	MemberMinimalRecursiveNested mm_recursive_nested;
 	MemberMinimalContRef mmcr;
+	MemberMinimalValueOutAndValueIn mmvv;
 	MemberMinimalContRefOutAndMoveRefIn mmcrmr;
 	MemberMinimalContRefOutAndMoveRefInVersioned mmcrmrv;
 	MemberMinimalVersioned mmv;
@@ -226,6 +275,7 @@ struct TestStruct {
 	GlobalMinimalVersioned nmmv;
 	GlobalMinimalContRefOutAndMoveRefIn gmcrmr;
 	GlobalMinimalContRefOutAndMoveRefInVersioned gmcrmrv;
+	GlobalMinimalTrivialGSPLByValue gmtgsplbv;
 
 	TestStruct() = default;
 
@@ -234,6 +284,7 @@ struct TestStruct {
 			mm_recursive(s),
 			mm_recursive_nested(s),
 			mmcr(s),
+			mmvv(s),
 			mmcrmr(s),
 			mmcrmrv(s),
 			mmv(d),
@@ -248,6 +299,7 @@ struct TestStruct {
 		ar(mm_recursive);
 		ar.nvp("nest", mm_recursive_nested);
 		ar(mmcr);
+		ar(mmvv);
 		ar(mmcrmr);
 		ar(mmcrmrv);
 		ar(mmv);
@@ -255,6 +307,7 @@ struct TestStruct {
 		ar(nmmv);
 		ar(gmcrmr);
 		ar(gmcrmrv);
+		ar(gmtgsplbv);
 	}
 };
 

@@ -55,6 +55,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Add archive.validate_read_size<T>() to check if the archive has enough data for binary deserialization
     - Add archive.safe_to_reserve<T>() to check and clamp the amount of memory reserved
   	- Add archive.maximumBinaryReadSize() to report how much data could be extracted during binary deserialization
+  - Refactor and modernize type traits
   - Add archive.size_tag() as a dependent name for vide::make_size_tag
   - Add Archive::is_binary_archive
   - Add Archive::size_type as a dependent name for vide::size_type
@@ -62,21 +63,16 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Remove Archive::could_serialize<T>
   - Improve compile time performance
   - Improve and modernize meta programming practices and techniques
-  - Refactor and modernize type traits
+  - Improve archive.nvp() to respect IgnoreNVP flag
   - Cleanup compiler warnings
-  - Planned: dependent name or function for BinaryData
-  - Planned: Archive allow skipping NVP
-  - Planned: Archive.reset() and Archive.finish()
 
 
 ### Planned:
 - Foreach iteration/visitor algorithms
-- Add safe/unsafe data serialization support
-  - For unsafe data every reserve / resize is disabled (and/or limited by the archive's max size)
-  - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
 - An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
+- Add size limited container serialization support
+  - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
 - Improved compile time performance (by organizing includes)
-- Improved compile time performance (general)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments
 - Maybe: Versioned<->type selector

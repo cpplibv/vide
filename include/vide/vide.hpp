@@ -341,7 +341,10 @@ public:
 
 	template <typename T>
 	inline ArchiveType& nvp(const char* name, T&& arg) {
-		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+		if constexpr (ignores_nvp)
+			return (*this)(std::forward<T>(arg));
+		else
+			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}
 
 	inline ArchiveType& size_tag(uint32_t size) {
@@ -660,7 +663,10 @@ public:
 
 	template <typename T>
 	inline ArchiveType& nvp(const char* name, T&& arg) {
-		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+		if constexpr (ignores_nvp)
+			return (*this)(std::forward<T>(arg));
+		else
+			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}
 
 	inline ArchiveType& size_tag(size_type& size) {

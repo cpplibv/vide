@@ -19,6 +19,7 @@
 05.03 3:15
 05.04 12:30
 05.05 16:30
+05.06 21:45
 
 
 
@@ -33,26 +34,25 @@ release 2.3.0
 
 
 
+
+
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
-vide: size_type from dependent name: Archive.size(v.size()) or Archive::SizeTag or other option
-vide: binary from dependent name: Archive.as_binary() / Archive.can_serialize_as_binary<T>()
-vide: .nvp -> do not always create NVP, let the archive decide
-
-
-cleanup SizeTag
+vide: archive.binary_data(ptr, size) dependent name or function for BinaryData, cleanup BinaryData
 
 Files that should remove the vide/vide.hpp include:
     types/memory.hpp (transitive via vide/traits/shared_from_this.hpp)
     types/polymorphic.hpp
-
-remove operator>>
-remove operator<<
-remove operator&
 
 Better document:
 	validate_read_size
 	safe_to_reserve
 	is_binary_archive
 	maximumBinaryReadSize
+
+cleanup SizeTag
+
+remove operator>>
+remove operator<<
+remove operator&
 

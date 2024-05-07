@@ -458,6 +458,18 @@ public:
 		return version;
 	}
 
+protected:
+	void reset() {
+		itsBaseClassSet.clear();
+		itsSharedPointerMap.clear();
+		itsSharedPointerStorage.clear();
+		itsCurrentPointerId = 1;
+		itsPolymorphicTypeMap.clear();
+		itsCurrentPolymorphicTypeId = 1;
+		itsVersionedTypes.clear();
+		itsDeferments.clear();
+	}
+
 public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
@@ -632,8 +644,7 @@ protected:
 	/// This is a security requirement as a single malicious size_tag could allocage all of system memory.
 	/// To improve performance this budget can be used.
 	/// Each archive has to initialize this: recommended value is 2-8x times the original raw data size.
-	// std::size_t reserveMemoryBudget = 1 * 1024 * 1024; // Defaults to 1 MB but archives are expected to override it.
-	std::size_t reserveMemoryBudget = 0; // Defaults to 1 MB but archives are expected to override it.
+	std::size_t reserveMemoryBudget = 64 * 1024; // Defaults to 64 KB but archives are expected to override it.
 
 public:
 	//! Construct the output archive
@@ -807,6 +818,16 @@ public:
 
 			return version;
 		}
+	}
+
+protected:
+	void reset() {
+		itsBaseClassSet.clear();
+		itsSharedPointerMap.clear();
+		itsPolymorphicTypeMap.clear();
+		itsVersionedTypes.clear();
+		itsDeferments.clear();
+		reserveMemoryBudget = 64 * 1024;
 	}
 
 public:

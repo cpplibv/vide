@@ -119,7 +119,7 @@ private:
 private:
 	WriteStream itsWriteStream;          //!< Rapidjson write stream
 	JSONWriter itsWriter;                //!< Rapidjson writer
-	const char* itsNextName;            //!< The next name
+	const char* itsNextName = nullptr;   //!< The next name
 	std::stack<uint32_t> itsNameCounter; //!< Counter for creating unique names for unnamed nodes
 	std::stack<NodeType> itsNodeStack;
 
@@ -171,8 +171,7 @@ public:
 					   for the values of default parameters */
 	explicit JSONOutputArchive(std::ostream& stream, Options const& options = Options::Default()) :
 			itsWriteStream(stream),
-			itsWriter(itsWriteStream),
-			itsNextName(nullptr) {
+			itsWriter(itsWriteStream) {
 		itsWriter.SetMaxDecimalPlaces(options.itsPrecision);
 		itsWriter.SetIndent(options.itsIndentChar, options.itsIndentLength);
 		itsNameCounter.push(0);
@@ -564,7 +563,7 @@ private:
 	};
 
 private:
-	const char* itsNextName;               //!< Next name set by NVP
+	const char* itsNextName = nullptr;      //!< Next name set by NVP
 	ReadStream itsReadStream;               //!< Rapidjson write stream
 	std::vector<Iterator> itsIteratorStack; //!< 'Stack' of rapidJSON iterators
 	VIDE_RAPIDJSON_NAMESPACE::Document itsDocument; //!< Rapidjson document
@@ -583,7 +582,6 @@ private:
 	}
 
 	JSONInputArchive(std::istream& stream, std::size_t streamSize) :
-		itsNextName(nullptr),
 		itsReadStream(stream) {
 
 		reserveMemoryBudget = streamSize * VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER;
@@ -628,9 +626,9 @@ public:
 		itsNextName = nullptr;
 	};
 
-private:
 	//! @}
 
+private:
 	//! Searches for the expectedName node if it doesn't match the actualName
 	/*! This needs to be called before every load or node start occurs.  This function will
 		check to see if an NVP has been provided (with setNextName) and if so, see if that name matches the actual
@@ -654,7 +652,7 @@ private:
 		itsNextName = nullptr;
 	}
 
-public:
+protected:
 	//! Starts a new node, going into its proper iterator
 	/*! This places an iterator for the next node to be parsed onto the iterator stack.  If the next
 		node is an array, this will be a value iterator, otherwise it will be a member iterator.

@@ -86,6 +86,7 @@ public:
 };
 
 // ######################################################################
+
 namespace detail {
 // base classes for type checking
 /* The rtti virtual function only exists to enable an archive to
@@ -93,21 +94,9 @@ namespace detail {
    archive adapters for an example of this */
 class OutputArchiveBase {
 public:
-	//! Indicates this archive is not intended for loading
-	//! This ensures compatibility with boost archive types
-	using is_loading = std::false_type;
-
-	//! Indicates this archive is intended for saving
-	//! This ensures compatibility with boost archive types
-	using is_saving = std::true_type;
-
-public:
 	OutputArchiveBase() = default;
-
 	OutputArchiveBase(OutputArchiveBase&&) noexcept {}
-
 	OutputArchiveBase& operator=(OutputArchiveBase&&) noexcept { return *this; }
-
 	virtual ~OutputArchiveBase() noexcept = default;
 
 private:
@@ -116,21 +105,9 @@ private:
 
 class InputArchiveBase {
 public:
-	//! Indicates this archive is intended for loading
-	//! This ensures compatibility with boost archive types.
-	using is_loading = std::true_type;
-
-	//! Indicates this archive is not intended for saving
-	//! This ensures compatibility with boost archive types.
-	using is_saving = std::false_type;
-
-public:
 	InputArchiveBase() = default;
-
 	InputArchiveBase(InputArchiveBase&&) noexcept {}
-
 	InputArchiveBase& operator=(InputArchiveBase&&) noexcept { return *this; }
-
 	virtual ~InputArchiveBase() noexcept = default;
 
 private:

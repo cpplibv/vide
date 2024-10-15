@@ -4,7 +4,7 @@ Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 This is an experimental fork that alters multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
 Neither forward, nor backward compatibility is guaranteed.
-Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2023.06.15 d1fcec807).
+Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2024.05.02 d1fcec807).
 
 ### Changes / Differences to Cereal:
 - Change name to `vide` to indicate the incompatibility with upstream
@@ -51,9 +51,9 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - Version 2.3.0:
   - Breaking change: Serialized data format changed breaking compatibility with data generated before this version
   - Sync with upstream 2024.05.02 d1fcec807
-  - Security: Safe reserve! Invalid data can no longer allocate unbounded amount of memory during deserialization
-    - Add archive.validate_read_size<T>() to check if the archive has enough data for binary deserialization
+  - Security: Fix vulnerability where invalid data could allocate unbounded amount of memory during deserialization
     - Add archive.safe_to_reserve<T>() to check and clamp the amount of memory reserved
+    - Add archive.validate_read_size<T>() to check if the archive has enough data for binary deserialization
   	- Add archive.maximumBinaryReadSize() to report how much data could be extracted during binary deserialization
   - Refactor and modernize type traits
   - Add archive.size_tag() as a dependent name for vide::make_size_tag
@@ -65,6 +65,8 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Improve and modernize meta programming practices and techniques
   - Improve archive.nvp() to respect IgnoreNVP flag
   - Cleanup compiler warnings
+- Version 2.3.1:
+  - Add support for static member serialize_class_version-ing
 
 
 ### Planned:

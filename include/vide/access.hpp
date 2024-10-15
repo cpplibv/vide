@@ -1,11 +1,13 @@
 #pragma once
 
-#include <type_traits>
-#include <utility>
-
 #include <vide/access_fwd.hpp>
 #include <vide/concept.hpp>
 #include <vide/macros.hpp>
+
+#include <concepts>
+#include <cstdint>
+#include <type_traits>
+#include <utility>
 
 
 namespace vide { // --------------------------------------------------------------------------------
@@ -46,7 +48,19 @@ struct access {
 	using get_global_save_minimal_versioned_t = std::remove_cvref_t<decltype(
 			VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>(), std::declval<const T&>(), 0))>;
 
-	// Standard
+	// Class Version Tag
+
+	template <class T>
+	static constexpr bool has_static_member_class_version = requires {
+		{ T::serialize_class_version } -> std::convertible_to<std::uint32_t>;
+	};
+
+	template <class T>
+	static constexpr std::uint32_t static_member_class_version() {
+		return T::serialize_class_version;
+	}
+
+	// Standard serializer functions
 
 	template <class Archive, class T>
 	static constexpr bool has_member_serialize = requires (Archive& ar, T& var) {
@@ -98,7 +112,7 @@ struct access {
 		{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, std::move(mvalue)) } -> Void;
 	};
 
-	// Versioned
+	// Versioned serializer functions
 
 	template <class Archive, class T>
 	static constexpr bool has_member_serialize_versioned = requires (Archive& ar, T& var) {
@@ -220,7 +234,7 @@ struct access {
 	template <class Archive, class T>
 	static constexpr bool is_output_serializable = count_output_serializers<Archive, T> == 1;
 
-	// --- Standard serialzation access ----------------------------------------------------------------
+	// --- Standard serialization access ---------------------------------------------------------------
 
 	template <class Archive, class T>
 	inline static decltype(auto) member_serialize(Archive& ar, T& var) {
@@ -247,7 +261,7 @@ struct access {
 		return var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value));
 	}
 
-	// --- Versioned serialzation access ---------------------------------------------------------------
+	// --- Versioned serialization access --------------------------------------------------------------
 
 	template <class Archive, class T>
 	inline static decltype(auto) member_serialize(Archive& ar, T& var, const std::uint32_t version) {

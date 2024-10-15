@@ -39,6 +39,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <vide/access.hpp>
 #include <vide/binary_data.hpp>
 #include <vide/details/bits.hpp>
 #include <vide/details/helpers.hpp>
@@ -306,7 +307,7 @@ private:
 	std::uint32_t itsCurrentPolymorphicTypeId = 1;
 
 	//! Keeps track of classes that have versioning information associated with them
-	std::unordered_set<size_type> itsVersionedTypes;
+	std::unordered_set<std::uint64_t> itsVersionedTypes;
 
 //	int64_t scope_version_ = 0;
 
@@ -448,9 +449,13 @@ public:
 	inline std::uint32_t registerClassVersion() {
 		static const auto hash = std::type_index(typeid(T)).hash_code();
 		const auto insertResult = itsVersionedTypes.insert(hash);
-		const auto lock = detail::StaticObject<detail::Versions>::lock();
-		const auto version =
-				detail::StaticObject<detail::Versions>::getInstance().find(hash, detail::Version<T>::version);
+		std::uint32_t version;
+		if constexpr (access::has_static_member_class_version<T>) {
+			version = access::static_member_class_version<T>();
+		} else {
+			const auto lock = detail::StaticObject<detail::Versions>::lock();
+			version = detail::StaticObject<detail::Versions>::getInstance().find(hash, detail::Version<T>::version);
+		}
 
 		if (insertResult.second) // insertion took place, serialize the version number
 			process_self(make_nvp<ArchiveType>("vide_class_version", version));
@@ -634,7 +639,7 @@ private:
 	std::unordered_map<std::uint32_t, std::string> itsPolymorphicTypeMap;
 
 	//! Maps from type hash codes to version numbers
-	std::unordered_map<std::size_t, std::uint32_t> itsVersionedTypes;
+	std::unordered_map<std::uint64_t, std::uint32_t> itsVersionedTypes;
 
 	//! Deferments
 	std::vector<std::function<void(void)>> itsDeferments;

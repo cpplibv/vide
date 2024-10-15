@@ -3,6 +3,7 @@
 20220217 : 19:01
 20220623 :  7:27
 20240502 : 10:07
+20240506 : 22:30
 
 
 
@@ -16,10 +17,6 @@
 
 
 
-05.03 3:15
-05.04 12:30
-05.05 16:30
-05.06 22:30
 
 
 
@@ -30,9 +27,15 @@
 
 
 
+
+
+
+
+vide: move exception header from details into a public path
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
 vide: archive.binary_data(ptr, size) dependent name or function for BinaryData, cleanup BinaryData
+vide: archive.eof() or some API to check if the whole of the buffer was consumed
 
 Files that should remove the vide/vide.hpp include:
     types/memory.hpp (transitive via vide/traits/shared_from_this.hpp)
@@ -50,3 +53,4 @@ remove operator>>
 remove operator<<
 remove operator&
 
+vide: std::vector<std::byte> should be base64 serialized in JSON/XML

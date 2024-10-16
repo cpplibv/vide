@@ -171,7 +171,8 @@ inline void test_versioning() {
 		StructStaticMemberClassVersionPub o_SMCVPub = {random_value<double>(gen), 1};
 		StructStaticMemberClassVersionPriv o_SMCVPriv = {random_value<double>(gen), 1};
 
-		std::ostringstream os; {
+		std::ostringstream os;
+		{
 			OArchive oar(os);
 			oar(o_MS);
 			oar(o_MSP);
@@ -196,7 +197,8 @@ inline void test_versioning() {
 		decltype(o_SMCVPub) i_SMCVPub;
 		decltype(o_SMCVPriv) i_SMCVPriv;
 
-		std::istringstream is(os.str()); {
+		std::istringstream is(os.str());
+		{
 			IArchive iar(is);
 			iar(i_MS);
 			iar(i_MSP);

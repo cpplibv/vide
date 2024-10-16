@@ -66,7 +66,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Improve archive.nvp() to respect IgnoreNVP flag
   - Cleanup compiler warnings
 - Version 2.3.1:
-  - Add support for static member serialize_class_version-ing
+  - Add support for static member serialize_class_version-ing which is serialized regardless if it is used in serializers or not
 
 
 ### Planned:

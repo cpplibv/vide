@@ -440,6 +440,21 @@ public:
 			return id->second;
 	}
 
+	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
+	/// If this is the first time this class has been serialized, it will record its
+	/// serialize_class_version static member and serialize that regardless if the serializer function uses it or not.
+	template <class T>
+	inline void registerClassVersionUnused() {
+		if constexpr (access::has_static_member_class_version<T>) {
+			static const auto hash = std::type_index(typeid(T)).hash_code();
+			const auto insertResult = itsVersionedTypes.insert(hash);
+			std::uint32_t version = access::static_member_class_version<T>();
+
+			if (insertResult.second) // insertion took place, serialize the version number
+				process_self(make_nvp<ArchiveType>("vide_class_version", version));
+		}
+	}
+
 	//! Registers a class version with the archive and serializes it if necessary
 	/*! If this is the first time this class has been serialized, we will record its
 		version number and serialize that.
@@ -523,22 +538,28 @@ private:
 	template <class As, class T>
 			requires access::is_output_serializable<As, T>
 	inline void processImpl(As& as, const T& var) {
-		if constexpr (access::has_member_serialize<As, T>)
+		if constexpr (access::has_member_serialize<As, T>) {
+			registerClassVersionUnused<T>();
 			access::member_serialize(as, const_cast<T&>(var));
 
-		else if constexpr (access::has_global_serialize<As, T>)
+		} else if constexpr (access::has_global_serialize<As, T>) {
+			registerClassVersionUnused<T>();
 			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var));
 
-		else if constexpr (access::has_member_save<As, T>)
+		} else if constexpr (access::has_member_save<As, T>) {
+			registerClassVersionUnused<T>();
 			access::member_save(as, var);
 
-		else if constexpr (access::has_global_save<As, T>)
+		} else if constexpr (access::has_global_save<As, T>) {
+			registerClassVersionUnused<T>();
 			VIDE_FUNCTION_NAME_SAVE(as, var);
 
-		else if constexpr (access::has_member_save_minimal<As, T>) {
+		} else if constexpr (access::has_member_save_minimal<As, T>) {
+			registerClassVersionUnused<T>();
 			self().process_as(as, access::member_save_minimal(as, var));
 
 		} else if constexpr (access::has_global_save_minimal<As, T>) {
+			registerClassVersionUnused<T>();
 			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var));
 
 		} else if constexpr (access::has_member_serialize_versioned<As, T>) {
@@ -558,10 +579,12 @@ private:
 			VIDE_FUNCTION_NAME_SAVE(as, var, version);
 
 		} else if constexpr (access::has_member_save_minimal_versioned<As, T>) {
-			self().process_as(as, access::member_save_minimal(as, var, registerClassVersion<T>()));
+			const auto version = registerClassVersion<T>();
+			self().process_as(as, access::member_save_minimal(as, var, version));
 
 		} else if constexpr (access::has_global_save_minimal_versioned<As, T>) {
-			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var, registerClassVersion<T>()));
+			const auto version = registerClassVersion<T>();
+			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var, version));
 		}
 	}
 
@@ -803,6 +826,24 @@ public:
 		itsPolymorphicTypeMap.insert({stripped_id, name});
 	}
 
+	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
+	/// If this is the first time this class has been serialized, it will record its
+	/// serialize_class_version static member and serialize that regardless if the serializer function uses it or not.
+	template <class T>
+	inline void loadClassVersionUnused() {
+		if constexpr (access::has_static_member_class_version<T>) {
+			static const auto hash = std::type_index(typeid(T)).hash_code();
+			auto lookupResult = itsVersionedTypes.find(hash);
+			if (lookupResult != itsVersionedTypes.end()) // Already loaded
+				return;
+
+			// Need to load
+			std::uint32_t version;
+			process_self(make_nvp<ArchiveType>("vide_class_version", version));
+			itsVersionedTypes.emplace_hint(lookupResult, hash, version);
+		}
+	}
+
 	//! Registers a class version with the archive and serializes it if necessary
 	/*! If this is the first time this class has been serialized, we will record its
 		version number and serialize that.
@@ -883,24 +924,30 @@ private:
 	template <class As, class T>
 			requires access::is_input_serializable<As, T>
 	inline void processImpl(As& as, T& var) {
-		if constexpr (access::has_member_serialize<As, T>)
+		if constexpr (access::has_member_serialize<As, T>) {
+			loadClassVersionUnused<T>();
 			access::member_serialize(as, var);
 
-		else if constexpr (access::has_global_serialize<As, T>)
+		} else if constexpr (access::has_global_serialize<As, T>) {
+			loadClassVersionUnused<T>();
 			VIDE_FUNCTION_NAME_SERIALIZE(as, var);
 
-		else if constexpr (access::has_member_load<As, T>)
+		} else if constexpr (access::has_member_load<As, T>) {
+			loadClassVersionUnused<T>();
 			access::member_load(as, var);
 
-		else if constexpr (access::has_global_load<As, T>)
+		} else if constexpr (access::has_global_load<As, T>) {
+			loadClassVersionUnused<T>();
 			VIDE_FUNCTION_NAME_LOAD(as, var);
 
-		else if constexpr (access::has_member_load_minimal<As, T>) {
+		} else if constexpr (access::has_member_load_minimal<As, T>) {
+			loadClassVersionUnused<T>();
 			access::get_member_save_minimal_t<As, T> value;
 			self().process_as(as, value);
 			access::member_load_minimal(as, var, std::move(value));
 
 		} else if constexpr (access::has_global_load_minimal<As, T>) {
+			loadClassVersionUnused<T>();
 			access::get_global_save_minimal_t<As, T> value;
 			self().process_as(as, value);
 			VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, var, std::move(value));

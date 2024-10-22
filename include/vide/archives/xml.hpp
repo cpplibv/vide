@@ -32,6 +32,7 @@
 #include <vide/access.hpp>
 #include <vide/concept.hpp>
 #include <vide/details/util.hpp>
+#include <vide/macros.hpp>
 #include <vide/vide.hpp>
 
 #include <vide/external/rapidxml/rapidxml.hpp>
@@ -49,15 +50,9 @@
 
 namespace vide {
 namespace xml_detail {
-#ifndef VIDE_XML_STRING_VALUE
-//! The default name for the root node in a vide xml archive.
-/*! You can define VIDE_XML_STRING_VALUE to be different assuming you do so
-	before this file is included. */
-	#define VIDE_XML_STRING_VALUE "root"
-#endif // VIDE_XML_STRING_VALUE
 
 //! The name given to the root node in a vide xml archive
-static const char* VIDE_XML_STRING = VIDE_XML_STRING_VALUE;
+static const char* VIDE_XML_STRING = VIDE_XML_ROOT_TAG_NAME;
 
 //! Returns true if the character is whitespace
 inline bool isWhitespace(char c) {

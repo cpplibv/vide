@@ -82,6 +82,21 @@
 
 // =================================================================================================
 
+#ifndef VIDE_XML_ROOT_TAG_NAME
+//! The default name for the root node in a vide xml archive.
+/*! You can define VIDE_XML_ROOT_TAG_NAME to be different assuming you do so
+	before this file is included. */
+#define VIDE_XML_ROOT_TAG_NAME "root"
+#endif // VIDE_XML_ROOT_TAG_NAME
+
+#ifndef VIDE_CLASS_VERSION_TAG_NAME
+/// The default name for the class version tags or keys in text archives like XML or JSON.
+/// You can define VIDE_CLASS_VERSION_TAG_NAME to be different before this file is included.
+#define VIDE_CLASS_VERSION_TAG_NAME "vide_class_version"
+#endif // VIDE_CLASS_VERSION_TAG_NAME
+
+// =================================================================================================
+
 #ifndef VIDE_FUNCTION_NAME_SERIALIZE
 //! The serialization/deserialization function name to search for.
 /*! You can define @c VIDE_FUNCTION_NAME_SERIALIZE to be different assuming

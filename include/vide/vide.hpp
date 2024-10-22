@@ -451,7 +451,7 @@ public:
 			std::uint32_t version = access::static_member_class_version<T>();
 
 			if (insertResult.second) // insertion took place, serialize the version number
-				process_self(make_nvp<ArchiveType>("vide_class_version", version));
+				process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
 		}
 	}
 
@@ -473,7 +473,7 @@ public:
 		}
 
 		if (insertResult.second) // insertion took place, serialize the version number
-			process_self(make_nvp<ArchiveType>("vide_class_version", version));
+			process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
 
 		return version;
 	}
@@ -839,7 +839,7 @@ public:
 
 			// Need to load
 			std::uint32_t version;
-			process_self(make_nvp<ArchiveType>("vide_class_version", version));
+			process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
 			itsVersionedTypes.emplace_hint(lookupResult, hash, version);
 		}
 	}
@@ -859,7 +859,7 @@ public:
 		else { // need to load
 			std::uint32_t version;
 
-			process_self(make_nvp<ArchiveType>("vide_class_version", version));
+			process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
 			itsVersionedTypes.emplace_hint(lookupResult, hash, version);
 
 			return version;

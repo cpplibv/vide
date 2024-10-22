@@ -67,6 +67,8 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Cleanup compiler warnings
 - Version 2.3.1:
   - Add support for static member serialize_class_version-ing which is serialized regardless if it is used in serializers or not
+  - Add VIDE_CLASS_VERSION_TAG_NAME as a customization macro for vide_class_version
+  - Rename VIDE_XML_STRING_VALUE to VIDE_XML_ROOT_TAG_NAME
 
 
 ### Planned:

@@ -11,6 +11,8 @@
 
 
 
+vide: move exception header from details into a public path
+
 
 
 
@@ -52,7 +54,6 @@ vide: load/ignore
 
 
 
-vide: move exception header from details into a public path
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
 vide: archive.binary_data(ptr, size) and archive.binary_data(name, ptr, size) dependent name or function for BinaryData, cleanup BinaryData

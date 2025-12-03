@@ -29,10 +29,12 @@
 #ifndef VIDE_ARCHIVES_PORTABLE_BINARY_HPP_
 #define VIDE_ARCHIVES_PORTABLE_BINARY_HPP_
 
-#include <vide/vide.hpp>
 #include <vide/concept.hpp>
-#include <sstream>
+#include <vide/exception.hpp>
+#include <vide/vide.hpp>
+
 #include <limits>
+#include <sstream>
 
 
 namespace vide {

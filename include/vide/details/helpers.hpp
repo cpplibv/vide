@@ -37,7 +37,6 @@
 #include <unordered_map>
 #include <stdexcept>
 
-#include <vide/details/exception.hpp>
 #include <vide/details/static_object.hpp>
 #include <vide/macros.hpp>
 #include <vide/map_item.hpp>

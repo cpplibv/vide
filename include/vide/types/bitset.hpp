@@ -33,7 +33,7 @@
 #include <bitset>
 
 #include <vide/binary_data.hpp>
-#include <vide/details/exception.hpp>
+#include <vide/exception.hpp>
 #include <vide/macros.hpp>
 #include <vide/types/string.hpp>
 

@@ -28,6 +28,18 @@
 */
 #pragma once
 
+#include <vide/access.hpp>
+#include <vide/binary_data.hpp>
+#include <vide/details/bits.hpp>
+#include <vide/details/helpers.hpp>
+#include <vide/details/traits.hpp>
+#include <vide/exception.hpp>
+#include <vide/macros.hpp>
+#include <vide/nvp.hpp>
+#include <vide/size_tag.hpp>
+#include <vide/types/base_class.hpp>
+#include <vide/unserializable_type_tag.hpp>
+
 #include <iostream>
 #include <cstddef>
 #include <cstdint>
@@ -38,17 +50,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-#include <vide/access.hpp>
-#include <vide/binary_data.hpp>
-#include <vide/details/bits.hpp>
-#include <vide/details/helpers.hpp>
-#include <vide/details/traits.hpp>
-#include <vide/macros.hpp>
-#include <vide/nvp.hpp>
-#include <vide/size_tag.hpp>
-#include <vide/types/base_class.hpp>
-#include <vide/unserializable_type_tag.hpp>
 
 
 namespace vide {

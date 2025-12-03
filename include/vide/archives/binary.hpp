@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vide/vide.hpp>
 #include <vide/concept.hpp>
+#include <vide/exception.hpp>
+#include <vide/vide.hpp>
 
 #include <cassert>
 #include <sstream>

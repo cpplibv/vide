@@ -8,7 +8,7 @@
 namespace vide { // --------------------------------------------------------------------------------
 
 template <class Archive, class T, class A>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::deque<T, A> const& deque) {
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::deque<T, A>& deque) {
 	ar.size_tag(deque.size());
 
 	for (auto const& i : deque)
@@ -18,15 +18,15 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::deque<T, A> const& deque) 
 template <class Archive, class T, class A>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::deque<T, A>& deque) {
 	const auto size = ar.size_tag();
-	const auto reserveable = ar.template safe_to_reserve<T>(size);
+	const auto reservable = ar.template safe_to_reserve<T>(size);
 
-	if (reserveable == size) {
-		deque.resize(reserveable);
+	if (reservable == size) {
+		deque.resize(reservable);
 		for (auto& i : deque)
 			ar(i);
 	} else {
 		deque.clear();
-		// deque.reserve(reserveable); // No reserve for std::deque
+		// deque.reserve(reservable); // No reserve for std::deque
 		for (typename Archive::size_type i = 0; i < size; ++i) {
 			T& element = deque.emplace_back();
 			ar(element);

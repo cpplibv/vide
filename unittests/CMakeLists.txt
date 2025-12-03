@@ -1,4 +1,4 @@
-file(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
+file(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS *.cpp)
 
 # A semi-colon separated list of test sources that should not be automatically built with doctest
 set(SPECIAL_TESTS "portability_test.cpp")

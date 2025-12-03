@@ -270,11 +270,7 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
         Function<vide::JSONInputArchive, vide::JSONOutputArchive>();                                                    \
     }
 
-#define CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function) \
-    CREATE_TEST_CASES_FOR_BINARY_ARCHIVE(Name, Function)     \
-    CREATE_TEST_CASES_FOR_TEXT_ARCHIVE(Name, Function)
-
-#define CREATE_TEST_CASES_FOR_PROXY_ARCHIVE(Name, Function)                                                             \
+#define CREATE_TEST_CASES_FOR_PROXY_ARCHIVE_OVER_BINARY(Name, Function)                                                 \
     TEST_CASE("proxy binary_" Name) {                                                                                   \
         Function<ProxyTestGroup<vide::BinaryInputArchive>, ProxyTestGroup<vide::BinaryOutputArchive>>();                \
     }                                                                                                                   \
@@ -282,7 +278,8 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
     TEST_CASE("proxy portable_binary_" Name) {                                                                          \
         Function<ProxyTestGroup<vide::PortableBinaryInputArchive>, ProxyTestGroup<vide::PortableBinaryOutputArchive>>();\
     }                                                                                                                   \
-                                                                                                                        \
+
+#define CREATE_TEST_CASES_FOR_PROXY_ARCHIVE_OVER_TEXT(Name, Function)                                                   \
     TEST_CASE("proxy xml_" Name) {                                                                                      \
         Function<ProxyTestGroup<vide::XMLInputArchive>, ProxyTestGroup<vide::XMLOutputArchive>>();                      \
     }                                                                                                                   \
@@ -292,7 +289,9 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
     }
 
 #define CREATE_TEST_CASES_FOR_ALL_ARCHIVE(Name, Function) \
-    CREATE_TEST_CASES_FOR_NORMAL_ARCHIVE(Name, Function)  \
-    CREATE_TEST_CASES_FOR_PROXY_ARCHIVE(Name, Function)
+    CREATE_TEST_CASES_FOR_BINARY_ARCHIVE(Name, Function)  \
+    CREATE_TEST_CASES_FOR_TEXT_ARCHIVE(Name, Function)  \
+    CREATE_TEST_CASES_FOR_PROXY_ARCHIVE_OVER_BINARY(Name, Function) \
+    CREATE_TEST_CASES_FOR_PROXY_ARCHIVE_OVER_TEXT(Name, Function)
 
 // -------------------------------------------------------------------------------------------------

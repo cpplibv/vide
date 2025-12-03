@@ -281,7 +281,7 @@ public:
 	static constexpr bool is_binary_archive = (Flags & vide::BinaryArchive) != 0;
 
 	template <typename T>
-	static constexpr bool supports_binary = binary_serializable_type<T> && is_binary_archive;
+	static constexpr bool supports_binary = is_binary_archive && binary_serializable_type<T>;
 
 public:
 	using size_type = vide::size_type;
@@ -646,7 +646,7 @@ public:
 	static constexpr bool is_binary_archive = (Flags & vide::BinaryArchive) != 0;
 
 	template <typename T>
-	static constexpr bool supports_binary = binary_serializable_type<T> && is_binary_archive;
+	static constexpr bool supports_binary = is_binary_archive && binary_serializable_type<T>;
 
 public:
 	using size_type = vide::size_type;

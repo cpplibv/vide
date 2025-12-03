@@ -21,13 +21,13 @@ template <typename Archive, typename Map>
 	requires requires { typename Map::mapped_type; }
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, Map& map) {
 	const auto size = ar.size_tag();
-	const auto reserveable = ar.template safe_to_reserve<typename Map::value_type>(size);
+	const auto reservable = ar.template safe_to_reserve<typename Map::value_type>(size);
 
 	map.clear();
-	if constexpr (requires { map.reserve(reserveable); })
+	if constexpr (requires { map.reserve(reservable); })
 		// std::map / std::multimap has no reserve
 		// std::unordered_map / std::unordered_multimap has reserve
-		map.reserve(reserveable);
+		map.reserve(reservable);
 
 	auto hint = map.begin();
 	for (size_t i = 0; i < size; ++i) {

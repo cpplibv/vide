@@ -26,10 +26,10 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::forward_list<T, A> const& 
 template <class Archive, class T, class A>
 void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::forward_list<T, A>& forward_list) {
 	const auto size = ar.size_tag();
-	const auto reserveable = ar.template safe_to_reserve<T>(size);
+	const auto reservable = ar.template safe_to_reserve<T>(size);
 
-	if (reserveable == size) {
-		forward_list.resize(reserveable);
+	if (reservable == size) {
+		forward_list.resize(reservable);
 		for (auto& i : forward_list)
 			ar(i);
 	} else {

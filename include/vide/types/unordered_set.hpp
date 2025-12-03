@@ -19,10 +19,10 @@ inline void save(Archive& ar, SetT const& set) {
 template <class Archive, class SetT>
 inline void load(Archive& ar, SetT& set) {
 	const auto size = ar.size_tag();
-	const auto reserveable = ar.template safe_to_reserve<typename SetT::value_type>(size);
+	const auto reservable = ar.template safe_to_reserve<typename SetT::value_type>(size);
 
 	set.clear();
-	set.reserve(reserveable);
+	set.reserve(reservable);
 
 	for (typename Archive::size_type i = 0; i < size; ++i) {
 		typename SetT::key_type key;

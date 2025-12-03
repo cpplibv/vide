@@ -1,8 +1,7 @@
-// Created by Vader on 2022.02.14..
+// Created by Vader on 2022.02.14.
 
 #pragma once
 
-// std
 #include <concepts>
 
 
@@ -11,10 +10,13 @@ namespace vide {
 // -------------------------------------------------------------------------------------------------
 
 template <typename T>
-concept arithmetic = std::integral<T> || std::floating_point<T>;
+concept arithmetic = std::is_arithmetic_v<T>;
 
+/// Any arithmetic type except bool (bool must be saved as 0 or 1 and on read fail if any other value is read) and enum types (std::byte is an enum type)
+/// If enum value verification is implemented it needs to interact with this code (only enums without verification code can be binary serialized)
 template <typename T>
-concept binary_serializable_type = std::is_arithmetic_v<T> || std::is_same_v<T, std::byte>;
+concept binary_serializable_type = (std::is_arithmetic_v<T> && !std::is_same_v<std::remove_cvref_t<T>, bool>) || std::is_enum_v<T>;
+// concept binary_serializable_type = (std::is_arithmetic_v<T> && !std::is_same_v<std::remove_cvref_t<T>, bool>) || std::is_same_v<T, std::byte>;
 
 template <typename T>
 concept Void = std::is_void_v<T>;

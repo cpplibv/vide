@@ -32,16 +32,16 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::valarray<T>& valarray) {
 		ar(binary_data(&valarray[0], valarray.size() * sizeof(T)));
 
 	} else {
-		const auto reserveable = ar.template safe_to_reserve<T>(size);
-		if (reserveable == size) {
-			valarray.resize(reserveable);
+		const auto reservable = ar.template safe_to_reserve<T>(size);
+		if (reservable == size) {
+			valarray.resize(reservable);
 			for (T& element : valarray)
 				ar(element);
 
 		} else {
 			// std::valarray doesnt play nicely with modifications so fallback to vector emplace_back
 			std::vector<T> temp;
-			temp.reserve(reserveable);
+			temp.reserve(reservable);
 			for (typename Archive::size_type i = 0; i < size; ++i) {
 				T& element = temp.emplace_back();
 				ar(element);

@@ -26,15 +26,15 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::basic_string<CharT, Traits
 		ar(binary_data(str.data(), str.size() * sizeof(CharT)));
 
 	} else {
-		const auto reserveable = ar.template safe_to_reserve<CharT>(size);
-		if (reserveable == size) {
-			str.resize(reserveable);
+		const auto reservable = ar.template safe_to_reserve<CharT>(size);
+		if (reservable == size) {
+			str.resize(reservable);
 			for (CharT& element : str)
 				ar(element);
 
 		} else {
 			str.clear();
-			str.reserve(reserveable);
+			str.reserve(reservable);
 			for (typename Archive::size_type i = 0; i < size; ++i) {
 				CharT& element = str.emplace_back();
 				ar(element);

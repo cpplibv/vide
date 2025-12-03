@@ -15,27 +15,49 @@
 
 
 
+vide: Deserialized enum values can be invalid (values that are not present in the enum).
+		This is a security and correctness problem.
+		The solution will most likely be explicit statement to check value or not with reflection
+		| Solution: customization point on the enum type
+			\ to safely migrate every code have an explicit more where enum
+			serialization is disabled unless the customization point states
+			what is the value policy
 
+vide: Archive.verify
+	- standalone
+		ar.verify(version >= 3);
+		ar.verify(version >= 3, "older versions are not supported");
 
+	- simple check after member
+		ar.nvp("taxRate", taxRate);
+		ar.verify(taxRate > 0 && taxRate < 100, "taxRate value");
 
+	- chaining on a member
+		ar.nvp("taxRate", taxRate)
+			.verify(taxRate > 0 && taxRate < 100, "taxRate value");
 
+vide: non-null ptrs: shared, unique should be simple, intrusive more trick
 
-
-
-
-
-
-
-
-
+vide: load/ignore
+	(?) load if input archive, do nothing if output archive
+		Archive.ignore<T>
+		Archive.nvp_ignore<T>
+			ar.nvp_ignore<std::array<float, 4>>("simulationSpeeds");
+	just load, instead of requesting an lvalue ref, just returns an rvalue
+		Archive.load<T>
+		Archive.nvp_load<T>
+			auto tmp = ar.nvp_load<std::array<float, 4>>("simulationSpeeds");
+	(?) other
+		Archive.load_after_version_or(3, "simulationSpeeds", std::array<float, 4>{0, 1, 2, 4});
 
 
 
 vide: move exception header from details into a public path
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
-vide: archive.binary_data(ptr, size) dependent name or function for BinaryData, cleanup BinaryData
+vide: archive.binary_data(ptr, size) and archive.binary_data(name, ptr, size) dependent name or function for BinaryData, cleanup BinaryData
 vide: archive.eof() or some API to check if the whole of the buffer was consumed
+vide: archive.enable_trace(): detailed exception (try-catch and append debug info in every serializer), as this might be heavy it might need to be a compile time flag not runtime
 
 Files that should remove the vide/vide.hpp include:
     types/memory.hpp (transitive via vide/traits/shared_from_this.hpp)

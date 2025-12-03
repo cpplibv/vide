@@ -66,10 +66,11 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Improve archive.nvp() to respect IgnoreNVP flag
   - Cleanup compiler warnings
 - Version 2.4.0:
+  - Security: Fix vulnerability where binary bool would allow loading non 0 or 1 as value which could result in UB
   - Add support for static member serialize_class_version-ing which is serialized regardless if it is used in serializers or not
   - Add VIDE_CLASS_VERSION_TAG_NAME as a customization macro for vide_class_version
+  - Improve CMAKE_BUILD_TYPE to be case-insensitive
   - Rename VIDE_XML_STRING_VALUE to VIDE_XML_ROOT_TAG_NAME
-  - Security: Fix vulnerability where binary bool would allow loading non 0 or 1 as value which could result in UB
   - Move out exception.hpp header from details
   - Remove compatibility operator>>, operator<< and operator&
 

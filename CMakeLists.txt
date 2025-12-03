@@ -126,12 +126,13 @@ wish_warning(
 
 # -------------------------------------------------------------------------------------------------
 
-if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+string(TOLOWER ${CMAKE_BUILD_TYPE} vide_build_type)
+if (vide_build_type STREQUAL "debug")
 	#add_compile_options(-Og)
 	add_compile_options(-ggdb3)
 	#	add_compile_options(-fno-omit-frame-pointer)
 
-elseif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
+elseif (vide_build_type STREQUAL "release")
 	add_compile_options(-O3)
 	#	add_compile_options(-flto)
 	#	SET(CMAKE_AR "gcc-ar")
@@ -141,7 +142,7 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RELEASE")
 	wish_static_link_std()
 	add_compile_options(-static) # Normally wish_static_link_std() would take care of this, but vide is not really using wish
 
-elseif (CMAKE_BUILD_TYPE STREQUAL "DEV")
+elseif (vide_build_type STREQUAL "dev")
 	add_compile_options(-O3)
 	#    add_compile_options(-ftemplate-backtrace-limit=0)
 

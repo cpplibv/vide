@@ -70,6 +70,8 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Add VIDE_CLASS_VERSION_TAG_NAME as a customization macro for vide_class_version
   - Rename VIDE_XML_STRING_VALUE to VIDE_XML_ROOT_TAG_NAME
   - Security: Fix vulnerability where binary bool would allow loading non 0 or 1 as value which could result in UB
+  - Move out exception.hpp header from details
+  - Remove compatibility operator>>, operator<< and operator&
 
 
 ### Planned:
@@ -77,7 +79,9 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Add size limited container serialization support
   - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
-- Improved compile time performance (by organizing includes)
+- Various data verification techniques: not-null, valid enum value, user defined
+- Improve feature availability in serialization functions via dependent names
+- Further improved compile time performance (by organizing includes)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments
 - Maybe: Versioned<->type selector

@@ -51,13 +51,6 @@ public:
 	}
 
 	template <typename T>
-	inline CRTP& operator&(T&& var) {
-		auto& as = static_cast<CRTP&>(*this);
-		as.process_as(as, std::forward<T>(var));
-		return as;
-	}
-
-	template <typename T>
 	inline CRTP& nvp(const char* name, T&& arg) {
 		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}

@@ -11,11 +11,8 @@
 
 
 
-vide: move exception header from details into a public path
 
-
-
-
+vide: Make sure binary_data does not swap bytes for floating points numbers
 
 vide: Deserialized enum values can be invalid (values that are not present in the enum).
 		This is a security and correctness problem.
@@ -25,6 +22,9 @@ vide: Deserialized enum values can be invalid (values that are not present in th
 			serialization is disabled unless the customization point states
 			what is the value policy
 
+vide: Deserialized pointer types might be expected to be non-null
+	vide: non-null ptrs: shared, unique should be simple, intrusive more trick
+
 vide: Archive.verify
 	- standalone
 		ar.verify(version >= 3);
@@ -33,12 +33,13 @@ vide: Archive.verify
 	- simple check after member
 		ar.nvp("taxRate", taxRate);
 		ar.verify(taxRate > 0 && taxRate < 100, "taxRate value");
+		ar.verifyNotNull(ptr);
 
 	- chaining on a member
 		ar.nvp("taxRate", taxRate)
 			.verify(taxRate > 0 && taxRate < 100, "taxRate value");
-
-vide: non-null ptrs: shared, unique should be simple, intrusive more trick
+		ar.nvp("planet", planet)
+			.verifyNotNull();
 
 vide: load/ignore
 	(?) load if input archive, do nothing if output archive
@@ -60,6 +61,8 @@ vide: archive.binary_data(ptr, size) and archive.binary_data(name, ptr, size) de
 vide: archive.eof() or some API to check if the whole of the buffer was consumed
 vide: archive.enable_trace(): detailed exception (try-catch and append debug info in every serializer), as this might be heavy it might need to be a compile time flag not runtime
 
+vide: visiting_archive
+
 Files that should remove the vide/vide.hpp include:
     types/memory.hpp (transitive via vide/traits/shared_from_this.hpp)
     types/polymorphic.hpp
@@ -71,9 +74,5 @@ Better document:
 	maximumBinaryReadSize
 
 cleanup SizeTag
-
-remove operator>>
-remove operator<<
-remove operator&
 
 vide: std::vector<std::byte> should be base64 serialized in JSON/XML

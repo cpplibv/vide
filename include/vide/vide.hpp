@@ -357,36 +357,9 @@ public:
 		return (*this)(::vide::SizeTag<size_type>(size));
 	}
 
-	// inline ArchiveType& binary_data(uint64_t size) {
-	// 	return (*this)(::vide::SizeTag<size_type>(size));
+	// inline ArchiveType& binary_data(const char* data, uint64_t size) {
+	// 	return (*this)(...);
 	// }
-
-	/*! @name Boost Transition Layer
-		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
-		a large project from Boost to vide.  The preferred interface for vide is using operator(). */
-	//! @{
-
-	//! Serializes passed in data
-	/*! This is a boost compatability layer and is not the preferred way of using
-		vide.  If you are transitioning from boost, use this until you can
-		transition to the operator() overload */
-	template <class T>
-	inline ArchiveType& operator&(T&& arg) {
-		process_self(std::forward<T>(arg));
-		return self();
-	}
-
-	//! Serializes passed in data
-	/*! This is a boost compatability layer and is not the preferred way of using
-		vide.  If you are transitioning from boost, use this until you can
-		transition to the operator() overload */
-	template <class T>
-	inline ArchiveType& operator<<(T&& arg) {
-		process_self(std::forward<T>(arg));
-		return self();
-	}
-
-	//! @}
 
 public:
 	//! Serializes any data marked for deferment using defer
@@ -733,33 +706,6 @@ public:
 		if (requestedBytes > self().maximumBinaryReadSize())
 			throw Exception("Read size validation of " + std::to_string(requestedBytes) + " bytes failed.");
 	}
-
-	/*! @name Boost Transition Layer
-		Functionality that mirrors the syntax for Boost.  This is useful if you are transitioning
-		a large project from Boost to vide.  The preferred interface for vide is using operator(). */
-	//! @{
-
-	//! Serializes passed in data
-	/*! This is a boost compatability layer and is not the preferred way of using
-		vide.  If you are transitioning from boost, use this until you can
-		transition to the operator() overload */
-	template <class T>
-	inline ArchiveType& operator&(T&& arg) {
-		process_self(std::forward<T>(arg));
-		return self();
-	}
-
-	//! Serializes passed in data
-	/*! This is a boost compatability layer and is not the preferred way of using
-		vide.  If you are transitioning from boost, use this until you can
-		transition to the operator() overload */
-	template <class T>
-	inline ArchiveType& operator>>(T&& arg) {
-		process_self(std::forward<T>(arg));
-		return self();
-	}
-
-	//! @}
 
 public:
 	//! Serializes any data marked for deferment using defer

@@ -10,15 +10,23 @@
 
 
 
+vide: Customization point for smart pointers (libv::intrusive_ptr support)
+	\ shared_ptr could/should use this too (granted that would require polymorphic in it)
+
+vide: Deserialized pointer types might be expected to be non-null
+	vide: non-null ptrs: shared, unique should be simple, intrusive more trick
+
+vide: archive.eof() or some API to check if the whole of the buffer was consumed
+
+ext: Update rapidjson & rapidxml
+
+TODO: static_assert for incomplete types
 
 
 
 
 
 vide: Make sure binary_data does not swap bytes for floating points numbers
-
-vide: Deserialized pointer types might be expected to be non-null
-	vide: non-null ptrs: shared, unique should be simple, intrusive more trick
 
 vide: Archive.verify
 	- standalone
@@ -57,7 +65,6 @@ vide: load/ignore
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
 vide: archive.binary_data(ptr, size) and archive.binary_data(name, ptr, size) dependent name or function for BinaryData, cleanup BinaryData
-vide: archive.eof() or some API to check if the whole of the buffer was consumed
 vide: archive.enable_trace(): detailed exception (try-catch and append debug info in every serializer), as this might be heavy it might need to be a compile time flag not runtime
 
 vide: visiting_archive
@@ -75,3 +82,14 @@ Better document:
 cleanup SizeTag
 
 vide: std::vector<std::byte> should be base64 serialized in JSON/XML
+
+
+
+Merge/Implement the following PRs:
+	https://github.com/USCiLab/cereal/pull/829 Update rapidjson & rapidxml
+	https://github.com/USCiLab/cereal/pull/641 Use unordered containers and remove std::function from polymorphic_impl.hpp
+
+Think about it:
+	https://github.com/USCiLab/cereal/pull/658 Adding ability to detect a RapidJSON parse error in JSONInputArchive
+	https://github.com/USCiLab/cereal/pull/321 Json/XML Archive improvement (basically only the stack info is relevant improvement)
+	https://github.com/USCiLab/cereal/pull/653 Added JSONInputArchive constructor from an already parsed rapidjson::Document

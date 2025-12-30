@@ -241,13 +241,13 @@ struct base_class_id {
 		hash(std::hash<std::type_index>()(typeid(T)) ^ (std::hash<const void*>()(t) << 1)) {
 	}
 
-	bool operator==(base_class_id const& other) const {
+	bool operator==(base_class_id const& other) const noexcept {
 		return type == other.type && ptr == other.ptr;
 	}
 };
 
 struct base_class_id_hash {
-	size_t operator()(base_class_id const& id) const {
+	size_t operator()(base_class_id const& id) const noexcept {
 		return id.hash;
 	}
 };
@@ -690,7 +690,7 @@ public:
 	}
 
 	inline size_type size_tag() {
-		size_type size;
+		size_type size{};
 		size_tag(size);
 		return size;
 	}

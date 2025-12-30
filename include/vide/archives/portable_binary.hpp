@@ -274,7 +274,7 @@ public:
 			throw Exception("Failed to seek stream to determine binary size.");
 		reserveMemoryBudget = static_cast<std::size_t>(end - begin) * VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER;
 
-		uint8_t streamLittleEndian;
+		uint8_t streamLittleEndian{0};
 		this->operator()(streamLittleEndian);
 		itsConvertEndianness = options.is_little_endian() ^ streamLittleEndian;
 	}

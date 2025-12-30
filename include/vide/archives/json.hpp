@@ -224,13 +224,13 @@ public:
 		switch (itsNodeStack.top()) {
 		case NodeType::StartArray:
 			itsWriter.StartArray();
-			// fall through
+			[[fallthrough]];
 		case NodeType::InArray:
 			itsWriter.EndArray();
 			break;
 		case NodeType::StartObject:
 			itsWriter.StartObject();
-			// fall through
+			[[fallthrough]];
 		case NodeType::InObject:
 			itsWriter.EndObject();
 			break;

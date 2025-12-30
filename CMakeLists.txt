@@ -7,7 +7,6 @@ if (PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif ()
 
 
-include(ExternalProject)
 include(cmake/wish_create.cmake)
 include(cmake/wish_date.cmake)
 include(cmake/wish_git.cmake)
@@ -32,12 +31,15 @@ endif ()
 set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
 
 
-option(BUILD_DOC "Build documentation" ON)
-option(BUILD_SANDBOX "Build sandbox examples" ON)
-option(SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
+option(VIDE_BUILD_DOC "Build documentation" ${VIDE_MASTER_PROJECT})
+option(VIDE_BUILD_SANDBOX "Build sandbox examples" ${VIDE_MASTER_PROJECT})
+option(VIDE_BUILD_TESTS "Build tests" ${VIDE_MASTER_PROJECT})
+option(VIDE_JUST_INSTALL "Don't do anything besides installing the library" OFF)
+option(VIDE_SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
 option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
-option(FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
-option(JUST_INSTALL_VIDE "Don't do anything besides installing the library" OFF)
+
+option(VIDE_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+option(VIDE_ALTERNATIVE_LINKER "Use an alternative linker. Leave empty for system default; alternatives are 'gold', 'lld', 'bfd', 'mold'" FALSE)
 
 
 set(VIDE_THREAD_LIBS)
@@ -50,7 +52,7 @@ if (UNIX)
 	endif ()
 endif ()
 
-if (${FORCE_COLORED_OUTPUT})
+if (${VIDE_FORCE_COLORED_OUTPUT})
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 		message(STATUS "Force colored output: GCC")
 		add_compile_options(-fdiagnostics-color=always)
@@ -68,13 +70,13 @@ endif ()
 #else()
 #    add_compile_options(-Wall -Wextra -pedantic -Wshadow -Wold-style-cast)
 #
-##    option(WITH_WERROR "Compile with '-Werror' C++ compiler flag" ON)
-##    if(WITH_WERROR)
+##    option(VIDE_WITH_WERROR "Compile with '-Werror' C++ compiler flag" ON)
+##    if(VIDE_WITH_WERROR)
 ##        add_compile_options(-Werror)
 ##    endif()
 #
-##    option(CLANG_USE_LIBCPP "Use libc++ for clang compilation" OFF)
-##    if(APPLE OR CLANG_USE_LIBCPP)
+##    option(VIDE_CLANG_USE_LIBCPP "Use libc++ for clang compilation" OFF)
+##    if(APPLE OR VIDE_CLANG_USE_LIBCPP)
 ##        message(STATUS "Use libc++")
 ##        add_compile_options(-stdlib=libc++)
 ##        # TODO: use add_link_options(-stdlib=libc++ -lc++abi") bud this needs cmake 3.13! CK
@@ -86,7 +88,6 @@ endif ()
 ##    endif()
 #
 ##    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#
 #endif()
 
 # -------------------------------------------------------------------------------------------------
@@ -152,14 +153,6 @@ endif ()
 
 add_compile_options(-m64)
 add_compile_options(-std=c++23)
-
-# -------------------------------------------------------------------------------------------------
-
-option(BUILD_DOC "Build documentation" ON)
-option(BUILD_SANDBOX "Build sandbox examples" ON)
-option(SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
-option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
-option(VIDE_ALTERNATIVE_LINKER "Use an alternative linker. Leave empty for system default; alternatives are 'gold', 'lld', 'bfd', 'mold'" FALSE)
 
 # -------------------------------------------------------------------------------------------------
 
@@ -230,33 +223,32 @@ if (VIDE_INSTALL)
 			DESTINATION ${configInstallDestination}
 	)
 	install(
-		FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
-		DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
+			FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
+			DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
 	)
 endif ()
 
 
-if (JUST_INSTALL_VIDE)
+if (VIDE_JUST_INSTALL)
 	return()
 endif ()
 
 
-#if(NOT SKIP_PERFORMANCE_COMPARISON)
+#if(NOT VIDE_SKIP_PERFORMANCE_COMPARISON)
 #    # Boost serialization for performance sandbox
 #    find_package(Boost REQUIRED COMPONENTS serialization)
 #endif()
 
 
-option(BUILD_TESTS "Build tests" ${VIDE_MASTER_PROJECT})
-if (BUILD_TESTS)
+if (VIDE_BUILD_TESTS)
 	enable_testing()
 	add_subdirectory(unittests)
 endif ()
 
-if (BUILD_SANDBOX)
+if (VIDE_BUILD_SANDBOX)
 	add_subdirectory(sandbox)
 endif ()
 
-if (BUILD_DOC)
+if (VIDE_BUILD_DOC)
 	add_subdirectory(doc)
 endif ()

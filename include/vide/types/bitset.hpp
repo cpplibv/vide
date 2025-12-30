@@ -49,6 +49,7 @@ enum class type : uint8_t {
 	ullong = 1,
 	string = 2,
 	bits = 3,
+	serialize_max_value = bits,
 };
 
 } // namespace bitset_detail -----------------------------------------------------------------------
@@ -152,9 +153,8 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::bitset<N>& bits) {
 			mask = static_cast<std::uint8_t>(mask >> 1);
 		}
 		break;
+	// default: branch is not needed, serialize_end_value takes care of it
 	}
-	default:
-		throw Exception("Invalid bitset data representation");
 	}
 }
 

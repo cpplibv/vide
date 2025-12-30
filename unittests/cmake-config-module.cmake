@@ -9,7 +9,7 @@ get_filename_component(INSTALL_DIR ${CMAKE_BINARY_DIR}/out ABSOLUTE)
 file(MAKE_DIRECTORY ${BINARY_DIR}/vide)
 execute_process(
         COMMAND ${CMAKE_COMMAND}
-        -DJUST_INSTALL_VIDE=1
+        -DVIDE_JUST_INSTALL=1
         -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/..
         WORKING_DIRECTORY ${BINARY_DIR}/vide

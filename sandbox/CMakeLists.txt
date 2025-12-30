@@ -15,7 +15,7 @@ target_link_libraries(sandbox_rtti ${VIDE_THREAD_LIBS})
 add_executable(sandbox_vs sandbox_vs.cpp)
 target_link_libraries(sandbox_vs sandbox_vs_dll)
 
-if (Boost_FOUND AND NOT SKIP_PERFORMANCE_COMPARISON)
+if (Boost_FOUND AND NOT VIDE_SKIP_PERFORMANCE_COMPARISON)
     add_executable(performance performance.cpp)
     if (MSVC)
         set_target_properties(performance PROPERTIES COMPILE_DEFINITIONS "BOOST_SERIALIZATION_DYN_LINK")

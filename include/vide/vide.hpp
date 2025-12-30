@@ -367,8 +367,9 @@ public:
 	//! Serializes any data marked for deferment using defer
 	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
 	void serializeDeferments() {
-		for (auto& deferment : itsDeferments)
-			deferment();
+		// To allow recursive deferments we iterate by indexes instead of iterators
+		for (std::size_t i = 0; i < itsDeferments.size(); i++)
+			itsDeferments[i]();
 	}
 
 	//! Registers a shared pointer with the archive
@@ -713,8 +714,9 @@ public:
 	//! Serializes any data marked for deferment using defer
 	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
 	void serializeDeferments() {
-		for (auto& deferment : itsDeferments)
-			deferment();
+		// To allow recursive deferments we iterate by indexes instead of iterators
+		for (std::size_t i = 0; i < itsDeferments.size(); i++)
+			itsDeferments[i]();
 	}
 
 	//! Retrieves a shared pointer given a unique key for it

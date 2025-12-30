@@ -12,15 +12,10 @@
 
 
 
-vide: Make sure binary_data does not swap bytes for floating points numbers
 
-vide: Deserialized enum values can be invalid (values that are not present in the enum).
-		This is a security and correctness problem.
-		The solution will most likely be explicit statement to check value or not with reflection
-		| Solution: customization point on the enum type
-			\ to safely migrate every code have an explicit more where enum
-			serialization is disabled unless the customization point states
-			what is the value policy
+
+
+vide: Make sure binary_data does not swap bytes for floating points numbers
 
 vide: Deserialized pointer types might be expected to be non-null
 	vide: non-null ptrs: shared, unique should be simple, intrusive more trick
@@ -40,6 +35,10 @@ vide: Archive.verify
 			.verify(taxRate > 0 && taxRate < 100, "taxRate value");
 		ar.nvp("planet", planet)
 			.verifyNotNull();
+
+	- type wrapper
+		ar.nvp("planet", ar.notnull(planet))
+		ar.nvp("planet", vide::notnull(planet))
 
 vide: load/ignore
 	(?) load if input archive, do nothing if output archive

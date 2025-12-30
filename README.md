@@ -1,9 +1,16 @@
-**cpplibv/vide** - A C++23 library for serialization
+**cpplibv/vide** - A C++23 serialization library
 ==========================================
-Based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
+Originally based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
-This is an experimental fork that alters multiple core functionality of [USCiLab/cereal](https://github.com/USCiLab/cereal) and therefore **is not compatible** with the upstream!
-Neither forward, nor backward compatibility is guaranteed.
+Compared to the original project the most notable changes are:
+	- Fixed numerous security vulnerability
+	- Improved API flexibility and compossibility
+	- Added features and utilities
+	- Significantly improved compile time
+	- Modernized and simplified the codebase
+Compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
+As development is treated as experimental neither forward, nor backward compatibility is guaranteed (but the library
+is expected to reach a stable state soon.)
 Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2024.05.02 d1fcec807).
 
 ### Changes / Differences to Cereal:
@@ -73,6 +80,23 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Rename VIDE_XML_STRING_VALUE to VIDE_XML_ROOT_TAG_NAME
   - Move out exception.hpp header from details
   - Remove compatibility operator>>, operator<< and operator&
+- Version 2.5.0:
+  - Add enum value verifications system: If an 'enum value set' is specified it will be verified during
+  serialization and deserialization. This feature resolves the last known security concern.
+  The 'enum value set' can be specified for EnumType by:
+    - Defining an enumerator `serialize_unbounded` inside the EnumType with any value. Valid values: every underlying representation.
+    - Defining an enumerator `serialize_end_value` inside the EnumType with the max value. Valid values: [0..end_value).
+    - Defining an enumerator `serialize_max_value` inside the EnumType with the max value. Valid values: \[0..max_value].
+    - Defining a free function `serialize_enum_unbounded(EnumType)` reachable by ADL returning `void`. Valid values every underlying representation.
+    - Defining a free function `serialize_enum_end_value(EnumType)` reachable by ADL returning `EnumType` with the max value. Valid values: [0..end_value).
+    - Defining a free function `serialize_enum_end_value(EnumType)` reachable by ADL returning `Underlying` with the max value. Valid values: [0..end_value).
+    - Defining a free function `serialize_enum_max_value(EnumType)` reachable by ADL returning `EnumType` with the max value. Valid values: \[0..max_value].
+    - Defining a free function `serialize_enum_max_value(EnumType)` reachable by ADL returning `Underlying` with the max value. Valid values: \[0..max_value].
+    - Defining a free function `serialize_enum_verify(EnumType)` reachable by ADL returning `bool` that determines if the value is valid. Valid values will those which return true.
+    - As soon as C++ reflection are implemented additional (better) definition ways will be added
+  - Add VIDE_STRICT_ENUM_VALUE_SET macro to specify whether vide should enforce enum value set specification. Should be defined to 0 or 1. Defaults to (0) disabled.
+  - TODO: Customization point for smart pointers
+  - TODO: static_assert for incomplete types
 
 
 ### Planned:
@@ -80,7 +104,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Add size limited container serialization support
   - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
-- Various data verification techniques: not-null, valid enum value, user defined
+- Various data verification techniques: not-null, user defined
 - Improve feature availability in serialization functions via dependent names
 - Further improved compile time performance (by organizing includes)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
@@ -94,6 +118,8 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   ar(body_a);
   ar(index_body_a_loc, body_a_offset);
   ```
+- (Preliminary) Version 3.0.0:
+  - Major breaking change in the serialized archives (expected to be the last)
 
 -------------------------------------------------------------------------------------------------
 

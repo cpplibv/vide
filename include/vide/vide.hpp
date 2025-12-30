@@ -38,6 +38,8 @@
 #include <vide/nvp.hpp>
 #include <vide/size_tag.hpp>
 #include <vide/types/base_class.hpp>
+#include <vide/types/common.hpp>
+#include <vide/types/enum.hpp>
 #include <vide/unserializable_type_tag.hpp>
 
 #include <iostream>
@@ -959,6 +961,3 @@ private:
 }; // class InputArchive
 
 } // namespace vide
-
-// This include needs to come after things such as binary_data, make_nvp, etc
-#include <vide/types/common.hpp>

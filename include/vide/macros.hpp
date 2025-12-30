@@ -73,7 +73,7 @@
 #endif // VIDE_SIZE_TYPE
 
 #ifndef VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER
-/// Multipler of the input data size which deretmines the memory budget that can be used to reserve containers.
+/// Multiplier for the input data size which determines the memory budget that can be used to reserve containers.
 /// Typical values are 1 .. 8. It is meant as a reasonable upper estimate on how much C++ object memory
 /// can be extracted from the archive.
 /// If the budget ever runs out the deserialization will fall back to element wise non-reserved allocation patterns.
@@ -131,5 +131,22 @@
     before this file is included. */
 #define VIDE_FUNCTION_NAME_SAVE_MINIMAL save_minimal
 #endif // VIDE_FUNCTION_NAME_SAVE_MINIMAL
+
+// =================================================================================================
+
+#ifndef VIDE_STRICT_ENUM_VALUE_SET
+/// Specifies whether vide should enforce enum value set specification. Defaults to disable
+/// When enabled, enums which 'enum value set' is unspecified will fail to compile.
+/// When disabled, enums which 'enum value set' is unspecified are serialized as unbounded underlying type without
+/// any check during serialization/deserialization.
+///
+/// The 'enum value set' can be specified for EnumType by:
+///		- Defining an enumerator @c serialize_unbounded inside the EnumType with any value. Valid values will be every underlying representation.
+///		- Defining an enumerator @c serialize_end_value inside the EnumType with the max value. Valid values will be: [0..end_value).
+///		- Defining a free function @c serialize_enum_unbounded(EnumType) returning void. Valid values will be every underlying representation.
+///		- Defining a free function @c serialize_enum_end_value(EnumType) returning underlying with the max value. Valid values will be: [0..end_value).
+///		- Defining a free function @c serialize_enum_verify(EnumType) returning bool that determines if the value is valid. Valid values will those which return true.
+#define VIDE_STRICT_ENUM_VALUE_SET 0
+#endif // VIDE_STRICT_ENUM_VALUE_SET
 
 // =================================================================================================

@@ -191,7 +191,7 @@ add_library(vide INTERFACE)
 add_library(vide::vide ALIAS vide)
 target_include_directories(vide INTERFACE
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:include>
+		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 list(APPEND VIDE_THREAD_LIBS vide::vide)
 

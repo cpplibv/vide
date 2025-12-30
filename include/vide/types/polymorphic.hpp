@@ -187,10 +187,10 @@ namespace polymorphic_detail {
 //! Get an input binding from the given archive by deserializing the type meta data
 /*! @internal */
 template <class Archive>
-inline typename ::vide::detail::InputBindingMap<Archive>::Serializers aux_getInputBinding(Archive& ar, const std::uint32_t nameid) {
+inline typename ::vide::detail::InputBindingMap::Serializers aux_getInputBinding(Archive& ar, const std::uint32_t nameid) {
 	// If the nameid is zero, we serialized a null pointer
 	if (nameid == 0) {
-		typename ::vide::detail::InputBindingMap<Archive>::Serializers emptySerializers;
+		typename ::vide::detail::InputBindingMap::Serializers emptySerializers;
 		emptySerializers.shared_ptr = [](void*, std::shared_ptr<void>& ptr, const std::type_info&) { ptr.reset(); };
 		emptySerializers.unique_ptr = [](void*, std::unique_ptr<void, ::vide::detail::EmptyDeleter<void>>& ptr, const std::type_info&) { ptr.reset(nullptr); };
 		return emptySerializers;

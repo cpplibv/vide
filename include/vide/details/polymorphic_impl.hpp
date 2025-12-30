@@ -50,12 +50,12 @@
 #include <vide/traits/underlying_archive.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/string.hpp>
+
 #include <functional>
-#include <typeindex>
-#include <map>
 #include <limits>
-#include <set>
+#include <map>
 #include <stack>
+#include <typeindex>
 
 //! Helper macro to omit unused warning
 #if defined(__GNUC__)
@@ -425,7 +425,6 @@ struct binding_name {};
 	type, containing entries for every registered type that describe how to
 	properly cast the type to its real type in polymorphic scenarios for
 	shared_ptr, weak_ptr, and unique_ptr. */
-template <class Archive>
 struct OutputBindingMap {
 	//! A serializer function
 	/*! Serializer functions return nothing and take an archive as
@@ -442,7 +441,14 @@ struct OutputBindingMap {
 	};
 
 	//! A map of serializers for pointers of all registered types
-	std::map<std::type_index, Serializers> map;
+	using Serializers_map = std::map<std::type_index, Serializers>;
+	//! A map of archive typeid -> map of serializers for given archive
+	using Archives_map = std::map<std::type_index, Serializers_map>;
+	Archives_map archives_map;
+
+	//! Obtain serializers map for given archive
+	template <typename Archive>
+	Serializers_map& map() { return archives_map[typeid(Archive)]; }
 };
 
 //! An empty noop deleter
@@ -453,7 +459,6 @@ template <class T> struct EmptyDeleter { void operator()(T*) const {}};
 	type, containing entries for every registered type that describe how to
 	properly cast the type to its real type in polymorphic scenarios for
 	shared_ptr, weak_ptr, and unique_ptr. */
-template <class Archive>
 struct InputBindingMap {
 	//! Shared ptr serializer function
 	/*! Serializer functions return nothing and take an archive as
@@ -472,17 +477,24 @@ struct InputBindingMap {
 	};
 
 	//! A map of serializers for pointers of all registered types
-	std::map<std::string, Serializers> map;
+	using Serializers_map = std::map<std::string, Serializers>;
+	//! A map of archive typeid -> map of serializers for given archive
+	using Archives_map = std::map<std::type_index, Serializers_map>;
+	Archives_map archives_map;
+
+	//! Obtain serializers map for given archive
+	template <typename Archive>
+	Serializers_map& map() { return archives_map[typeid(Archive)]; }
 };
 
 template <typename Archive>
 auto& getBindingMapOutput() {
-	return detail::StaticObject<detail::OutputBindingMap<underlying_archive_t<Archive>>>::getInstance().map;
+	return detail::StaticObject<detail::OutputBindingMap>::getInstance().map<underlying_archive_t<Archive>>();
 }
 
 template <typename Archive>
 auto& getBindingMapInput() {
-	return detail::StaticObject<detail::InputBindingMap<underlying_archive_t<Archive>>>::getInstance().map;
+	return detail::StaticObject<detail::InputBindingMap>::getInstance().map<underlying_archive_t<Archive>>();
 }
 
 // forward decls for archives from vide.hpp
@@ -497,17 +509,15 @@ class OutputArchiveBase;
 template <class Archive, class T> struct InputBindingCreator {
 	//! Initialize the binding
 	InputBindingCreator() {
-		auto& map = StaticObject<InputBindingMap<Archive>>
-		::getInstance().map;
-		auto lock = StaticObject<InputBindingMap<Archive>>
-		::lock();
+		auto& map = StaticObject<InputBindingMap>::getInstance().map<Archive>();;
+		auto lock = StaticObject<InputBindingMap>::lock();
 		auto key = std::string(binding_name<T>::name());
 		auto lb = map.lower_bound(key);
 
 		if (lb != map.end() && lb->first == key)
 			return;
 
-		typename InputBindingMap<Archive>::Serializers serializers;
+		InputBindingMap::Serializers serializers;
 
 		serializers.shared_ptr =
 				+[](void* arptr, std::shared_ptr<void>& dptr, const std::type_info& baseInfo) {
@@ -610,14 +620,14 @@ template <class Archive, class T> struct OutputBindingCreator {
 
 	//! Initialize the binding
 	OutputBindingCreator() {
-		auto& map = StaticObject<OutputBindingMap<Archive>>::getInstance().map;
+		auto& map = StaticObject<OutputBindingMap>::getInstance().map<Archive>();
 		auto key = std::type_index(typeid(T));
 		auto lb = map.lower_bound(key);
 
 		if (lb != map.end() && lb->first == key)
 			return;
 
-		typename OutputBindingMap<Archive>::Serializers serializers;
+		OutputBindingMap::Serializers serializers;
 
 		serializers.shared_ptr =
 				+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {

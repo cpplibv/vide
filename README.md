@@ -95,6 +95,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Defining a free function `serialize_enum_verify(EnumType)` reachable by ADL returning `bool` that determines if the value is valid. Valid values will those which return true.
     - As soon as C++ reflection are implemented additional (better) definition ways will be added
   - Add VIDE_STRICT_ENUM_VALUE_SET macro to specify whether vide should enforce enum value set specification. Should be defined to 0 or 1. Defaults to (0) disabled.
+  - Sync with upstream 2025.01.20 a56bad8bb
   - TODO: Customization point for smart pointers
   - TODO: static_assert for incomplete types
 

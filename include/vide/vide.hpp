@@ -30,6 +30,7 @@
 
 #include <vide/access.hpp>
 #include <vide/binary_data.hpp>
+#include <vide/binary_serializable_type.hpp>
 #include <vide/details/bits.hpp>
 #include <vide/details/helpers.hpp>
 #include <vide/details/traits.hpp>
@@ -505,7 +506,7 @@ private:
 
 	//! Empty class specialization
 	template <class As, class T>
-			requires (!access::is_output_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && std::is_empty_v<T>)
+			requires (!access::is_output_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && Empty<T>)
 	inline void processImpl(As& as, const T& var) {
 		(void) as;
 		(void) var;
@@ -573,6 +574,9 @@ private:
 		requires (!access::is_output_serializable<As, T>)
 	inline unserializable_type_tag processImpl(As& as, const T&) {
 		(void) as;
+
+		static_assert(Complete<T>,
+				"Attempted to serialize an incomplete type T. Ensure the type is included and complete before serialization attempts.");
 
 		static_assert(access::count_output_serializers<ArchiveType, T> != 0, "\n"
 				"Vide could not find any output serialization functions for the provided type and archive combination.\n\n"
@@ -865,7 +869,7 @@ private:
 
 	//! Empty class specialization
 	template <class As, class T>
-			requires (!access::is_input_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && std::is_empty_v<T>)
+			requires (!access::is_input_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && Empty<T>)
 	inline void processImpl(As& as, const T& var) {
 		(void) as;
 		(void) var;
@@ -941,6 +945,9 @@ private:
 		requires (!access::is_input_serializable<As, T>)
 	inline unserializable_type_tag processImpl(As& as, const T&) {
 		(void) as;
+
+		static_assert(Complete<T>,
+				"Attempted to serialize an incomplete type T. Ensure the type is included and complete before serialization attempts.");
 
 		static_assert(access::count_input_serializers<ArchiveType, T> != 0, "\n"
 				"Vide could not find any input serialization functions for the provided type and archive combination.\n\n"

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vide/concept.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
 
@@ -59,12 +60,6 @@ struct enum_value_set {
 
 	template <typename T>
 	static constexpr bool is_unbounded = has_unbounded_enumerator<T> || has_unbounded_free_function<T>;
-	// template <typename T>
-	// static constexpr bool is_end_value = has_end_value_enumerator<T> || has_end_value_free_function_enum<T> || has_end_value_free_function_underlying<T>;
-	// template <typename T>
-	// static constexpr bool is_max_value = has_max_value_enumerator<T> || has_max_value_free_function_enum<T> || has_max_value_free_function_underlying<T>;
-	// template <typename T>
-	// static constexpr bool is_verify = has_verify_free_function<T>;
 
 	template <typename T>
 	static constexpr int count_specifiers =
@@ -85,6 +80,10 @@ struct enum_value_set {
 
 	template <typename T>
 	static constexpr void verify(const T& var) {
+		// Unfortunately there is no way to detect enum class Completeness
+		// static_assert(Complete<T>,
+		// 		"Attempted to serialize an incomplete enum type T. Ensure the type is included and complete before serialization attempts.");
+
 		static constexpr int specifiers_count = count_specifiers<T>;
 		if constexpr (specifiers_count > 0 || (VIDE_STRICT_ENUM_VALUE_SET)) {
 			static_assert(specifiers_count != 0,

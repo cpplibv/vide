@@ -537,12 +537,10 @@ private:
 		//! Adjust our position such that we are at the node with the given name
 		/*! @throws Exception if no such named node exists */
 		inline void search(const char* searchName) {
-			const auto len = std::strlen(searchName);
 			size_t index = 0;
 			for (auto it = itsMemberItBegin; it != itsMemberItEnd; ++it, ++index) {
 				const auto currentName = it->name.GetString();
-				if ((std::strncmp(searchName, currentName, len) == 0) &&
-						(std::strlen(currentName) == len)) {
+				if (std::strcmp(searchName, currentName) == 0) {
 					itsIndex = index;
 					return;
 				}

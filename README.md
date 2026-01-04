@@ -87,22 +87,45 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Defining an enumerator `serialize_unbounded` inside the EnumType with any value. Valid values: every underlying representation.
     - Defining an enumerator `serialize_end_value` inside the EnumType with the max value. Valid values: [0..end_value).
     - Defining an enumerator `serialize_max_value` inside the EnumType with the max value. Valid values: \[0..max_value].
-    - Defining a free function `serialize_enum_unbounded(EnumType)` reachable by ADL returning `void`. Valid values every underlying representation.
-    - Defining a free function `serialize_enum_end_value(EnumType)` reachable by ADL returning `EnumType` with the max value. Valid values: [0..end_value).
-    - Defining a free function `serialize_enum_end_value(EnumType)` reachable by ADL returning `Underlying` with the max value. Valid values: [0..end_value).
-    - Defining a free function `serialize_enum_max_value(EnumType)` reachable by ADL returning `EnumType` with the max value. Valid values: \[0..max_value].
-    - Defining a free function `serialize_enum_max_value(EnumType)` reachable by ADL returning `Underlying` with the max value. Valid values: \[0..max_value].
-    - Defining a free function `serialize_enum_verify(EnumType)` reachable by ADL returning `bool` that determines if the value is valid. Valid values will those which return true.
+    - Defining a free function `serialize_enum_unbounded(EnumType) : void` reachable by ADL. Valid values every underlying representation.
+    - Defining a free function `serialize_enum_end_value(EnumType) : EnumType` reachable by ADL returning the max value. Valid values: [0..end_value).
+    - Defining a free function `serialize_enum_end_value(EnumType) : Underlying` reachable by ADL returning the max value. Valid values: [0..end_value).
+    - Defining a free function `serialize_enum_max_value(EnumType) : EnumType` reachable by ADL returning with the max value. Valid values: \[0..max_value].
+    - Defining a free function `serialize_enum_max_value(EnumType) : Underlying` reachable by ADL returning with the max value. Valid values: \[0..max_value].
+    - Defining a free function `serialize_enum_verify(EnumType) : bool` reachable by ADL returning the value's validity. Valid values will those which return true.
     - As soon as C++ reflection are implemented additional (better) definition ways will be added
   - Add VIDE_STRICT_ENUM_VALUE_SET macro to specify whether vide should enforce enum value set specification. Should be defined to 0 or 1. Defaults to (0) disabled.
   - Add static_assert message for incomplete types
+  - Add `archive.ignore<T>()` and `archive.nvp_ignore<T>(name)` to load and discard a value from an input archive. Does nothing for output archives.
+  Useful for ignoring variables from data serialized by old versions.
+    ```c++
+    template <class Archive> void serialize(Archive& ar, uint32_t version) {
+        if (version < 2) {
+            ar.template nvp_ignore<int>("removedVarNamed");
+            ar.template nvp_ignore<int>(); // removedVarUnnamed
+        }
+    }
+    ```
+  - Add `archive.load<T>() : T` and `archive.nvp_load<T>(name) : T` to direct load a value from an input archive. Does not exist for output archives.
+  Useful shorthand if the deserialized value is not directly assigned to a final object.
+    ```c++
+    template <class Archive> void serialize(Archive& ar, uint32_t version) {
+        if constexpr (Archive::is_input) {
+            var0 = ar.template nvp_load<int>("var0") * 100;
+            var1 = ar.template nvp_load<int>() * 100;
+        } else {
+            ar(var0 / 100);
+            ar(var1 / 100);
+        }
+    }
+    ```
   - Sync with upstream 2025.01.20 a56bad8bb
-  - Sync and merge most upstream PRs up until 2025.09.14 #872
-  - Merge https://github.com/USCiLab/cereal/pull/835
-  - Merge https://github.com/USCiLab/cereal/pull/826
-  - Merge https://github.com/USCiLab/cereal/pull/812
-  - Merge https://github.com/USCiLab/cereal/pull/807
-  - Merge https://github.com/USCiLab/cereal/pull/761
+  - Sync, review and merge most upstream PRs up until 2025.09.14 #872
+    - Merge https://github.com/USCiLab/cereal/pull/835
+    - Merge https://github.com/USCiLab/cereal/pull/826
+    - Merge https://github.com/USCiLab/cereal/pull/812
+    - Merge https://github.com/USCiLab/cereal/pull/807
+    - Merge https://github.com/USCiLab/cereal/pull/761
   - TODO: Customization point for smart pointers
 
 

@@ -237,73 +237,85 @@ struct access {
 	// --- Standard serialization access ---------------------------------------------------------------
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_serialize(Archive& ar, T& var) {
+	static constexpr inline decltype(auto) member_serialize(Archive& ar, T& var) {
 		return var.VIDE_FUNCTION_NAME_SERIALIZE(ar);
 	}
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_save(Archive& ar, const T& var) {
+	static constexpr inline decltype(auto) member_save(Archive& ar, const T& var) {
 		return var.VIDE_FUNCTION_NAME_SAVE(ar);
 	}
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_load(Archive& ar, T& var) {
+	static constexpr inline decltype(auto) member_load(Archive& ar, T& var) {
 		return var.VIDE_FUNCTION_NAME_LOAD(ar);
 	}
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_save_minimal(Archive& ar, const T& var) {
+	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var) {
 		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar);
 	}
 
 	template <class Archive, class T, class U>
-	inline static decltype(auto) member_load_minimal(Archive& ar, T& var, U&& value) {
+	static constexpr inline decltype(auto) member_load_minimal(Archive& ar, T& var, U&& value) {
 		return var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value));
 	}
 
 	// --- Versioned serialization access --------------------------------------------------------------
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_serialize(Archive& ar, T& var, const std::uint32_t version) {
+	static constexpr inline decltype(auto) member_serialize(Archive& ar, T& var, const std::uint32_t version) {
 		return var.VIDE_FUNCTION_NAME_SERIALIZE(ar, version);
 	}
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_save(Archive& ar, const T& var, const std::uint32_t version) {
+	static constexpr inline decltype(auto) member_save(Archive& ar, const T& var, const std::uint32_t version) {
 		return var.VIDE_FUNCTION_NAME_SAVE(ar, version);
 	}
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_load(Archive& ar, T& var, const std::uint32_t version) {
+	static constexpr inline decltype(auto) member_load(Archive& ar, T& var, const std::uint32_t version) {
 		return var.VIDE_FUNCTION_NAME_LOAD(ar, version);
 	}
 
 	template <class Archive, class T>
-	inline static decltype(auto) member_save_minimal(Archive& ar, const T& var, const std::uint32_t version) {
+	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var, const std::uint32_t version) {
 		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version);
 	}
 
 	template <class Archive, class T, class U>
-	inline static decltype(auto) member_load_minimal(Archive& ar, T& var, U&& value, const std::uint32_t version) {
+	static constexpr inline decltype(auto) member_load_minimal(Archive& ar, T& var, U&& value, const std::uint32_t version) {
 		return var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value), version);
+	}
+
+	// --- Auxiliary functions -------------------------------------------------------------------------
+
+	template <class Archive, class T>
+	static constexpr inline void global_load(Archive& ar, T& var) {
+		VIDE_FUNCTION_NAME_LOAD(ar, var);
+	}
+
+	template <class Archive, class T>
+	static constexpr inline void global_load(Archive& ar, T& var, const std::uint32_t version) {
+		VIDE_FUNCTION_NAME_LOAD(ar, var, version);
 	}
 
 	// --- Other Functionality -------------------------------------------------------------------------
 
 	// Used for detecting inheritance from enable_shared_from_this
 	template <class T>
-	inline static auto shared_from_this(T& t) -> decltype(t.shared_from_this());
+	static constexpr inline auto shared_from_this(T& t) -> decltype(t.shared_from_this());
 
 	// Used for placement new
 	template <class T, class... Args>
-	inline static void construct(T*& ptr, Args&&... args) {
+	static constexpr inline void construct(T*& ptr, Args&&... args) {
 		new(ptr) T(std::forward<Args>(args)...);
 	}
 
 	// Used for non-placement new with a default constructor
 	template <class T>
 			requires requires { T(); }
-	inline static T* construct() {
+	static constexpr inline T* construct() {
 		return new T();
 	}
 };

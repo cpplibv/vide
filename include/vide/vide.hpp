@@ -352,6 +352,19 @@ public:
 			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}
 
+	template <typename T>
+	inline ArchiveType& ignore() {
+		// During output ignore does nothing
+		return self();
+	}
+
+	template <typename T>
+	inline ArchiveType& nvp_ignore(const char* name) {
+		// During output ignore does nothing
+		(void) name;
+		return self();
+	}
+
 	inline ArchiveType& size_tag(uint32_t size) {
 		return (*this)(::vide::SizeTag<size_type>(size));
 	}
@@ -689,6 +702,32 @@ public:
 			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
 	}
 
+	template <typename T>
+	inline ArchiveType& ignore() {
+		T var;
+		return (*this)(var);
+	}
+
+	template <typename T>
+	inline ArchiveType& nvp_ignore(const char* name) {
+		T var;
+		return nvp(name, var);
+	}
+
+	template <typename T>
+	[[nodiscard]] inline T load() {
+		T var;
+		(*this)(var);
+		return var;
+	}
+
+	template <typename T>
+	[[nodiscard]] inline T nvp_load(const char* name) {
+		T var;
+		nvp(name, var);
+		return var;
+	}
+
 	inline ArchiveType& size_tag(size_type& size) {
 		return (*this)(::vide::SizeTag<size_type&>(size));
 	}
@@ -893,7 +932,7 @@ private:
 
 		} else if constexpr (access::has_global_load<As, T>) {
 			loadClassVersionUnused<T>();
-			VIDE_FUNCTION_NAME_LOAD(as, var);
+			access::global_load(as, var); // Using access:: to escape the member shadow of 'load'
 
 		} else if constexpr (access::has_member_load_minimal<As, T>) {
 			loadClassVersionUnused<T>();
@@ -921,7 +960,7 @@ private:
 
 		} else if constexpr (access::has_global_load_versioned<As, T>) {
 			const auto version = loadClassVersion<T>();
-			VIDE_FUNCTION_NAME_LOAD(as, var, version);
+			access::global_load(as, var, version); // Using access:: to escape the member shadow of 'load'
 
 		} else if constexpr (access::has_member_load_minimal_versioned<As, T>) {
 			const auto version = loadClassVersion<T>();

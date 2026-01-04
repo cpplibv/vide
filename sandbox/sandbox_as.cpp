@@ -28,7 +28,10 @@
 // =================================================================================================
 
 enum class EnumType {
-	v0, v1, v2,
+	v0,
+	v1,
+	v2,
+	serialize_max_value = v2,
 };
 
 struct TestType0 {
@@ -49,8 +52,13 @@ struct TestType0 {
 	std::complex<float> complex0{3.f, 4.f};
 	std::complex<float> complex1{5.f, 6.f};
 
-	EnumType enum0;
-	EnumType enum1;
+	EnumType enum0 = EnumType::v0;
+	EnumType enum1 = EnumType::v1;
+	int ignored = 0;
+	int directLoad = 1;
+	int directLoadNamed = 2;
+
+	[[nodiscard]] constexpr inline bool operator==(const TestType0&) const = default;
 
 	template <class Archive>
 	void serialize(Archive& ar) {
@@ -58,7 +66,7 @@ struct TestType0 {
 
 		ar(a);
 		ar(VIDE_NVP_("b", b));
-		ar(VIDE_NVP(c));
+		ar.nvp("c", c);
 		ar(VIDE_NVP(d));
 		ar(VIDE_NVP(nullptr));
 		ar(nullptr);
@@ -72,6 +80,17 @@ struct TestType0 {
 		ar(VIDE_NVP(complex1));
 		ar(enum0);
 		ar(VIDE_NVP(enum1));
+
+		if constexpr (Archive::is_output) {
+			ar.nvp("ignored", ignored); // we only save it here, so we can ignore it during load
+			ar(directLoad);
+			ar.nvp("directLoadNamed", directLoadNamed);
+		} else {
+			ignored = 1000;
+			ar.template nvp_ignore<int>("ignored");
+			directLoad = ar.template load<int>();
+			directLoadNamed = ar.template nvp_load<int>("directLoadNamed");
+		}
 	}
 };
 
@@ -87,18 +106,45 @@ struct UserProxyArchive : vide::ProxyArchive<UserProxyArchive<Ar>, Ar> {
 int main() {
 	std::cout << std::boolalpha << std::endl;
 
-	{
-		vide::JSONOutputArchive oar(std::cout);
-		UserProxyArchive<vide::JSONOutputArchive> ctxar(oar);
-//		vide::XMLOutputArchive oar(std::cout);
-//		UserProxyArchive<vide::XMLOutputArchive> ctxar(oar);
+	TestType0 t0;
+	t0.a += 1;
+	t0.b += 1;
+	t0.c.first = false;
+	t0.c.second += 1.0;
+	t0.vecA.emplace_back(std::vector<int>{0, 0});
+	t0.vecB.emplace_back(std::vector<int>{});
+	t0.helloA.pop_back();
+	t0.helloB.push_back('!');
+	t0.bits0.set(0, false);
+	t0.bits1.set(0, true);
+	t0.complex0 = {1.f, 2.f};
+	t0.complex1 = {2.f, 3.f};
+	t0.enum0 = EnumType::v2;
+	t0.enum1 = EnumType::v2;
+	t0.ignored += 1000;
+	t0.directLoad += 1000;
+	t0.directLoadNamed += 1000;
 
-		TestType0 t0;
-//		ctxar(t0);
-		ctxar(vide::make_nvp("t1", t0));
-//		oar(t0);
-//		ctxar.template operator()<int>(t0.b);
+	TestType0 t1;
+
+	{
+		std::ostringstream os;
+
+		{
+			vide::JSONOutputArchive oar(os);
+			UserProxyArchive<vide::JSONOutputArchive> ctxar(oar);
+			ctxar(vide::make_nvp("t0", t0));
+		}
+		const auto data = std::move(os).str();
+		std::cout << data << std::endl;
+
+		{
+			std::istringstream is{data};
+			vide::JSONInputArchive iar(is);
+			UserProxyArchive<vide::JSONInputArchive> ctxar(iar);
+			ctxar(vide::make_nvp("t0", t0));
+		}
 	}
 
-	return 0;
+	return t0 == t1;
 }

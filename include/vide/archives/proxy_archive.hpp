@@ -52,7 +52,36 @@ public:
 
 	template <typename T>
 	inline CRTP& nvp(const char* name, T&& arg) {
-		return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+		if constexpr (ignores_nvp)
+			return (*this)(std::forward<T>(arg));
+		else
+			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+	}
+
+	template <typename T>
+	inline CRTP& ignore() {
+		T var;
+		return (*this)(var);
+	}
+
+	template <typename T>
+	inline CRTP& nvp_ignore(const char* name) {
+		T var;
+		return nvp(name, var);
+	}
+
+	template <typename T>
+	[[nodiscard]] inline T load() requires is_input {
+		T var;
+		(*this)(var);
+		return var;
+	}
+
+	template <typename T>
+	[[nodiscard]] inline T nvp_load(const char* name) requires is_input {
+		T var;
+		nvp(name, var);
+		return var;
 	}
 
 	inline CRTP& size_tag(uint32_t size) requires is_output {

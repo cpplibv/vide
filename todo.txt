@@ -9,16 +9,15 @@
 
 
 
-
-vide: Customization point for smart pointers (libv::intrusive_ptr support)
-	\ shared_ptr could/should use this too (granted that would require polymorphic in it)
-
 vide: Deserialized pointer types might be expected to be non-null
 	vide: non-null ptrs: shared, unique should be simple, intrusive more trick
 
 vide: archive.eof() or some API to check if the whole of the buffer was consumed
 
 ext: Update rapidjson & rapidxml
+
+vide: Customization point for smart pointers (libv::intrusive_ptr support)
+	\ shared_ptr could/should use this too (granted that would require polymorphic in it)
 
 
 
@@ -46,17 +45,6 @@ vide: Archive.verify
 		ar.nvp("planet", ar.notnull(planet))
 		ar.nvp("planet", vide::notnull(planet))
 
-vide: load/ignore
-	(?) load if input archive, do nothing if output archive
-		Archive.ignore<T>
-		Archive.nvp_ignore<T>
-			ar.nvp_ignore<std::array<float, 4>>("simulationSpeeds");
-	just load, instead of requesting an lvalue ref, just returns an rvalue
-		Archive.load<T>
-		Archive.nvp_load<T>
-			auto tmp = ar.nvp_load<std::array<float, 4>>("simulationSpeeds");
-	(?) other
-		Archive.load_after_version_or(3, "simulationSpeeds", std::array<float, 4>{0, 1, 2, 4});
 
 
 

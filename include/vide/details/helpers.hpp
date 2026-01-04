@@ -38,6 +38,7 @@
 #include <stdexcept>
 
 #include <vide/details/static_object.hpp>
+#include <vide/details/validation.hpp>
 #include <vide/macros.hpp>
 #include <vide/map_item.hpp>
 
@@ -100,6 +101,16 @@ public:
 
 private:
 	virtual void rtti() {}
+
+public:
+	// Dependent name providers:
+	using Exception = vide::Exception;
+
+	[[no_unique_address]] notnull_t notnull;
+	[[no_unique_address]] notempty_t notempty;
+	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
+		return maxsize_t{limit};
+	}
 };
 
 class InputArchiveBase {
@@ -111,6 +122,16 @@ public:
 
 private:
 	virtual void rtti() {}
+
+public:
+	// Dependent name providers:
+	using Exception = vide::Exception;
+
+	[[no_unique_address]] notnull_t notnull;
+	[[no_unique_address]] notempty_t notempty;
+	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
+		return maxsize_t{limit};
+	}
 };
 
 // forward decls for polymorphic support

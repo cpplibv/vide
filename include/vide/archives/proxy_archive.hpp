@@ -2,11 +2,11 @@
 
 #pragma once
 
-// std
-#include <utility>
-// pro
+#include <vide/exception.hpp>
 #include <vide/nvp.hpp>
 #include <vide/traits/underlying_archive.hpp>
+
+#include <utility>
 
 
 namespace vide {
@@ -17,6 +17,7 @@ template <typename CRTP, typename Ar>
 struct ProxyArchive {
 public:
 	static constexpr bool ignores_nvp = Ar::ignores_nvp;
+	static constexpr bool enforce_validation = Ar::enforce_validation;
 	static constexpr bool is_proxy = true;
 	static constexpr bool is_output = Ar::is_output;
 	static constexpr bool is_input = Ar::is_input;
@@ -43,44 +44,48 @@ public:
 	}
 
 public:
-	template <typename T>
-	inline CRTP& operator()(T&& var) {
+	template <typename T, typename... Validators>
+	inline CRTP& operator()(T&& var, const Validators&... validators) {
 		auto& as = static_cast<CRTP&>(*this);
+		if constexpr (CRTP::enforce_validation && is_output)
+			(validators(var), ...); // Output archive check before save
 		as.process_as(as, std::forward<T>(var));
+		if constexpr (CRTP::enforce_validation && is_input)
+			(validators(var), ...); // Input archive check after load
 		return as;
 	}
 
-	template <typename T>
-	inline CRTP& nvp(const char* name, T&& arg) {
+	template <typename T, typename... Validators>
+	inline CRTP& nvp(const char* name, T&& var, const Validators&... validators) {
 		if constexpr (ignores_nvp)
-			return (*this)(std::forward<T>(arg));
+			return (*this)(std::forward<T>(var), validators...);
 		else
-			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+			return (*this)(::vide::make_nvp(name, std::forward<T>(var)), validators...);
 	}
 
-	template <typename T>
-	inline CRTP& ignore() {
+	template <typename T, typename... Validators>
+	inline CRTP& ignore(const Validators&... validators) {
 		T var;
-		return (*this)(var);
+		return (*this)(var, validators...);
 	}
 
-	template <typename T>
-	inline CRTP& nvp_ignore(const char* name) {
+	template <typename T, typename... Validators>
+	inline CRTP& nvp_ignore(const char* name, const Validators&... validators) {
 		T var;
-		return nvp(name, var);
+		return nvp(name, var, validators...);
 	}
 
-	template <typename T>
-	[[nodiscard]] inline T load() requires is_input {
+	template <typename T, typename... Validators>
+	[[nodiscard]] inline T load(const Validators&... validators) requires is_input {
 		T var;
-		(*this)(var);
+		(*this)(var, validators...);
 		return var;
 	}
 
-	template <typename T>
-	[[nodiscard]] inline T nvp_load(const char* name) requires is_input {
+	template <typename T, typename... Validators>
+	[[nodiscard]] inline T nvp_load(const char* name, const Validators&... validators) requires is_input {
 		T var;
-		nvp(name, var);
+		nvp(name, var, validators...);
 		return var;
 	}
 
@@ -144,6 +149,21 @@ public:
 			return ar.underlying();
 		else
 			return ar;
+	}
+
+public:
+	// Dependent name providers:
+	using Exception = vide::Exception;
+
+	[[no_unique_address]] notnull_t notnull;
+	[[no_unique_address]] notempty_t notempty;
+	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
+		return maxsize_t{limit};
+	}
+	inline void verify(bool pass, std::string_view message) const {
+		if constexpr (CRTP::enforce_validation)
+			if (!pass)
+				throw Exception("Validation failed during serialization: " + std::string(message));
 	}
 };
 

@@ -9,44 +9,21 @@
 
 
 
-vide: Deserialized pointer types might be expected to be non-null
-	vide: non-null ptrs: shared, unique should be simple, intrusive more trick
+
+
+
+vide: Customization point for smart pointers (libv::intrusive_ptr support)
+	\ shared_ptr could/should use this too (granted that would require polymorphic features in it)
 
 vide: archive.eof() or some API to check if the whole of the buffer was consumed
 
-ext: Update rapidjson & rapidxml
 
-vide: Customization point for smart pointers (libv::intrusive_ptr support)
-	\ shared_ptr could/should use this too (granted that would require polymorphic in it)
 
 
 
 
 
 vide: Make sure binary_data does not swap bytes for floating points numbers
-
-vide: Archive.verify
-	- standalone
-		ar.verify(version >= 3);
-		ar.verify(version >= 3, "older versions are not supported");
-
-	- simple check after member
-		ar.nvp("taxRate", taxRate);
-		ar.verify(taxRate > 0 && taxRate < 100, "taxRate value");
-		ar.verifyNotNull(ptr);
-
-	- chaining on a member
-		ar.nvp("taxRate", taxRate)
-			.verify(taxRate > 0 && taxRate < 100, "taxRate value");
-		ar.nvp("planet", planet)
-			.verifyNotNull();
-
-	- type wrapper
-		ar.nvp("planet", ar.notnull(planet))
-		ar.nvp("planet", vide::notnull(planet))
-
-
-
 
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()

@@ -119,6 +119,14 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
         }
     }
     ```
+  - Add API for value validations:
+    - `archive.operator()`, `archive.nvp`, `archive.load`, `archive.nvp_load`, `archive.ignore`, `archive.nvp_ignore` now accepts
+    a variadic set of validation objects.
+    - `archive.verify(bool, string)` can be used to throw exception if the is enforcing validation.
+    - `vide::notnull` or `archive.notnull`: A `var` bool testing validation object.
+    - `vide::notempty` or `archive.notempty`: A `!var.empty()` testing validation object.
+    - `vide::maxsize(limit)` or `archive.maxsize(limit)`: A `var.size() <= limit` testing validation object.
+    - Proxy archives can opt-out of validation tests with declaring a `static constexpr bool enforce_validation = false;` member.
   - Sync with upstream 2025.01.20 a56bad8bb
   - Sync, review and merge most upstream PRs up until 2025.09.14 872
     - Merge https://github.com/USCiLab/cereal/pull/835
@@ -127,16 +135,12 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Merge https://github.com/USCiLab/cereal/pull/807
     - Merge https://github.com/USCiLab/cereal/pull/761
   - Update RapidJSON and RapidXML
-  - TODO: Customization point for smart pointers
 
 
 ### Planned:
+- TODO: Customization point for smart pointers
 - Foreach iteration/visitor algorithms
 - An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
-- Add size limited container serialization support
-  - `ar.limit(100)(var)` -> If SizeTag exceeds the limit fail with exception
-- Various data verification techniques: not-null, user defined
-- Improve feature availability in serialization functions via dependent names
 - Further improved compile time performance (by organizing includes)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments

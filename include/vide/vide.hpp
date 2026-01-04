@@ -278,6 +278,7 @@ template <class ArchiveType, std::uint32_t Flags = 0>
 class OutputArchive : public detail::OutputArchiveBase {
 public:
 	static constexpr bool ignores_nvp = (Flags & vide::IgnoreNVP) != 0;
+	static constexpr bool enforce_validation = true;
 	static constexpr bool is_proxy = false;
 	static constexpr bool is_output = true;
 	static constexpr bool is_input = false;
@@ -338,28 +339,30 @@ private:
 public:
 	//! Serializes the passed in data
 	/*! This is the primary interface for serializing data with an archive */
-	template <class T>
-	inline ArchiveType& operator()(T&& arg) {
-		process_self(std::forward<T>(arg));
+	template <typename T, typename... Validators>
+	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
+		if constexpr (enforce_validation)
+			(validators(var), ...); // Output archive check before save
+		process_self(std::forward<T>(var));
 		return self();
 	}
 
-	template <typename T>
-	inline ArchiveType& nvp(const char* name, T&& arg) {
+	template <typename T, typename... Validators>
+	inline ArchiveType& nvp(const char* name, T&& var, const Validators&... validators) {
 		if constexpr (ignores_nvp)
-			return (*this)(std::forward<T>(arg));
+			return (*this)(std::forward<T>(var), validators...);
 		else
-			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+			return (*this)(::vide::make_nvp(name, std::forward<T>(var)), validators...);
 	}
 
-	template <typename T>
-	inline ArchiveType& ignore() {
+	template <typename T, typename... Validators>
+	inline ArchiveType& ignore(const Validators&...) {
 		// During output ignore does nothing
 		return self();
 	}
 
-	template <typename T>
-	inline ArchiveType& nvp_ignore(const char* name) {
+	template <typename T, typename... Validators>
+	inline ArchiveType& nvp_ignore(const char* name, const Validators&...) {
 		// During output ignore does nothing
 		(void) name;
 		return self();
@@ -373,6 +376,11 @@ public:
 		return (*this)(::vide::SizeTag<size_type>(size));
 	}
 
+	inline void verify(bool pass, std::string_view message) const {
+		if constexpr (ArchiveType::enforce_validation)
+			if (!pass)
+				throw Exception("Validation failed during serialization: " + std::string(message));
+	}
 	// inline ArchiveType& binary_data(const char* data, uint64_t size) {
 	// 	return (*this)(...);
 	// }
@@ -633,6 +641,7 @@ template <class ArchiveType, std::uint32_t Flags = 0>
 class InputArchive : public detail::InputArchiveBase {
 public:
 	static constexpr bool ignores_nvp = (Flags & vide::IgnoreNVP) != 0;
+	static constexpr bool enforce_validation = true;
 	static constexpr bool is_proxy = false;
 	static constexpr bool is_output = false;
 	static constexpr bool is_input = true;
@@ -688,43 +697,45 @@ private:
 public:
 	//! Serializes the passed in data
 	/*! This is the primary interface for serializing data with an archive */
-	template <class T>
-	inline ArchiveType& operator()(T&& arg) {
-		process_self(std::forward<T>(arg));
+	template <typename T, typename... Validators>
+	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
+		process_self(std::forward<T>(var));
+		if constexpr (enforce_validation)
+			(validators(var), ...); // Input archive check after load
 		return self();
 	}
 
-	template <typename T>
-	inline ArchiveType& nvp(const char* name, T&& arg) {
+	template <typename T, typename... Validators>
+	inline ArchiveType& nvp(const char* name, T&& var, const Validators&... validators) {
 		if constexpr (ignores_nvp)
-			return (*this)(std::forward<T>(arg));
+			return (*this)(std::forward<T>(var), validators...);
 		else
-			return (*this)(::vide::make_nvp(name, std::forward<T>(arg)));
+			return (*this)(::vide::make_nvp(name, std::forward<T>(var), validators...));
 	}
 
-	template <typename T>
-	inline ArchiveType& ignore() {
+	template <typename T, typename... Validators>
+	inline ArchiveType& ignore(const Validators&... validators) {
 		T var;
-		return (*this)(var);
+		return (*this)(var, validators...);
 	}
 
-	template <typename T>
-	inline ArchiveType& nvp_ignore(const char* name) {
+	template <typename T, typename... Validators>
+	inline ArchiveType& nvp_ignore(const char* name, const Validators&... validators) {
 		T var;
-		return nvp(name, var);
+		return nvp(name, var, validators...);
 	}
 
-	template <typename T>
-	[[nodiscard]] inline T load() {
+	template <typename T, typename... Validators>
+	[[nodiscard]] inline T load(const Validators&... validators) {
 		T var;
-		(*this)(var);
+		(*this)(var, validators...);
 		return var;
 	}
 
-	template <typename T>
-	[[nodiscard]] inline T nvp_load(const char* name) {
+	template <typename T, typename... Validators>
+	[[nodiscard]] inline T nvp_load(const char* name, const Validators&... validators) {
 		T var;
-		nvp(name, var);
+		nvp(name, var, validators...);
 		return var;
 	}
 
@@ -736,6 +747,12 @@ public:
 		size_type size{};
 		size_tag(size);
 		return size;
+	}
+
+	inline void verify(bool pass, std::string_view message) const {
+		if constexpr (ArchiveType::enforce_validation)
+			if (!pass)
+				throw Exception("Validation failed during serialization: " + std::string(message));
 	}
 
 	template <typename T>

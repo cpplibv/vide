@@ -40,7 +40,7 @@
 //! The major version
 #define VIDE_VERSION_MAJOR 2
 //! The minor version
-#define VIDE_VERSION_MINOR 2
+#define VIDE_VERSION_MINOR 5
 //! The patch version
 #define VIDE_VERSION_PATCH 0
 

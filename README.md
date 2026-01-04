@@ -3,11 +3,12 @@
 Originally based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 Compared to the original project the most notable changes are:
-	- Fixed numerous security vulnerability
-	- Improved API flexibility and compossibility
-	- Added features and utilities
-	- Significantly improved compile time
-	- Modernized and simplified the codebase
+  - Fixed numerous security vulnerability
+  - New features and utilities: ProxyArchives, Validations
+  - Improved API flexibility and composability
+  - Significantly improved compile time
+  - Modernized and simplified the codebase
+
 Compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
 As development is treated as experimental neither forward, nor backward compatibility is guaranteed (but the library
 is expected to reach a stable state soon.)
@@ -120,6 +121,10 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     }
     ```
   - Add API for value validations:
+  ```c++
+    ar.nvp("pointer", pointer, ar.notnull);
+    ar.nvp("vector", vector, ar.notempty, ar.maxsize(10));
+  ```
     - `archive.operator()`, `archive.nvp`, `archive.load`, `archive.nvp_load`, `archive.ignore`, `archive.nvp_ignore` now accepts
     a variadic set of validation objects.
     - `archive.verify(bool, string)` can be used to throw exception if the is enforcing validation.

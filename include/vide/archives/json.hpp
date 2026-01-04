@@ -50,7 +50,7 @@ struct RapidJSONException : Exception { RapidJSONException(const char* what_) : 
 #ifndef VIDE_RAPIDJSON_ASSERT
 #define VIDE_RAPIDJSON_ASSERT(x) if(!(x)){ \
   throw ::vide::RapidJSONException("rapidjson internal assertion failure: " #x); }
-#endif // RAPIDJSON_ASSERT
+#endif // VIDE_RAPIDJSON_ASSERT
 
 // Enable support for parsing of nan, inf, -inf
 #ifndef VIDE_RAPIDJSON_WRITE_DEFAULT_FLAGS

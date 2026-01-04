@@ -212,13 +212,13 @@ public:
 			itsIndent(options.itsIndent),
 			itsSizeAttributes(options.itsSizeAttributes) {
 		// rapidxml will delete all allocations when xml_document is cleared
-		auto node = itsXML.allocate_node(rapidxml::node_declaration);
+		auto node = itsXML.allocate_node(rapidxml::node_type::node_declaration);
 		node->append_attribute(itsXML.allocate_attribute("version", "1.0"));
 		node->append_attribute(itsXML.allocate_attribute("encoding", "utf-8"));
 		itsXML.append_node(node);
 
 		// allocate root node
-		auto root = itsXML.allocate_node(rapidxml::node_element, xml_detail::VIDE_XML_STRING);
+		auto root = itsXML.allocate_node(rapidxml::node_type::node_element, xml_detail::VIDE_XML_STRING);
 		itsXML.append_node(root);
 		itsNodes.emplace(root);
 
@@ -274,7 +274,7 @@ public:
 		auto namePtr = itsXML.allocate_string(nameString.data(), nameString.length() + 1);
 
 		// insert into the XML
-		auto node = itsXML.allocate_node(rapidxml::node_element, namePtr, nullptr, nameString.size());
+		auto node = itsXML.allocate_node(rapidxml::node_type::node_element, namePtr, nullptr, nameString.size());
 		itsNodes.top().node->append_node(node);
 		itsNodes.emplace(node);
 	}
@@ -316,7 +316,7 @@ public:
 		auto dataPtr = itsXML.allocate_string(strValue.c_str(), strValue.length() + 1);
 
 		// insert into the XML
-		itsNodes.top().node->append_node(itsXML.allocate_node(rapidxml::node_data, nullptr, dataPtr));
+		itsNodes.top().node->append_node(itsXML.allocate_node(rapidxml::node_type::node_data, nullptr, dataPtr));
 	}
 
 	//! Overload for uint8_t prevents them from being serialized as characters

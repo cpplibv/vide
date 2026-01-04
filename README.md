@@ -120,12 +120,13 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     }
     ```
   - Sync with upstream 2025.01.20 a56bad8bb
-  - Sync, review and merge most upstream PRs up until 2025.09.14 #872
+  - Sync, review and merge most upstream PRs up until 2025.09.14 872
     - Merge https://github.com/USCiLab/cereal/pull/835
     - Merge https://github.com/USCiLab/cereal/pull/826
     - Merge https://github.com/USCiLab/cereal/pull/812
     - Merge https://github.com/USCiLab/cereal/pull/807
     - Merge https://github.com/USCiLab/cereal/pull/761
+  - Update RapidJSON and RapidXML
   - TODO: Customization point for smart pointers
 
 

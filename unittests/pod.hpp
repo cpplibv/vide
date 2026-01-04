@@ -34,11 +34,11 @@ void test_pod()
   std::random_device rd;
   std::mt19937 gen(rd());
 
-  for(size_t i=0; i<100; ++i)
+  for(size_t i=0; i<256; ++i)
   {
     bool          const o_bool   = random_value<uint8_t>(gen) % 2 ? true : false;
-    char          const o_char   = random_value<char>(gen);
-    unsigned char const o_uchar  = random_value<unsigned char>(gen);
+    char          const o_char   = static_cast<char>(i);
+    unsigned char const o_uchar  = static_cast<unsigned char>(i);
     uint8_t       const o_uint8  = random_value<uint8_t>(gen);
     int8_t        const o_int8   = random_value<int8_t>(gen);
     uint16_t      const o_uint16 = random_value<uint16_t>(gen);

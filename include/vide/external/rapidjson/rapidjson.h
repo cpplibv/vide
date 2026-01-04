@@ -1,23 +1,23 @@
 // Tencent is pleased to support the open source community by making RapidJSON available.
-// 
-// Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip. All rights reserved.
+//
+// Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip.
 //
 // Licensed under the MIT License (the "License"); you may not use this file except
 // in compliance with the License. You may obtain a copy of the License at
 //
 // http://opensource.org/licenses/MIT
 //
-// Unless required by applicable law or agreed to in writing, software distributed 
-// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR 
-// CONDITIONS OF ANY KIND, either express or implied. See the License for the 
+// Unless required by applicable law or agreed to in writing, software distributed
+// under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+// CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef VIDE_RAPIDJSON_VIDE_RAPIDJSON_H_
-#define VIDE_RAPIDJSON_VIDE_RAPIDJSON_H_
+#ifndef VIDE_RAPIDJSON_RAPIDJSON_H_
+#define VIDE_RAPIDJSON_RAPIDJSON_H_
 
 /*!\file rapidjson.h
     \brief common definitions and configuration
-    
+
     \see VIDE_RAPIDJSON_CONFIG
  */
 
@@ -125,6 +125,19 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+// __cplusplus macro
+
+//!@cond VIDE_RAPIDJSON_HIDDEN_FROM_DOXYGEN
+
+#if defined(_MSC_VER)
+#define VIDE_RAPIDJSON_CPLUSPLUS _MSVC_LANG
+#else
+#define VIDE_RAPIDJSON_CPLUSPLUS __cplusplus
+#endif
+
+//!@endcond
+
+///////////////////////////////////////////////////////////////////////////////
 // VIDE_RAPIDJSON_HAS_STDSTRING
 
 #ifndef VIDE_RAPIDJSON_HAS_STDSTRING
@@ -150,6 +163,24 @@
 #endif // VIDE_RAPIDJSON_HAS_STDSTRING
 
 ///////////////////////////////////////////////////////////////////////////////
+// VIDE_RAPIDJSON_USE_MEMBERSMAP
+
+/*! \def VIDE_RAPIDJSON_USE_MEMBERSMAP
+    \ingroup VIDE_RAPIDJSON_CONFIG
+    \brief Enable RapidJSON support for object members handling in a \c std::multimap
+
+    By defining this preprocessor symbol to \c 1, \ref rapidjson::GenericValue object
+    members are stored in a \c std::multimap for faster lookup and deletion times, a
+    trade off with a slightly slower insertion time and a small object allocat(or)ed
+    memory overhead.
+
+    \hideinitializer
+*/
+#ifndef VIDE_RAPIDJSON_USE_MEMBERSMAP
+#define VIDE_RAPIDJSON_USE_MEMBERSMAP 0 // not by default
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
 // VIDE_RAPIDJSON_NO_INT64DEFINE
 
 /*! \def VIDE_RAPIDJSON_NO_INT64DEFINE
@@ -164,7 +195,7 @@
 */
 #ifndef VIDE_RAPIDJSON_NO_INT64DEFINE
 //!@cond VIDE_RAPIDJSON_HIDDEN_FROM_DOXYGEN
-#if defined(_MSC_VER) && (_MSC_VER < 1800)	// Visual Studio 2013
+#if defined(_MSC_VER) && (_MSC_VER < 1800) // Visual Studio 2013
 #include "msinttypes/stdint.h"
 #include "msinttypes/inttypes.h"
 #else
@@ -237,7 +268,7 @@
 #  elif defined(_BIG_ENDIAN) && !defined(_LITTLE_ENDIAN)
 #    define VIDE_RAPIDJSON_ENDIAN VIDE_RAPIDJSON_BIGENDIAN
 // Detect with architecture macros
-#  elif defined(__sparc) || defined(__sparc__) || defined(_POWER) || defined(__powerpc__) || defined(__ppc__) || defined(__hpux) || defined(__hppa) || defined(_MIPSEB) || defined(_POWER) || defined(__s390__)
+#  elif defined(__sparc) || defined(__sparc__) || defined(_POWER) || defined(__powerpc__) || defined(__ppc__) || defined(__ppc64__) || defined(__hpux) || defined(__hppa) || defined(_MIPSEB) || defined(_POWER) || defined(__s390__)
 #    define VIDE_RAPIDJSON_ENDIAN VIDE_RAPIDJSON_BIGENDIAN
 #  elif defined(__i386__) || defined(__alpha__) || defined(__ia64) || defined(__ia64__) || defined(_M_IX86) || defined(_M_IA64) || defined(_M_ALPHA) || defined(__amd64) || defined(__amd64__) || defined(_M_AMD64) || defined(__x86_64) || defined(__x86_64__) || defined(_M_X64) || defined(__bfin__)
 #    define VIDE_RAPIDJSON_ENDIAN VIDE_RAPIDJSON_LITTLEENDIAN
@@ -411,7 +442,7 @@ VIDE_RAPIDJSON_NAMESPACE_END
 
 // Prefer C++11 static_assert, if available
 #ifndef VIDE_RAPIDJSON_STATIC_ASSERT
-#if __cplusplus >= 201103L || ( defined(_MSC_VER) && _MSC_VER >= 1800 )
+#if VIDE_RAPIDJSON_CPLUSPLUS >= 201103L || ( defined(_MSC_VER) && _MSC_VER >= 1800 )
 #define VIDE_RAPIDJSON_STATIC_ASSERT(x) \
    static_assert(x, VIDE_RAPIDJSON_STRINGIFY(x))
 #endif // C++11
@@ -490,6 +521,12 @@ VIDE_RAPIDJSON_NAMESPACE_END
 #define VIDE_RAPIDJSON_VERSION_CODE(x,y,z) \
   (((x)*100000) + ((y)*100) + (z))
 
+#if defined(__has_builtin)
+#define VIDE_RAPIDJSON_HAS_BUILTIN(x) __has_builtin(x)
+#else
+#define VIDE_RAPIDJSON_HAS_BUILTIN(x) 0
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 // VIDE_RAPIDJSON_DIAG_PUSH/POP, VIDE_RAPIDJSON_DIAG_OFF
 
@@ -535,8 +572,14 @@ VIDE_RAPIDJSON_NAMESPACE_END
 ///////////////////////////////////////////////////////////////////////////////
 // C++11 features
 
+#ifndef VIDE_RAPIDJSON_HAS_CXX11
+#define VIDE_RAPIDJSON_HAS_CXX11 (VIDE_RAPIDJSON_CPLUSPLUS >= 201103L)
+#endif
+
 #ifndef VIDE_RAPIDJSON_HAS_CXX11_RVALUE_REFS
-#if defined(__clang__)
+#if VIDE_RAPIDJSON_HAS_CXX11
+#define VIDE_RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
+#elif defined(__clang__)
 #if __has_feature(cxx_rvalue_references) && \
     (defined(_MSC_VER) || defined(_LIBCPP_VERSION) || defined(__GLIBCXX__) && __GLIBCXX__ >= 20080306)
 #define VIDE_RAPIDJSON_HAS_CXX11_RVALUE_REFS 1
@@ -553,8 +596,14 @@ VIDE_RAPIDJSON_NAMESPACE_END
 #endif
 #endif // VIDE_RAPIDJSON_HAS_CXX11_RVALUE_REFS
 
+#if VIDE_RAPIDJSON_HAS_CXX11_RVALUE_REFS
+#include <utility> // std::move
+#endif
+
 #ifndef VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT
-#if defined(__clang__)
+#if VIDE_RAPIDJSON_HAS_CXX11
+#define VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT 1
+#elif defined(__clang__)
 #define VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT __has_feature(cxx_noexcept)
 #elif (defined(VIDE_RAPIDJSON_GNUC) && (VIDE_RAPIDJSON_GNUC >= VIDE_RAPIDJSON_VERSION_CODE(4,6,0)) && defined(__GXX_EXPERIMENTAL_CXX0X__)) || \
     (defined(_MSC_VER) && _MSC_VER >= 1900) || \
@@ -564,11 +613,13 @@ VIDE_RAPIDJSON_NAMESPACE_END
 #define VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT 0
 #endif
 #endif
+#ifndef VIDE_RAPIDJSON_NOEXCEPT
 #if VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT
 #define VIDE_RAPIDJSON_NOEXCEPT noexcept
 #else
-#define VIDE_RAPIDJSON_NOEXCEPT /* noexcept */
+#define VIDE_RAPIDJSON_NOEXCEPT throw()
 #endif // VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT
+#endif
 
 // no automatic detection, yet
 #ifndef VIDE_RAPIDJSON_HAS_CXX11_TYPETRAITS
@@ -591,6 +642,27 @@ VIDE_RAPIDJSON_NAMESPACE_END
 #endif
 #endif // VIDE_RAPIDJSON_HAS_CXX11_RANGE_FOR
 
+///////////////////////////////////////////////////////////////////////////////
+// C++17 features
+
+#ifndef VIDE_RAPIDJSON_HAS_CXX17
+#define VIDE_RAPIDJSON_HAS_CXX17 (VIDE_RAPIDJSON_CPLUSPLUS >= 201703L)
+#endif
+
+#if VIDE_RAPIDJSON_HAS_CXX17
+# define VIDE_RAPIDJSON_DELIBERATE_FALLTHROUGH [[fallthrough]]
+#elif defined(__has_cpp_attribute)
+# if __has_cpp_attribute(clang::fallthrough)
+#  define VIDE_RAPIDJSON_DELIBERATE_FALLTHROUGH [[clang::fallthrough]]
+# elif __has_cpp_attribute(fallthrough)
+#  define VIDE_RAPIDJSON_DELIBERATE_FALLTHROUGH __attribute__((fallthrough))
+# else
+#  define VIDE_RAPIDJSON_DELIBERATE_FALLTHROUGH
+# endif
+#else
+# define VIDE_RAPIDJSON_DELIBERATE_FALLTHROUGH
+#endif
+
 //!@endcond
 
 //! Assertion (in non-throwing contexts).
@@ -609,15 +681,28 @@ VIDE_RAPIDJSON_NAMESPACE_END
 
 #ifndef VIDE_RAPIDJSON_NOEXCEPT_ASSERT
 #ifdef VIDE_RAPIDJSON_ASSERT_THROWS
-#if VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT
-#define VIDE_RAPIDJSON_NOEXCEPT_ASSERT(x)
-#else
-#define VIDE_RAPIDJSON_NOEXCEPT_ASSERT(x) VIDE_RAPIDJSON_ASSERT(x)
-#endif // VIDE_RAPIDJSON_HAS_CXX11_NOEXCEPT
+#include <cassert>
+#define VIDE_RAPIDJSON_NOEXCEPT_ASSERT(x) assert(x)
 #else
 #define VIDE_RAPIDJSON_NOEXCEPT_ASSERT(x) VIDE_RAPIDJSON_ASSERT(x)
 #endif // VIDE_RAPIDJSON_ASSERT_THROWS
 #endif // VIDE_RAPIDJSON_NOEXCEPT_ASSERT
+
+///////////////////////////////////////////////////////////////////////////////
+// malloc/realloc/free
+
+#ifndef VIDE_RAPIDJSON_MALLOC
+///! customization point for global \c malloc
+#define VIDE_RAPIDJSON_MALLOC(size) std::malloc(size)
+#endif
+#ifndef VIDE_RAPIDJSON_REALLOC
+///! customization point for global \c realloc
+#define VIDE_RAPIDJSON_REALLOC(ptr, new_size) std::realloc(ptr, new_size)
+#endif
+#ifndef VIDE_RAPIDJSON_FREE
+///! customization point for global \c free
+#define VIDE_RAPIDJSON_FREE(ptr) std::free(ptr)
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // new/delete
@@ -646,11 +731,11 @@ enum Type {
     kFalseType = 1,     //!< false
     kTrueType = 2,      //!< true
     kObjectType = 3,    //!< object
-    kArrayType = 4,     //!< array 
+    kArrayType = 4,     //!< array
     kStringType = 5,    //!< string
     kNumberType = 6     //!< number
 };
 
 VIDE_RAPIDJSON_NAMESPACE_END
 
-#endif // VIDE_RAPIDJSON_VIDE_RAPIDJSON_H_
+#endif // VIDE_RAPIDJSON_RAPIDJSON_H_

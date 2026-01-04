@@ -72,7 +72,6 @@ vide: std::vector<std::byte> should be base64 serialized in JSON/XML
 
 
 Merge/Implement the following PRs:
-	https://github.com/USCiLab/cereal/pull/829 Update rapidjson & rapidxml
 	https://github.com/USCiLab/cereal/pull/641 Use unordered containers and remove std::function from polymorphic_impl.hpp
 
 Think about it:

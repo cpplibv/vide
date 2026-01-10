@@ -140,12 +140,24 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Merge https://github.com/USCiLab/cereal/pull/807
     - Merge https://github.com/USCiLab/cereal/pull/761
   - Update RapidJSON and RapidXML
+- Version 2.5.1:
+  - Add `T& serialize_minimal()` customization point as an alternative shorthand for `load_minimal`/`save_minimal` syntax
+  ```c++
+    struct StructMemberSerializeMinimal {
+      std::int32_t x;
+
+      template <typename Archive>
+      std::int32_t& serialize_minimal(Archive&) {
+        return x;
+      }
+    };
+  ```
+  The new customization point is available as usual in global/member and versioned/non-versioned format.
 
 
 ### Planned:
 - TODO: Customization point for smart pointers
 - Foreach iteration/visitor algorithms
-- An alternative for `load_minimal`/`save_minimal` syntax with `T& serialize_transparent()` which does them in a single step
 - Further improved compile time performance (by organizing includes)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments

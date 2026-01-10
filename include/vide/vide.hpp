@@ -541,9 +541,17 @@ private:
 			registerClassVersionUnused<T>();
 			access::member_serialize(as, const_cast<T&>(var));
 
+		} else if constexpr (access::has_member_serialize_minimal<As, T>) {
+			registerClassVersionUnused<T>();
+			self().process_as(as, access::member_serialize_minimal(as, const_cast<T&>(var)));
+
 		} else if constexpr (access::has_global_serialize<As, T>) {
 			registerClassVersionUnused<T>();
 			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var));
+
+		} else if constexpr (access::has_global_serialize_minimal<As, T>) {
+			registerClassVersionUnused<T>();
+			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, const_cast<T&>(var)));
 
 		} else if constexpr (access::has_member_save<As, T>) {
 			registerClassVersionUnused<T>();
@@ -565,9 +573,17 @@ private:
 			const auto version = registerClassVersion<T>();
 			access::member_serialize(as, const_cast<T&>(var), version);
 
+		} else if constexpr (access::has_member_serialize_minimal_versioned<As, T>) {
+			const auto version = registerClassVersion<T>();
+			self().process_as(as, access::member_serialize_minimal(as, const_cast<T&>(var), version));
+
 		} else if constexpr (access::has_global_serialize_versioned<As, T>) {
 			const auto version = registerClassVersion<T>();
 			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var), version);
+
+		} else if constexpr (access::has_global_serialize_minimal_versioned<As, T>) {
+			const auto version = registerClassVersion<T>();
+			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, const_cast<T&>(var), version));
 
 		} else if constexpr (access::has_member_save_versioned<As, T>) {
 			const auto version = registerClassVersion<T>();
@@ -939,9 +955,17 @@ private:
 			loadClassVersionUnused<T>();
 			access::member_serialize(as, var);
 
+		} else if constexpr (access::has_member_serialize_minimal<As, T>) {
+			loadClassVersionUnused<T>();
+			self().process_as(as, access::member_serialize_minimal(as, var));
+
 		} else if constexpr (access::has_global_serialize<As, T>) {
 			loadClassVersionUnused<T>();
 			VIDE_FUNCTION_NAME_SERIALIZE(as, var);
+
+		} else if constexpr (access::has_global_serialize_minimal<As, T>) {
+			loadClassVersionUnused<T>();
+			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, var));
 
 		} else if constexpr (access::has_member_load<As, T>) {
 			loadClassVersionUnused<T>();
@@ -967,9 +991,17 @@ private:
 			const auto version = loadClassVersion<T>();
 			access::member_serialize(as, var, version);
 
+		} else if constexpr (access::has_member_serialize_minimal_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			self().process_as(as, access::member_serialize_minimal(as, var, version));
+
 		} else if constexpr (access::has_global_serialize_versioned<As, T>) {
 			const auto version = loadClassVersion<T>();
 			VIDE_FUNCTION_NAME_SERIALIZE(as, var, version);
+
+		} else if constexpr (access::has_global_serialize_minimal_versioned<As, T>) {
+			const auto version = loadClassVersion<T>();
+			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, var, version));
 
 		} else if constexpr (access::has_member_load_versioned<As, T>) {
 			const auto version = loadClassVersion<T>();

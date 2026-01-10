@@ -132,6 +132,13 @@
 #define VIDE_FUNCTION_NAME_SAVE_MINIMAL save_minimal
 #endif // VIDE_FUNCTION_NAME_SAVE_MINIMAL
 
+#ifndef VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL
+//! The serialization (serialize_minimal) function name to search for.
+/*! You can define @c VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL to be different assuming you do so
+    before this file is included. */
+#define VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL serialize_minimal
+#endif // VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL
+
 // =================================================================================================
 
 #ifndef VIDE_STRICT_ENUM_VALUE_SET

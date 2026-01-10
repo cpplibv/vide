@@ -364,6 +364,42 @@ public:
 
 // -------------------------------------------------------------------------------------------------
 
+struct StructMemberSerializeMinimal {
+	std::int32_t x;
+
+	template <typename Archive>	std::int32_t& serialize_minimal(Archive&) {
+		return x;
+	}
+};
+
+struct StructGlobalSerializeMinimal {
+	std::int32_t x;
+};
+
+template <typename Archive> std::int32_t& serialize_minimal(Archive&, StructGlobalSerializeMinimal& var) {
+	return var.x;
+}
+
+struct StructMemberSerializeMinimalVersioned {
+	std::int32_t x;
+
+	template <typename Archive> std::int32_t& serialize_minimal(Archive&, std::uint32_t version) {
+		(void) version;
+		return x;
+	}
+};
+
+struct StructGlobalSerializeMinimalVersioned {
+	std::int32_t x;
+};
+
+template <typename Archive> std::int32_t& serialize_minimal(Archive&, StructGlobalSerializeMinimalVersioned& var, std::uint32_t version) {
+	(void) version;
+	return var.x;
+}
+
+// -------------------------------------------------------------------------------------------------
+
 template <class IArchive, class OArchive>
 inline void test_structs_minimal() {
 	std::random_device rd;
@@ -375,6 +411,10 @@ inline void test_structs_minimal() {
 
 		Issue79Struct o_struct2 = {random_value<std::int32_t>(gen)};
 		Issue79StructInternal o_struct3 = {random_value<std::int32_t>(gen)};
+		StructMemberSerializeMinimal o_smsm{random_value<std::int32_t>(gen)};
+		StructGlobalSerializeMinimal o_sgsm{random_value<std::int32_t>(gen)};
+		StructMemberSerializeMinimalVersioned o_smsmv{random_value<std::int32_t>(gen)};
+		StructGlobalSerializeMinimalVersioned o_sgsmv{random_value<std::int32_t>(gen)};
 
 		std::ostringstream os;
 		{
@@ -382,11 +422,19 @@ inline void test_structs_minimal() {
 			oar(o_struct);
 			oar(o_struct2);
 			oar(o_struct3);
+			oar(o_smsm);
+			oar(o_sgsm);
+			oar(o_smsmv);
+			oar(o_sgsmv);
 		}
 
 		decltype(o_struct) i_struct;
 		decltype(o_struct2) i_struct2;
 		decltype(o_struct3) i_struct3;
+		decltype(o_smsm) i_smsm;
+		decltype(o_sgsm) i_sgsm;
+		decltype(o_smsmv) i_smsmv;
+		decltype(o_sgsmv) i_sgsmv;
 
 		std::istringstream is(os.str());
 		{
@@ -394,6 +442,10 @@ inline void test_structs_minimal() {
 			iar(i_struct);
 			iar(i_struct2);
 			iar(i_struct3);
+			iar(i_smsm);
+			iar(i_sgsm);
+			iar(i_smsmv);
+			iar(i_sgsmv);
 		}
 
 		CHECK_EQ(o_struct.mm.x, i_struct.mm.x);
@@ -409,6 +461,11 @@ inline void test_structs_minimal() {
 		CHECK_EQ(o_struct2.x, i_struct2.x);
 
 		CHECK_EQ(o_struct3.x, i_struct3.x);
+
+		CHECK_EQ(o_smsm.x, i_smsm.x);
+		CHECK_EQ(o_sgsm.x, i_sgsm.x);
+		CHECK_EQ(o_smsmv.x, i_smsmv.x);
+		CHECK_EQ(o_sgsmv.x, i_sgsmv.x);
 	}
 }
 

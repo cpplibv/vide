@@ -20,6 +20,14 @@ vide: archive.eof() or some API to check if the whole of the buffer was consumed
 
 
 
+things to break:
+	smart pointer data representation
+	header names under types: std_ prefix
+	move every libv/serial/types into this repo
+
+
+
+
 
 
 

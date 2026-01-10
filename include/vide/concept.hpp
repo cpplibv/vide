@@ -26,6 +26,9 @@ concept Complete = requires { sizeof(T); };
 template <typename T>
 concept Empty = Complete<T> && std::is_empty_v<T>;
 
+template <typename T>
+concept LValueReference = std::is_lvalue_reference_v<T>;
+
 // //! Used to help strip away conversion wrappers
 // /*! If someone writes a non-member load/save minimal function that accepts its
 // 	parameter as some generic template type and needs to perform trait checks

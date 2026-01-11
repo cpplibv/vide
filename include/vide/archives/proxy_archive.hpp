@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <vide/details/validation.hpp>
 #include <vide/exception.hpp>
 #include <vide/nvp.hpp>
 #include <vide/traits/underlying_archive.hpp>

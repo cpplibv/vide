@@ -141,7 +141,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Merge https://github.com/USCiLab/cereal/pull/761
   - Update RapidJSON and RapidXML
 - Version 2.6.0:
-  - Overhaul test and types code structure
+  - Overhaul test and types code structure. Most std type's serializer file not received std_ prefix.
   - Add `T& serialize_minimal()` customization point as an alternative shorthand for `load_minimal`/`save_minimal` syntax
   ```c++
     struct StructMemberSerializeMinimal {
@@ -158,6 +158,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Add notnullrange validator (which can be used if the range is bool convertible)
   - Add validation check for duplicate key loading for types with unique key constraints
   - Extend validator support for NVPs
+  - Move set and unordered_set serializer implementations into a separate file
 
 
 ### Planned:

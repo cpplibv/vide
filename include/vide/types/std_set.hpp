@@ -1,66 +1,35 @@
 #pragma once
 
-#include <vide/exception.hpp>
 #include <vide/macros.hpp>
+#include <vide/types/implementation_set.hpp>
 
 #include <set>
 
 
 namespace vide { // --------------------------------------------------------------------------------
-namespace set_detail {
 
-//! @internal
-template <class Archive, class SetT>
-inline void save(Archive& ar, SetT const& set) {
-	ar.size_tag(set.size());
-
-	for (const auto& i : set)
-		ar(i);
-}
-
-//! @internal
-template <class Archive, class SetT>
-inline void load(Archive& ar, SetT& set) {
-	const auto size = ar.size_tag();
-
-	set.clear();
-
-	auto hint = set.begin();
-	for (typename Archive::size_type i = 0; i < size; ++i) {
-		typename SetT::key_type key;
-
-		ar(key);
-		hint = set.emplace_hint(hint, std::move(key));
-	}
-
-	if (set.size() != size)
-		throw Exception("Failed to load container with unique key constraint. Found " + std::to_string(size - set.size()) + " duplicate key.");
-}
-
-} // namespace set_detail --------------------------------------------------------------------------
-
-//! Saving for std::set
+/// Saving for std::set
 template <class Archive, class K, class C, class A>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::set<K, C, A> const& set) {
-	set_detail::save(ar, set);
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::set<K, C, A>& set) {
+	implementation_set_save(ar, set);
 }
 
-//! Loading for std::set
+/// Loading for std::set
 template <class Archive, class K, class C, class A>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::set<K, C, A>& set) {
-	set_detail::load(ar, set);
+	implementation_set_load(ar, set);
 }
 
-//! Saving for std::multiset
+/// Saving for std::multiset
 template <class Archive, class K, class C, class A>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::multiset<K, C, A> const& multiset) {
-	set_detail::save(ar, multiset);
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::multiset<K, C, A>& multiset) {
+	implementation_set_save(ar, multiset);
 }
 
-//! Loading for std::multiset
+/// Loading for std::multiset
 template <class Archive, class K, class C, class A>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::multiset<K, C, A>& multiset) {
-	set_detail::load(ar, multiset);
+	implementation_set_load(ar, multiset);
 }
 
 } // namespace vide --------------------------------------------------------------------------------

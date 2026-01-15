@@ -726,7 +726,7 @@ public:
 		if constexpr (ignores_nvp)
 			return (*this)(std::forward<T>(var), validators...);
 		else
-			return (*this)(::vide::make_nvp(name, std::forward<T>(var), validators...));
+			return (*this)(::vide::make_nvp(name, std::forward<T>(var)), validators...);
 	}
 
 	template <typename T, typename... Validators>

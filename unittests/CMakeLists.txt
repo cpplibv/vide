@@ -62,6 +62,8 @@ foreach (TEST_SOURCE ${TESTS})
 
 endforeach ()
 
+add_subdirectory(boost)
+
 ## Add the valgrind target
 #if(NOT MSVC)
 #  add_custom_target(valgrind

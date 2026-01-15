@@ -34,6 +34,7 @@
 #include <vide/details/bits.hpp>
 #include <vide/details/helpers.hpp>
 #include <vide/details/traits.hpp>
+#include <vide/details/value_if_nvp.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
 #include <vide/nvp.hpp>
@@ -263,7 +264,7 @@ struct base_class_id_hash {
 	a custom archive class, it should derive from this, passing itself as
 	a template parameter for the ArchiveType.
 
-	The base class provides all of the functionality necessary to
+	The base class provides all the functionality necessary to
 	properly forward data to the correct serialization functions.
 
 	Individual archives should use a combination of prologue and
@@ -317,7 +318,7 @@ private:
 //	int64_t scope_version_ = 0;
 
 	//! Deferments
-	std::vector<std::function<void(void)>> itsDeferments;
+	std::vector<std::function<void()>> itsDeferments;
 
 public:
 	//! Construct the output archive
@@ -342,7 +343,7 @@ public:
 	template <typename T, typename... Validators>
 	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
 		if constexpr (enforce_validation)
-			(validators(var), ...); // Output archive check before save
+			(validators(value_if_nvp(var)), ...); // Output archive check before save
 		process_self(std::forward<T>(var));
 		return self();
 	}
@@ -521,7 +522,7 @@ private:
 	template <class As, class T>
 	inline void processImpl(As& as, DeferredData<T> const& d) {
 		(void) as;
-		std::function<void(void)> deferment([this, d]() { process_self(d.value); });
+		std::function<void()> deferment([this, d]() { process_self(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
 	}
 
@@ -642,7 +643,7 @@ private:
 	a custom archive class, it should derive from this, passing itself as
 	a template parameter for the ArchiveType.
 
-	The base class provides all of the functionality necessary to
+	The base class provides all the functionality necessary to
 	properly forward data to the correct serialization functions.
 
 	Individual archives should use a combination of prologue and
@@ -684,7 +685,7 @@ private:
 	std::unordered_map<std::uint64_t, std::uint32_t> itsVersionedTypes;
 
 	//! Deferments
-	std::vector<std::function<void(void)>> itsDeferments;
+	std::vector<std::function<void()>> itsDeferments;
 
 protected:
 	/// Stores the amount of bytes that can be resaonably safely reserved during deserialization.
@@ -717,7 +718,7 @@ public:
 	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
 		process_self(std::forward<T>(var));
 		if constexpr (enforce_validation)
-			(validators(var), ...); // Input archive check after load
+			(validators(value_if_nvp(var)), ...); // Input archive check after load
 		return self();
 	}
 
@@ -935,7 +936,7 @@ private:
 	template <class As, class T>
 	inline void processImpl(As& as, DeferredData<T> const& d) {
 		(void) as;
-		std::function<void(void)> deferment([this, d]() { process_self(d.value); });
+		std::function<void()> deferment([this, d]() { process_self(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
 	}
 

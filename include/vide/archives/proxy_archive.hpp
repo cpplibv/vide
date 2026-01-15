@@ -3,6 +3,7 @@
 #pragma once
 
 #include <vide/details/validation.hpp>
+#include <vide/details/value_if_nvp.hpp>
 #include <vide/exception.hpp>
 #include <vide/nvp.hpp>
 #include <vide/traits/underlying_archive.hpp>
@@ -49,10 +50,10 @@ public:
 	inline CRTP& operator()(T&& var, const Validators&... validators) {
 		auto& as = static_cast<CRTP&>(*this);
 		if constexpr (CRTP::enforce_validation && is_output)
-			(validators(var), ...); // Output archive check before save
+			(validators(value_if_nvp(var)), ...); // Output archive check before save
 		as.process_as(as, std::forward<T>(var));
 		if constexpr (CRTP::enforce_validation && is_input)
-			(validators(var), ...); // Input archive check after load
+			(validators(value_if_nvp(var)), ...); // Input archive check after load
 		return as;
 	}
 

@@ -35,7 +35,7 @@ struct Tester {
 	}
 
 	template <typename T>
-	const auto test_in_(const T& varOutput, const auto&... validators) {
+	auto test_in_(const T& varOutput, const auto&... validators) {
 		std::ostringstream os; {
 			OArchive oar(os);
 			oar(varOutput); // No validation on output so we can write out the invalid, so we can test the input validation
@@ -45,6 +45,30 @@ struct Tester {
 		std::istringstream is(os.str()); {
 			IArchive iar(is);
 			iar(varInput, validators...);
+		}
+
+		return varInput;
+	}
+
+	template <typename T>
+	void test_out_nvp(const T& varOutput, const auto&... validators) {
+		std::ostringstream os; {
+			OArchive oar(os);
+			oar.nvp("var", varOutput, validators...);
+		}
+	}
+
+	template <typename T>
+	auto test_in__nvp(const T& varOutput, const auto&... validators) {
+		std::ostringstream os; {
+			OArchive oar(os);
+			oar.nvp("var", varOutput); // No validation on output so we can write out the invalid, so we can test the input validation
+		}
+
+		T varInput{};
+		std::istringstream is(os.str()); {
+			IArchive iar(is);
+			iar.nvp("var", varInput, validators...);
 		}
 
 		return varInput;
@@ -102,6 +126,12 @@ void test_validation() {
 	CHECK_THROWS_AS(active.test_in_(42, vide::notnull, is_odd{}), vide::Exception);
 	CHECK_THROWS_AS(active.test_out(42, is_odd{}, vide::notnull), vide::Exception);
 	CHECK_THROWS_AS(active.test_in_(42, is_odd{}, vide::notnull), vide::Exception);
+
+	// Test NVP
+	CHECK_NOTHROW(active.test_out_nvp(std::make_unique<int>(42), vide::notnull));
+	CHECK_NOTHROW(active.test_in__nvp(std::make_unique<int>(42), vide::notnull));
+	CHECK_THROWS_AS(active.test_out_nvp(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
+	CHECK_THROWS_AS(active.test_in__nvp(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
 
 	Tester<NonValidatingProxy<IArchive>, NonValidatingProxy<OArchive>> inactive{};
 	// Not enforced - Not null

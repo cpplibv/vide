@@ -17,25 +17,20 @@
 
 
 
-validators on nvp are failing to compile
-	ar.nvp("faction_", faction_, ar.notnull);
-
-
-
-
-
 vide: Customization point for smart pointers (libv::intrusive_ptr support)
 	\ shared_ptr could/should use this too (granted that would require polymorphic features in it)
+	yeah, polymorphic support would be nice for this too
 
 vide: archive.eof() or some API to check if the whole of the buffer was consumed
-
-
-
 
 things to break:
 	smart pointer data representation
 	header names under types: std_ prefix
 	move every libv/serial/types into this repo
+
+
+
+
 
 
 

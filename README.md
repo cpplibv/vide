@@ -156,6 +156,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Add element check for notnull when used with non-bool convertible ranges
   - Add notnullrange validator (which can be used if the range is bool convertible)
   - Add validation check for duplicate key loading for types with unique key constraints
+  - Extend validator support for NVPs
 
 
 ### Planned:

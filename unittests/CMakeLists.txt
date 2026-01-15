@@ -93,10 +93,6 @@ endforeach ()
 #  endforeach()
 #endif()
 
-#if(CMAKE_CXX_STANDARD GREATER 14)
-add_subdirectory(cpp17)
-#endif()
-
 #if(Boost_FOUND)
 #  add_subdirectory(boost)
 #endif()

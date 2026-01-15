@@ -29,7 +29,6 @@
 
 TEST_SUITE_BEGIN("versioning");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning", test_versioning)
 
 #if VIDE_THREAD_SAFE

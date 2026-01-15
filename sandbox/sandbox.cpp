@@ -30,17 +30,17 @@
 #include <vide/archives/portable_binary.hpp>
 #include <vide/archives/xml.hpp>
 
-#include <vide/types/array.hpp>
 #include <vide/types/base_class.hpp>
-#include <vide/types/bitset.hpp>
-#include <vide/types/chrono.hpp>
-#include <vide/types/complex.hpp>
-#include <vide/types/map.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/polymorphic.hpp>
-#include <vide/types/string.hpp>
-#include <vide/types/utility.hpp>
-#include <vide/types/vector.hpp>
+#include <vide/types/std_array.hpp>
+#include <vide/types/std_bitset.hpp>
+#include <vide/types/std_chrono.hpp>
+#include <vide/types/std_complex.hpp>
+#include <vide/types/std_map.hpp>
+#include <vide/types/std_pair.hpp>
+#include <vide/types/std_string.hpp>
+#include <vide/types/std_vector.hpp>
 
 //#include <cxxabi.h>
 #include <sstream>

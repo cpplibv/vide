@@ -29,8 +29,6 @@
 
 TEST_SUITE_BEGIN("structs");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("structs", test_structs)
-
 
 TEST_SUITE_END();

@@ -29,8 +29,6 @@
 
 TEST_SUITE_BEGIN("structs_minimal");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("structs_minimal", test_structs_minimal)
-
 
 TEST_SUITE_END();

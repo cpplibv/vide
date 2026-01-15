@@ -29,8 +29,6 @@
 
 TEST_SUITE_BEGIN("defer");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("defer", test_defer)
-
 
 TEST_SUITE_END();

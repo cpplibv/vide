@@ -29,8 +29,6 @@
 
 TEST_SUITE_BEGIN("memory_cycles");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("memory_cycles", test_memory_cycles)
-
 
 TEST_SUITE_END();

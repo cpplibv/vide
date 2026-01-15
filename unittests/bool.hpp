@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 
+
 struct TestBoolOwner {
 	bool value = false;
 	// 3 padding byte

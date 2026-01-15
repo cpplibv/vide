@@ -29,9 +29,7 @@
 
 TEST_SUITE_BEGIN("memory");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("memory", test_memory)
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("default_construction", test_default_construction)
-
 
 TEST_SUITE_END();

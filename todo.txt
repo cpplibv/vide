@@ -30,9 +30,13 @@ things to break:
 
 
 
+rip concept folder, create concept files
+concept like
+	set
+	unorder_set
 
-
-
+std_chrono -> chrono
+rip cpp17 folders
 
 
 
@@ -60,6 +64,7 @@ Better document:
 cleanup SizeTag
 
 vide: std::vector<std::byte> should be base64 serialized in JSON/XML
+	(any std::ranges::contiguous_range of std::byte)
 
 
 

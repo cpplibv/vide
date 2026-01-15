@@ -7,31 +7,31 @@
 #include <vide/types/base_class.hpp>
 #include <vide/vide.hpp>
 
-#include <vide/types/array.hpp>
-#include <vide/types/bitset.hpp>
-#include <vide/types/chrono.hpp>
 #include <vide/types/common.hpp>
-#include <vide/types/complex.hpp>
-#include <vide/types/deque.hpp>
-#include <vide/types/forward_list.hpp>
-#include <vide/types/list.hpp>
-#include <vide/types/map.hpp>
 #include <vide/types/memory.hpp>
+#include <vide/types/std_array.hpp>
+#include <vide/types/std_bitset.hpp>
+#include <vide/types/std_chrono.hpp>
+#include <vide/types/std_complex.hpp>
+#include <vide/types/std_deque.hpp>
+#include <vide/types/std_forward_list.hpp>
+#include <vide/types/std_list.hpp>
+#include <vide/types/std_map.hpp>
 
 #include <vide/details/util.hpp>
 
 #include <vide/details/polymorphic_impl.hpp>
 #include <vide/types/polymorphic.hpp>
 
-#include <vide/types/queue.hpp>
-#include <vide/types/set.hpp>
-#include <vide/types/stack.hpp>
-#include <vide/types/string.hpp>
-#include <vide/types/tuple.hpp>
-#include <vide/types/unordered_map.hpp>
-#include <vide/types/unordered_set.hpp>
-#include <vide/types/utility.hpp>
-#include <vide/types/vector.hpp>
+#include <vide/types/std_queue.hpp>
+#include <vide/types/std_set.hpp>
+#include <vide/types/std_stack.hpp>
+#include <vide/types/std_string.hpp>
+#include <vide/types/std_tuple.hpp>
+#include <vide/types/std_unordered_map.hpp>
+#include <vide/types/std_unordered_set.hpp>
+#include <vide/types/std_pair.hpp>
+#include <vide/types/std_vector.hpp>
 
 #include <vide/archives/binary.hpp>
 #include <vide/archives/portable_binary.hpp>

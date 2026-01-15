@@ -49,7 +49,7 @@
 #include <vide/details/static_object.hpp>
 #include <vide/traits/underlying_archive.hpp>
 #include <vide/types/memory.hpp>
-#include <vide/types/string.hpp>
+#include <vide/types/std_string.hpp>
 
 #include <functional>
 #include <limits>

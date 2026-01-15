@@ -28,8 +28,8 @@
 #include <vide/archives/portable_binary.hpp>
 
 #include <vide/types/memory.hpp>
-#include <vide/types/map.hpp>
-#include <vide/types/vector.hpp>
+#include <vide/types/std_map.hpp>
+#include <vide/types/std_vector.hpp>
 
 #include <fstream>
 #include <iostream>

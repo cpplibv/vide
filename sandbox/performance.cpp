@@ -48,9 +48,9 @@
 #include <boost/serialization/base_object.hpp>
 
 #include <vide/archives/binary.hpp>
-#include <vide/types/vector.hpp>
-#include <vide/types/string.hpp>
-#include <vide/types/map.hpp>
+#include <vide/types/std_map.hpp>
+#include <vide/types/std_string.hpp>
+#include <vide/types/std_vector.hpp>
 
 //! Runs serialization to save data to an ostringstream
 /*! Used to time how long it takes to save data to an ostringstream.

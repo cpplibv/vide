@@ -140,7 +140,8 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Merge https://github.com/USCiLab/cereal/pull/807
     - Merge https://github.com/USCiLab/cereal/pull/761
   - Update RapidJSON and RapidXML
-- Version 2.5.1:
+- Version 2.6.0:
+  - Overhaul test and types code structure
   - Add `T& serialize_minimal()` customization point as an alternative shorthand for `load_minimal`/`save_minimal` syntax
   ```c++
     struct StructMemberSerializeMinimal {
@@ -197,9 +198,9 @@ Installation and use of of cereal is fully documented on the [main web page](htt
 * Use the serialization archives to load and save data
 
 ```cpp
-#include <vide/types/unordered_map.hpp>
-#include <vide/types/memory.hpp>
 #include <vide/archives/binary.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/std_unordered_map.hpp>
 #include <fstream>
 
 struct MyRecord {

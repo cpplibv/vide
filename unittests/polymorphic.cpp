@@ -29,7 +29,6 @@
 
 TEST_SUITE_BEGIN("polymorphic");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic", test_polymorphic)
 
 #if VIDE_THREAD_SAFE

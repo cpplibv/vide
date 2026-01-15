@@ -29,7 +29,6 @@
 
 TEST_SUITE_BEGIN("pod");
 
-
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("pod", test_pod)
 CREATE_TEST_CASES_FOR_TEXT_ARCHIVE("pod_serialization", test_pod_serialization)
 

@@ -11,6 +11,14 @@
 
 
 
+validators on nvp are failing to compile
+	ar.nvp("faction_", faction_, ar.notnull);
+
+unique on every member of a range/container
+! 'set' load serializations should verify order
+
+
+
 
 vide: Customization point for smart pointers (libv::intrusive_ptr support)
 	\ shared_ptr could/should use this too (granted that would require polymorphic features in it)

@@ -107,6 +107,7 @@ public:
 	using Exception = vide::Exception;
 
 	[[no_unique_address]] notnull_t notnull;
+	[[no_unique_address]] notnullrange_t notnullrange;
 	[[no_unique_address]] notempty_t notempty;
 	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 		return maxsize_t{limit};
@@ -128,6 +129,7 @@ public:
 	using Exception = vide::Exception;
 
 	[[no_unique_address]] notnull_t notnull;
+	[[no_unique_address]] notnullrange_t notnullrange;
 	[[no_unique_address]] notempty_t notempty;
 	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 		return maxsize_t{limit};

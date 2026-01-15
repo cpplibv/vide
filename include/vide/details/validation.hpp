@@ -4,14 +4,32 @@
 
 #include <vide/exception.hpp>
 
+#include <ranges>
+#include <type_traits>
+
 
 namespace vide { // ----------------------------------------------------------------------------------------------------
 
 struct notnull_t {
 	template <typename T>
 	inline void operator()(const T& var) const {
-		if (!var)
-			throw vide::Exception("Non-null validation failed during serialization: object is null.");
+		if constexpr (std::ranges::range<T> && !std::is_convertible_v<T, bool>) {
+			for (const auto& item : var)
+				if (!item)
+					throw vide::Exception("Non-null validation failed during serialization: ranges element is null.");
+		} else {
+			if (!var)
+				throw vide::Exception("Non-null validation failed during serialization: object is null.");
+		}
+	}
+};
+
+struct notnullrange_t {
+	template <typename T>
+	inline void operator()(const T& var) const {
+		for (const auto& item : var)
+			if (!item)
+				throw vide::Exception("Non-null validation failed during serialization: ranges element is null.");
 	}
 };
 
@@ -36,6 +54,7 @@ struct maxsize_t {
 // ---------------------------------------------------------------------------------------------------------------------
 
 constexpr inline notnull_t notnull;
+constexpr inline notnullrange_t notnullrange;
 constexpr inline notempty_t notempty;
 
 [[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {

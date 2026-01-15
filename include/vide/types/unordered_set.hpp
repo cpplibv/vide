@@ -1,8 +1,9 @@
 #pragma once
 
-#include <unordered_set>
-
+#include <vide/exception.hpp>
 #include <vide/macros.hpp>
+
+#include <unordered_set>
 
 
 namespace vide { // --------------------------------------------------------------------------------
@@ -30,6 +31,9 @@ inline void load(Archive& ar, SetT& set) {
 		ar(key);
 		set.emplace(std::move(key));
 	}
+
+	if (set.size() != size)
+		throw Exception("Failed to load container with unique key constraint. Found " + std::to_string(size - set.size()) + " duplicate key.");
 }
 
 } // namespace unordered_set_detail ----------------------------------------------------------------

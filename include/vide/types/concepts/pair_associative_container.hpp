@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vide/exception.hpp>
 #include <vide/macros.hpp>
 #include <vide/map_item.hpp>
 
@@ -37,6 +38,9 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, Map& map) {
 		ar(make_map_item(key, value));
 		hint = map.emplace_hint(hint, std::move(key), std::move(value));
 	}
+
+	if (map.size() != size)
+		throw Exception("Failed to load container with unique key constraint. Found " + std::to_string(size - map.size()) + " duplicate key.");
 }
 
 } // namespace vide --------------------------------------------------------------------------------

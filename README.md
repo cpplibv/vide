@@ -155,6 +155,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   The new customization point is available as usual in global/member and versioned/non-versioned format.
   - Add element check for notnull when used with non-bool convertible ranges
   - Add notnullrange validator (which can be used if the range is bool convertible)
+  - Add validation check for duplicate key loading for types with unique key constraints
 
 
 ### Planned:

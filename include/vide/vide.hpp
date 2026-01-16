@@ -303,9 +303,6 @@ private:
 	//  during lifetime of itsSharedPointerMap to prevent CVE-2020-11105.
 	std::vector<std::shared_ptr<const void>> itsSharedPointerStorage;
 
-	//! The id to be given to the next pointer
-	std::uint32_t itsCurrentPointerId = 1;
-
 	//! Maps from polymorphic type name strings to ids
 	std::unordered_map<const char*, std::uint32_t> itsPolymorphicTypeMap;
 
@@ -395,31 +392,31 @@ public:
 			itsDeferments[i]();
 	}
 
-	//! Registers a shared pointer with the archive
-	/*! This function is used to track shared pointer targets to prevent
-		unnecessary saves from taking place if multiple shared pointers
-		point to the same data.
-
-		@internal
-		@param sharedPointer The shared pointer itself (the address is taken via get()).
-							 The archive takes a copy to prevent the memory location to be freed
-							 as long as the address is used as id. This is needed to prevent CVE-2020-11105.
-		@return A key that uniquely identifies the pointer */
-	inline std::uint32_t registerSharedPointer(const std::shared_ptr<const void>& sharedPointer) {
-		const void* addr = sharedPointer.get();
-
-		// Handle null pointers by just returning 0
+	struct RegisterSharedPointerResult {
+		std::uint32_t ref = 0;
+		bool new_ = false;
+	};
+	/// Registers a shared pointer with the archive
+	/// This function is used to track shared pointer targets to properly reconstruct their relations
+	/// @internal
+	/// @param ptr The shared pointer itself (the address is taken via get()).
+	/// 		The archive takes a copy to prevent the memory location to be freed
+	/// 		as long as the address is used as id. This is needed to prevent CVE-2020-11105.
+	/// @return A key that uniquely identifies the pointer */
+	RegisterSharedPointerResult registerSharedPointer(const std::shared_ptr<const void>& ptr) {
+		const void* addr = ptr.get();
 		if (addr == nullptr)
-			return 0;
-		itsSharedPointerStorage.push_back(sharedPointer);
+			return {0, false}; // Handle null pointers by referencing zero
 
-		auto id = itsSharedPointerMap.find(addr);
-		if (id == itsSharedPointerMap.end()) {
-			auto ptrId = itsCurrentPointerId++;
-			itsSharedPointerMap.insert({addr, ptrId});
-			return ptrId | detail::msb_32bit; // mask MSB to be 1
-		} else
-			return id->second;
+		itsSharedPointerStorage.push_back(ptr);
+
+		auto it = itsSharedPointerMap.find(addr);
+		if (it != itsSharedPointerMap.end())
+			return {it->second, false};
+
+		auto ptrId = static_cast<std::uint32_t>(itsSharedPointerMap.size() + 1);
+		itsSharedPointerMap.insert({addr, ptrId});
+		return {ptrId, true};
 	}
 
 	//! Registers a polymorphic type name with the archive
@@ -483,7 +480,6 @@ protected:
 		itsBaseClassSet.clear();
 		itsSharedPointerMap.clear();
 		itsSharedPointerStorage.clear();
-		itsCurrentPointerId = 1;
 		itsPolymorphicTypeMap.clear();
 		itsCurrentPolymorphicTypeId = 1;
 		itsVersionedTypes.clear();
@@ -796,35 +792,23 @@ public:
 			itsDeferments[i]();
 	}
 
-	//! Retrieves a shared pointer given a unique key for it
-	/*! This is used to retrieve a previously registered shared_ptr
-		which has already been loaded.
+	struct RegisterSharedPointerResult {
+		std::shared_ptr<void>* ptr;
+		bool new_ = false;
+	};
 
-		@internal
-		@param id The unique id that was serialized for the pointer
-		@return A shared pointer to the data
-		@throw Exception if the id does not exist */
-	inline std::shared_ptr<void> getSharedPointer(const std::uint32_t id) {
-		if (id == 0)
-			return std::shared_ptr<void>(nullptr);
+	/// Registers a shared pointer with the archive
+	/// This function is used to track shared pointer targets to properly reconstruct their relations
+	/// @internal
+	/// @param id The unique id that was serialized for the pointer
+	/// @return A shared pointer to the data
+	/// @throw Exception if the id does not exist
+	RegisterSharedPointerResult registerSharedPointer(const std::uint32_t ref) {
+		if (ref == 0)
+			return {nullptr, false};
 
-		auto iter = itsSharedPointerMap.find(id);
-		if (iter == itsSharedPointerMap.end())
-			throw Exception("Error while trying to deserialize a smart pointer. Could not find id " + std::to_string(id));
-
-		return iter->second;
-	}
-
-	//! Registers a shared pointer to its unique identifier
-	/*! After a shared pointer has been allocated for the first time, it should
-		be registered with its loaded id for future references to it.
-
-		@internal
-		@param id The unique identifier for the shared pointer
-		@param ptr The actual shared pointer */
-	inline void registerSharedPointer(const std::uint32_t id, std::shared_ptr<void> ptr) {
-		const std::uint32_t stripped_id = id & ~detail::msb_32bit;
-		itsSharedPointerMap[stripped_id] = ptr;
+		auto r = itsSharedPointerMap.emplace(ref, nullptr);
+		return {&r.first->second, r.second};
 	}
 
 	//! Retrieves the string for a polymorphic type given a unique key for it

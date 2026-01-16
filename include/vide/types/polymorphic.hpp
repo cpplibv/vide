@@ -225,9 +225,9 @@ inline auto getInputBinding(Archive& ar, const std::uint32_t nameid) {
 	@internal */
 template <class Archive, class T>
 		requires (traits::is_default_constructible<T> && !std::is_abstract_v<T>)
-inline bool serialize_wrapper(Archive& ar, std::shared_ptr<T>& ptr, const std::uint32_t nameid) {
+inline bool serialize_wrapper(Archive& ar, std::shared_ptr<T>& var, const std::uint32_t nameid) {
 	if (nameid & detail::msb2_32bit) {
-		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+		memory_detail::aux_load(ar, var);
 		return true;
 	}
 	return false;
@@ -239,9 +239,9 @@ inline bool serialize_wrapper(Archive& ar, std::shared_ptr<T>& ptr, const std::u
 	@internal */
 template <class Archive, class T, class D>
 		requires (traits::is_default_constructible<T> && !std::is_abstract_v<T>)
-inline bool serialize_wrapper(Archive& ar, std::unique_ptr<T, D>& ptr, const std::uint32_t nameid) {
+inline bool serialize_wrapper(Archive& ar, std::unique_ptr<T, D>& var, const std::uint32_t nameid) {
 	if (nameid & detail::msb2_32bit) {
-		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+		memory_detail::aux_load(ar, var);
 		return true;
 	}
 	return false;
@@ -281,15 +281,15 @@ inline bool serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint3
 
 //! Saving std::shared_ptr for polymorphic types, abstract
 template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract_v<T>, void>::type
-VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
-	if (!ptr) {
+		requires std::is_polymorphic_v<T> && std::is_abstract_v<T>
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) {
+	if (!var) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
 		return;
 	}
 
-	const std::type_info& ptrinfo = typeid(*ptr.get());
+	const std::type_info& ptrinfo = typeid(*var.get());
 	static const std::type_info& tinfo = typeid(T);
 	// ptrinfo can never be equal to T info since we can't have an instance
 	// of an abstract object
@@ -301,29 +301,27 @@ VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	if (binding == bindingMap.end())
 		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
 
-	binding->second.shared_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
+	binding->second.shared_ptr(&to_underlying_ar(ar), var.get(), tinfo);
 }
 
 //! Saving std::shared_ptr for polymorphic types, not abstract
 template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract_v<T>, void>::type
-VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
-	if (!ptr) {
+		requires std::is_polymorphic_v<T> && (!std::is_abstract_v<T>)
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) {
+	if (!var) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
 		return;
 	}
 
-	const std::type_info& ptrinfo = typeid(*ptr.get());
+	const std::type_info& ptrinfo = typeid(*var.get());
 	static const std::type_info& tinfo = typeid(T);
 
 	if (ptrinfo == tinfo) {
 		// The 2nd msb signals that the following pointer does not need to be
 		// cast with our polymorphic machinery
 		ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
-
-		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
-
+		memory_detail::aux_save(ar, var);
 		return;
 	}
 
@@ -333,54 +331,37 @@ VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& ptr) {
 	if (binding == bindingMap.end())
 		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
 
-	binding->second.shared_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
+	binding->second.shared_ptr(&to_underlying_ar(ar), var.get(), tinfo);
 }
 
 //! Loading std::shared_ptr for polymorphic types
 template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& ptr) {
+		requires std::is_polymorphic_v<T>
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 	std::uint32_t nameid;
 	ar(VIDE_NVP_("polymorphic_id", nameid));
 
 	// Check to see if we can skip all of this polymorphism business
-	if (polymorphic_detail::serialize_wrapper(ar, ptr, nameid))
+	if (polymorphic_detail::serialize_wrapper(ar, var, nameid))
 		return;
 
 	auto binding = polymorphic_detail::getInputBinding(ar, nameid);
 	std::shared_ptr<void> result;
 	binding.shared_ptr(&to_underlying_ar(ar), result, typeid(T));
-	ptr = std::static_pointer_cast<T>(result);
-}
-
-//! Saving std::weak_ptr for polymorphic types
-template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::weak_ptr<T> const& ptr) {
-	auto const sptr = ptr.lock();
-	ar(VIDE_NVP_("locked_ptr", sptr));
-}
-
-//! Loading std::weak_ptr for polymorphic types
-template <class Archive, class T>
-inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::weak_ptr<T>& ptr) {
-	std::shared_ptr<T> sptr;
-	ar(VIDE_NVP_("locked_ptr", sptr));
-	ptr = sptr;
+	var = std::static_pointer_cast<T>(result);
 }
 
 //! Saving std::unique_ptr for polymorphic types that are abstract
 template <class Archive, class T, class D>
-inline typename std::enable_if<std::is_polymorphic<T>::value && std::is_abstract_v<T>, void>::type
-VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
-	if (!ptr) {
+		requires std::is_polymorphic_v<T> && std::is_abstract_v<T>
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& var) {
+	if (!var) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
 		return;
 	}
 
-	const std::type_info& ptrinfo = typeid(*ptr.get());
+	const std::type_info& ptrinfo = typeid(*var.get());
 	static const std::type_info& tinfo = typeid(T);
 	// ptrinfo can never be equal to T info since we can't have an instance
 	// of an abstract object
@@ -392,29 +373,27 @@ VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	if (binding == bindingMap.end())
 		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
 
-	binding->second.unique_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
+	binding->second.unique_ptr(&to_underlying_ar(ar), var.get(), tinfo);
 }
 
 //! Saving std::unique_ptr for polymorphic types, not abstract
 template <class Archive, class T, class D>
-inline typename std::enable_if<std::is_polymorphic<T>::value && !std::is_abstract_v<T>, void>::type
-VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
-	if (!ptr) {
+		requires std::is_polymorphic_v<T> && (!std::is_abstract_v<T>)
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& var) {
+	if (!var) {
 		// same behavior as nullptr in memory implementation
 		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
 		return;
 	}
 
-	const std::type_info& ptrinfo = typeid(*ptr.get());
+	const std::type_info& ptrinfo = typeid(*var.get());
 	static const std::type_info& tinfo = typeid(T);
 
 	if (ptrinfo == tinfo) {
 		// The 2nd msb signals that the following pointer does not need to be
 		// cast with our polymorphic machinery
 		ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
-
-		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
-
+		memory_detail::aux_save(ar, var);
 		return;
 	}
 
@@ -424,13 +403,13 @@ VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::unique_ptr<T, D> const& ptr) {
 	if (binding == bindingMap.end())
 		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
 
-	binding->second.unique_ptr(&to_underlying_ar(ar), ptr.get(), tinfo);
+	binding->second.unique_ptr(&to_underlying_ar(ar), var.get(), tinfo);
 }
 
 //! Loading std::unique_ptr, case when user provides load_and_construct for polymorphic types
 template <class Archive, class T, class D>
-inline typename std::enable_if<std::is_polymorphic<T>::value, void>::type
-VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
+		requires std::is_polymorphic_v<T>
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
 	std::uint32_t nameid;
 	ar(VIDE_NVP_("polymorphic_id", nameid));
 

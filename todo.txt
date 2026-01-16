@@ -13,6 +13,24 @@
 
 
 
+msb_32bit remove from polymophic stuff too
+msb2_32bit replace with msb_32bit and/or remove?
+		used to indicate that skip poly serialization
+		aka when static type matches dynamic type
+		| I think remove and replace with a proper check
+
+why EnableSharedStateHelper
+	| remove EnableSharedStateHelper
+		its used at 1 location, and it does not need it
+		its used in a save...
+
+merge function that branched on is_abstract_v
+	if constexpr them
+
+test libv intrusive_ptr deserialization with cycles too
+
+
+
 
 
 

@@ -122,16 +122,12 @@ public:
 	}
 
 public:
-	inline void registerSharedPointer(const std::uint32_t id, std::shared_ptr<void> ptr) {
-		ar.registerSharedPointer(id, std::move(ptr));
+	[[nodiscard]] inline auto registerSharedPointer(const std::uint32_t id) requires is_input {
+		return ar.registerSharedPointer(id);
 	}
 
-	[[nodiscard]] inline std::uint32_t registerSharedPointer(const std::shared_ptr<const void>& ptr) {
+	[[nodiscard]] inline auto registerSharedPointer(const std::shared_ptr<const void>& ptr) requires is_output {
 		return ar.registerSharedPointer(ptr);
-	}
-
-	[[nodiscard]] inline std::shared_ptr<void> getSharedPointer(const std::uint32_t id) {
-		return ar.getSharedPointer(id);
 	}
 
 	inline void serializeDeferments() {

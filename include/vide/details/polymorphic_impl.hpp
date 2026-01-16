@@ -47,10 +47,12 @@
 
 #include <vide/details/polymorphic_impl_fwd.hpp>
 #include <vide/details/static_object.hpp>
+#include <vide/traits/shared_from_this.hpp>
 #include <vide/traits/underlying_archive.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/std_string.hpp>
 
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <map>
@@ -86,6 +88,87 @@
 namespace vide {
 /* Polymorphic casting support */
 namespace detail {
+
+//! A helper struct for saving and restoring the state of types that derive from
+//! std::enable_shared_from_this
+/*! This special struct is necessary because when a user uses load_and_construct,
+	the weak_ptr (or whatever implementation defined variant) that allows
+	enable_shared_from_this to function correctly will not be initialized properly.
+
+	This internal weak_ptr can also be modified by the shared_ptr that is created
+	during the serialization of a polymorphic pointer, where vide creates a
+	wrapper shared_ptr out of a void pointer to the real data.
+
+	In the case of load_and_construct, this happens because it is the allocation
+	of shared_ptr that perform this initialization, which we let happen on a buffer
+	of memory (aligned_storage).  This buffer is then used for placement new
+	later on, effectively overwriting any initialized weak_ptr with a default
+	initialized one, eventually leading to issues when the user calls shared_from_this.
+
+	To get around these issues, we will store the memory for the enable_shared_from_this
+	portion of the class and replace it after whatever happens to modify it (e.g. the
+	user performing construction or the wrapper shared_ptr in saving).
+
+	Note that this goes into undefined behavior territory, but as of the initial writing
+	of this, all standard library implementations of std::enable_shared_from_this are
+	compatible with this memory manipulation. It is entirely possible that this may someday
+	break or may not work with convoluted use cases.
+
+	Example usage:
+
+	@code{.cpp}
+	T * myActualPointer;
+	{
+	  EnableSharedStateHelper<T> helper( myActualPointer ); // save the state
+	  std::shared_ptr<T> myPtr( myActualPointer ); // modifies the internal weak_ptr
+	  // helper restores state when it goes out of scope
+	}
+	@endcode
+
+	When possible, this is designed to be used in an RAII fashion - it will save state on
+	construction and restore it on destruction. The restore can be done at an earlier time
+	(e.g. after construct() is called in load_and_construct) in which case the destructor will
+	do nothing. Performing the restore immediately following construct() allows a user to call
+	shared_from_this within their load_and_construct function.
+
+	@tparam T Type pointed to by shared_ptr
+	@internal */
+template <class T>
+class EnableSharedStateHelper {
+	// typedefs for parent type and storage type
+	using BaseType = typename ::vide::traits::get_shared_from_this_base<T>::type;
+	using ParentType = std::enable_shared_from_this<BaseType>;
+
+public:
+	//! Saves the state of some type inheriting from enable_shared_from_this
+	/*! @param ptr The raw pointer held by the shared_ptr */
+	inline EnableSharedStateHelper(T* ptr) :
+			itsPtr(static_cast<ParentType*>( ptr )),
+			itsState(),
+			itsRestored(false) {
+		std::memcpy(&itsState, itsPtr, sizeof(ParentType));
+	}
+
+	//! Restores the state of the held pointer (can only be done once)
+	inline void restore() {
+		if (!itsRestored) {
+			// void * cast needed when type has no trivial copy-assignment
+			std::memcpy(static_cast<void*>(itsPtr), &itsState, sizeof(ParentType));
+			itsRestored = true;
+		}
+	}
+
+	//! Restores the state of the held pointer if not done previously
+	inline ~EnableSharedStateHelper() {
+		restore();
+	}
+
+private:
+	ParentType* itsPtr;
+	alignas(T) std::byte itsState[sizeof(T)];
+	bool itsRestored;
+}; // end EnableSharedStateHelper
+
 //! Base type for polymorphic void casting
 /*! Contains functions for casting between registered base and derived types.
 
@@ -191,7 +274,7 @@ struct PolymorphicCasters {
 		for (const auto* dmap : mapping)
 			dptr = dmap->downcast(dptr);
 
-		return static_cast<Derived const*>( dptr );
+		return static_cast<Derived const*>(dptr);
 	}
 
 	//! Performs an upcast to the registered base type using the given a derived type
@@ -402,8 +485,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 template <class Base, class Derived>
 struct RegisterPolymorphicCaster {
 	static PolymorphicCaster const* bind(std::true_type /* is_polymorphic<Base> */) {
-		return &StaticObject<PolymorphicVirtualCaster < Base, Derived>>
-		::getInstance();
+		return &StaticObject<PolymorphicVirtualCaster<Base, Derived>>::getInstance();
 	}
 
 	static PolymorphicCaster const* bind(std::false_type /* is_polymorphic<Base> */) { return nullptr; }
@@ -506,7 +588,8 @@ class OutputArchiveBase;
 	archive has already been registered.  When this struct is created,
 	it will insert (at run time) an entry into a map that properly handles
 	casting for serializing polymorphic objects */
-template <class Archive, class T> struct InputBindingCreator {
+template <class Archive, class T>
+struct InputBindingCreator {
 	//! Initialize the binding
 	InputBindingCreator() {
 		auto& map = StaticObject<InputBindingMap>::getInstance().map<Archive>();;
@@ -523,22 +606,17 @@ template <class Archive, class T> struct InputBindingCreator {
 				+[](void* arptr, std::shared_ptr<void>& dptr, const std::type_info& baseInfo) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					std::shared_ptr<T> ptr;
-
-					ar(VIDE_NVP_("ptr_wrapper", ::vide::memory_detail::make_ptr_wrapper(ptr)));
-
+					memory_detail::aux_load(ar, ptr);
 					dptr = PolymorphicCasters::template upcast<T>(ptr, baseInfo);
 				};
 
 		serializers.unique_ptr =
-				+[](void* arptr, std::unique_ptr<void, EmptyDeleter<void>> & dptr, std::type_info const &baseInfo)
-		{
-			Archive& ar = *static_cast<Archive*>(arptr);
-			std::unique_ptr<T> ptr;
-
-			ar(VIDE_NVP_("ptr_wrapper", ::vide::memory_detail::make_ptr_wrapper(ptr)));
-
-			dptr.reset(PolymorphicCasters::template upcast<T>(ptr.release(), baseInfo));
-		};
+				+[](void* arptr, std::unique_ptr<void, EmptyDeleter<void>> & dptr, std::type_info const &baseInfo) {
+					Archive& ar = *static_cast<Archive*>(arptr);
+					std::unique_ptr<T> ptr;
+					memory_detail::aux_load(ar, ptr);
+					dptr.reset(PolymorphicCasters::template upcast<T>(ptr.release(), baseInfo));
+				};
 
 		map.insert(lb, {std::move(key), std::move(serializers)});
 	}
@@ -549,7 +627,8 @@ template <class Archive, class T> struct InputBindingCreator {
 	archive has already been registered.  When this struct is created,
 	it will insert (at run time) an entry into a map that properly handles
 	casting for serializing polymorphic objects */
-template <class Archive, class T> struct OutputBindingCreator {
+template <class Archive, class T>
+struct OutputBindingCreator {
 	//! Writes appropriate metadata to the archive for this polymorphic type
 	static void writeMetadata(Archive& ar) {
 		// Register the polymorphic type name with the archive, and get the id
@@ -599,10 +678,10 @@ template <class Archive, class T> struct OutputBindingCreator {
 
 		@param ar The archive to serialize to
 		@param dptr Pointer to the actual data held by the shared_ptr */
-	static inline void savePolymorphicSharedPtr(Archive& ar, T const* dptr, std::true_type /* has_shared_from_this */) {
-		::vide::memory_detail::EnableSharedStateHelper<T> state(const_cast<T*>(dptr));
+	static inline void savePolymorphicSharedPtr(Archive& ar, const T* dptr, std::true_type /* has_shared_from_this */) {
+		::vide::detail::EnableSharedStateHelper<T> state(const_cast<T*>(dptr));
 		PolymorphicSharedPointerWrapper psptr(dptr);
-		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(psptr())));
+		memory_detail::aux_save(ar, psptr());
 	}
 
 	//! Does the actual work of saving a polymorphic shared_ptr
@@ -613,9 +692,9 @@ template <class Archive, class T> struct OutputBindingCreator {
 
 		@param ar The archive to serialize to
 		@param dptr Pointer to the actual data held by the shared_ptr */
-	static inline void savePolymorphicSharedPtr(Archive& ar, T const* dptr, std::false_type /* has_shared_from_this */) {
+	static inline void savePolymorphicSharedPtr(Archive& ar, const T* dptr, std::false_type /* has_shared_from_this */) {
 		PolymorphicSharedPointerWrapper psptr(dptr);
-		ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(psptr())));
+		memory_detail::aux_save(ar, psptr());
 	}
 
 	//! Initialize the binding
@@ -635,7 +714,6 @@ template <class Archive, class T> struct OutputBindingCreator {
 					writeMetadata(ar);
 
 					auto ptr = PolymorphicCasters::template downcast<T>(dptr, baseInfo);
-
 					savePolymorphicSharedPtr(ar, ptr, typename::vide::traits::has_shared_from_this<T>::type());
 				};
 
@@ -644,9 +722,8 @@ template <class Archive, class T> struct OutputBindingCreator {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
 
-					std::unique_ptr<T const, EmptyDeleter<T const>> const ptr(PolymorphicCasters::template downcast<T>(dptr, baseInfo));
-
-					ar(VIDE_NVP_("ptr_wrapper", memory_detail::make_ptr_wrapper(ptr)));
+					const std::unique_ptr<const T, EmptyDeleter<const T>> ptr(PolymorphicCasters::template downcast<T>(dptr, baseInfo));
+					memory_detail::aux_save(ar, ptr);
 				};
 
 		map.insert({std::move(key), std::move(serializers)});
@@ -674,20 +751,15 @@ struct polymorphic_binding_tag {};
 //! Causes the static object bindings between an archive type and a serializable type T
 template <class Archive, class T>
 struct create_bindings {
-	static const InputBindingCreator<Archive, T>&
-	load(std::true_type) {
-		return vide::detail::StaticObject<InputBindingCreator < Archive, T>>
-		::getInstance();
+	static const InputBindingCreator<Archive, T>& load(std::true_type) {
+		return vide::detail::StaticObject<InputBindingCreator<Archive, T>>::getInstance();
 	}
 
-	static const OutputBindingCreator<Archive, T>&
-	save(std::true_type) {
-		return vide::detail::StaticObject<OutputBindingCreator < Archive, T>>
-		::getInstance();
+	static const OutputBindingCreator<Archive, T>& save(std::true_type) {
+		return vide::detail::StaticObject<OutputBindingCreator<Archive, T>>::getInstance();
 	}
 
 	inline static void load(std::false_type) {}
-
 	inline static void save(std::false_type) {}
 };
 
@@ -720,11 +792,11 @@ template <class Archive, class T>
 VIDE_DLL_EXPORT void polymorphic_serialization_support<Archive, T>::instantiate() {
 	if constexpr (Archive::is_output)
 		create_bindings<Archive, T>::save(std::integral_constant<bool,
-				std::is_base_of<detail::OutputArchiveBase, Archive>::value &&
+				std::is_base_of_v<detail::OutputArchiveBase, Archive> &&
 						access::is_output_serializable<Archive, T>>{});
 	if constexpr (Archive::is_input)
 		create_bindings<Archive, T>::load(std::integral_constant<bool,
-				std::is_base_of<detail::InputArchiveBase, Archive>::value &&
+				std::is_base_of_v<detail::InputArchiveBase, Archive> &&
 						access::is_output_serializable<Archive, T>>{});
 }
 

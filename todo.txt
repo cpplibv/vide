@@ -12,6 +12,24 @@
 
 
 
+merge every polymorphic serialization into a T*
+		make the polymorphic part independent from the
+		smart pointer parts
+	\ this will allow removing PolymorphicSharedPointerWrapper
+
+type id check return of registerSharedPointer
+
+
+
+
+
+polymorphic_id should be serialized inside the data not before the ref
+	(BUT, DO VERIFY it upon loading)
+
+
+
+
+
 
 msb_32bit remove from polymophic stuff too
 msb2_32bit replace with msb_32bit and/or remove?
@@ -19,15 +37,108 @@ msb2_32bit replace with msb_32bit and/or remove?
 		aka when static type matches dynamic type
 		| I think remove and replace with a proper check
 
-why EnableSharedStateHelper
-	| remove EnableSharedStateHelper
-		its used at 1 location, and it does not need it
-		its used in a save...
+polymorphic with proxy archives?
 
-merge function that branched on is_abstract_v
-	if constexpr them
+move binding maps int the archives? (DLL pr did not want that)
 
-test libv intrusive_ptr deserialization with cycles too
+
+
+
+private:
+   struct IntrusivePtrInput {
+       using Deleter = void(*)(void*);
+       std::type_index type = typeid(int); // TODO P5: better way to skip initialization, or use ctor args
+       void* ptr = nullptr;
+       Deleter deleter = nullptr;
+
+       explicit IntrusivePtrInput(int) {} // TODO P5: better way to default ctor with emplace?
+       ~IntrusivePtrInput() {
+           if (deleter)
+               deleter(ptr);
+       }
+   };
+   struct IntrusivePtrOutput {
+       using Deleter = void(*)(void*);
+       uint32_t ref = 0;
+       void* ptr = nullptr;
+       Deleter deleter = nullptr;
+
+       explicit IntrusivePtrOutput(int) {} // TODO P5: better way to default ctor with emplace?
+       ~IntrusivePtrOutput() {
+           if (deleter)
+               deleter(ptr);
+       }
+   };
+public:
+   std::unordered_map<uint32_t, IntrusivePtrInput> inputIntrusivePtrLookup;
+   std::unordered_map<void*, IntrusivePtrOutput> outputIntrusivePtrLookup;
+
+
+
+// TODO P1: Move intrusive_ptr serialization support to somewhere more generic, provide better archive support for
+//         any smart pointer
+// TODO P1: Polymorphic type support for intrusive_ptr
+// --- libv::intrusive_ptr
+template <typename Archive, typename T>
+inline void load(Archive& ar, libv::intrusive_ptr<T>& var) {
+   uint32_t ref = 0;
+   ar.nvp("ref", ref);
+
+   if (ref == 0) {
+       var = nullptr;
+       return;
+   }
+
+   const auto [it, isNew] = ar.inputIntrusivePtrLookup.emplace(ref, 0);
+   if (isNew) {
+       // TODO P2: Use libv::vide::access to create default object (?)
+       auto ptr = libv::make_intrusive_ptr<std::remove_const_t<T>>();
+       it->second.type = typeid(T);
+       it->second.ptr = ptr.ptr();
+       it->second.deleter = +[](void* ptr) {
+           // Use the destructor of the intrusive_ptr to clean up by creating/reattaching the detached pointer
+           // onto a stack variable
+           auto tmp = libv::intrusive_ptr<T>(static_cast<T*>(ptr), typename libv::intrusive_ptr<T>::no_increment_tag{});
+           (void) tmp;
+           // tmp's destructor cleans up the ref_count
+       };
+       ar.nvp("data", *ptr);
+       (void) ptr.detach(); // Detach the pointer to keep it alive, its ptr and its deleter was already saved
+
+   } else if (it->second.type != typeid(T)) {
+       throw vide::Exception("Error while trying to deserialize a smart pointer. Type mismatch find in ref " + std::to_string(ref));
+   }
+
+   var = libv::intrusive_ptr<T>(static_cast<T*>(it->second.ptr));
+}
+
+template <typename Archive, typename T>
+inline void save(Archive& ar, const libv::intrusive_ptr<T>& var) {
+   const auto [it, isNew] = ar.outputIntrusivePtrLookup.emplace(var.ptr(), 0);
+
+   if (!isNew) {
+       ar.nvp("ref", it->second.ref);
+   } else {
+       // Copy of shared pointers placed in outputIntrusivePtrLookup to make sure they are kept alive
+       //  during lifetime of the serialization to prevent CVE-2020-11105
+       auto ptr = var;
+       it->second.ref = static_cast<uint32_t>(ar.outputIntrusivePtrLookup.size());
+       it->second.ptr = ptr.ptr();
+       it->second.deleter = +[](void* ptr) {
+           // Use the destructor of the intrusive_ptr to clean up by creating/reattaching the detached pointer
+           // onto a stack variable
+           auto tmp = libv::intrusive_ptr<T>(static_cast<T*>(ptr), typename libv::intrusive_ptr<T>::no_increment_tag{});
+           (void) tmp;
+           // tmp's destructor cleans up the ref_count
+       };
+       ar.nvp("ref", it->second.ref);
+       ar.nvp("data", *var);
+       (void) ptr.detach(); // Detach the pointer to keep it alive, its ptr and its deleter was already saved
+   }
+}
+
+
+
 
 
 

@@ -348,10 +348,6 @@ struct access {
 
 	// --- Other Functionality -------------------------------------------------------------------------
 
-	// Used for detecting inheritance from enable_shared_from_this
-	template <class T>
-	static constexpr inline auto shared_from_this(T& t) -> decltype(t.shared_from_this());
-
 	// Used for placement new
 	template <class T, class... Args>
 	static constexpr inline void construct(T*& ptr, Args&&... args) {

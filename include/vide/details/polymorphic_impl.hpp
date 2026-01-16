@@ -47,12 +47,10 @@
 
 #include <vide/details/polymorphic_impl_fwd.hpp>
 #include <vide/details/static_object.hpp>
-#include <vide/traits/shared_from_this.hpp>
 #include <vide/traits/underlying_archive.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/std_string.hpp>
 
-#include <cstring>
 #include <functional>
 #include <limits>
 #include <map>
@@ -72,102 +70,22 @@
     have been registered with VIDE_REGISTER_ARCHIVE.  This must be called
     after all archives are registered (usually after the archives themselves
     have been included). */
-#define VIDE_BIND_TO_ARCHIVES(...)                                     \
-    namespace vide {                                                   \
+#define VIDE_BIND_TO_ARCHIVES(...)                                       \
+    namespace vide {                                                     \
     namespace detail {                                                   \
     template<>                                                           \
     struct init_binding<__VA_ARGS__> {                                   \
-        static inline bind_to_archives<__VA_ARGS__> const & b=           \
-        ::vide::detail::StaticObject<                                  \
+        static inline const bind_to_archives<__VA_ARGS__>& b=            \
+        ::vide::detail::StaticObject<                                    \
             bind_to_archives<__VA_ARGS__>                                \
         >::getInstance().bind();                                         \
-        VIDE_BIND_TO_ARCHIVES_UNUSED_FUNCTION                          \
+        VIDE_BIND_TO_ARCHIVES_UNUSED_FUNCTION                            \
     };                                                                   \
     }} /* end namespaces */
 
 namespace vide {
 /* Polymorphic casting support */
 namespace detail {
-
-//! A helper struct for saving and restoring the state of types that derive from
-//! std::enable_shared_from_this
-/*! This special struct is necessary because when a user uses load_and_construct,
-	the weak_ptr (or whatever implementation defined variant) that allows
-	enable_shared_from_this to function correctly will not be initialized properly.
-
-	This internal weak_ptr can also be modified by the shared_ptr that is created
-	during the serialization of a polymorphic pointer, where vide creates a
-	wrapper shared_ptr out of a void pointer to the real data.
-
-	In the case of load_and_construct, this happens because it is the allocation
-	of shared_ptr that perform this initialization, which we let happen on a buffer
-	of memory (aligned_storage).  This buffer is then used for placement new
-	later on, effectively overwriting any initialized weak_ptr with a default
-	initialized one, eventually leading to issues when the user calls shared_from_this.
-
-	To get around these issues, we will store the memory for the enable_shared_from_this
-	portion of the class and replace it after whatever happens to modify it (e.g. the
-	user performing construction or the wrapper shared_ptr in saving).
-
-	Note that this goes into undefined behavior territory, but as of the initial writing
-	of this, all standard library implementations of std::enable_shared_from_this are
-	compatible with this memory manipulation. It is entirely possible that this may someday
-	break or may not work with convoluted use cases.
-
-	Example usage:
-
-	@code{.cpp}
-	T * myActualPointer;
-	{
-	  EnableSharedStateHelper<T> helper( myActualPointer ); // save the state
-	  std::shared_ptr<T> myPtr( myActualPointer ); // modifies the internal weak_ptr
-	  // helper restores state when it goes out of scope
-	}
-	@endcode
-
-	When possible, this is designed to be used in an RAII fashion - it will save state on
-	construction and restore it on destruction. The restore can be done at an earlier time
-	(e.g. after construct() is called in load_and_construct) in which case the destructor will
-	do nothing. Performing the restore immediately following construct() allows a user to call
-	shared_from_this within their load_and_construct function.
-
-	@tparam T Type pointed to by shared_ptr
-	@internal */
-template <class T>
-class EnableSharedStateHelper {
-	// typedefs for parent type and storage type
-	using BaseType = typename ::vide::traits::get_shared_from_this_base<T>::type;
-	using ParentType = std::enable_shared_from_this<BaseType>;
-
-public:
-	//! Saves the state of some type inheriting from enable_shared_from_this
-	/*! @param ptr The raw pointer held by the shared_ptr */
-	inline EnableSharedStateHelper(T* ptr) :
-			itsPtr(static_cast<ParentType*>( ptr )),
-			itsState(),
-			itsRestored(false) {
-		std::memcpy(&itsState, itsPtr, sizeof(ParentType));
-	}
-
-	//! Restores the state of the held pointer (can only be done once)
-	inline void restore() {
-		if (!itsRestored) {
-			// void * cast needed when type has no trivial copy-assignment
-			std::memcpy(static_cast<void*>(itsPtr), &itsState, sizeof(ParentType));
-			itsRestored = true;
-		}
-	}
-
-	//! Restores the state of the held pointer if not done previously
-	inline ~EnableSharedStateHelper() {
-		restore();
-	}
-
-private:
-	ParentType* itsPtr;
-	alignas(T) std::byte itsState[sizeof(T)];
-	bool itsRestored;
-}; // end EnableSharedStateHelper
 
 //! Base type for polymorphic void casting
 /*! Contains functions for casting between registered base and derived types.
@@ -314,9 +232,6 @@ struct PolymorphicCasters {
 #undef UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION
 };
 
-#define VIDE_EMPLACE_MAP(map, key, value)                     \
-      map.emplace( key, value );
-
 //! Strongly typed derivation of PolymorphicCaster
 template <class Base, class Derived>
 struct PolymorphicVirtualCaster : PolymorphicCaster {
@@ -340,7 +255,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 
 		// Insert reverse relation Derived->Base
 		auto& reverseMap = StaticObject<PolymorphicCasters>::getInstance().reverseMap;
-		VIDE_EMPLACE_MAP(reverseMap, derivedKey, baseKey);
+		reverseMap.emplace(derivedKey, baseKey);
 
 		// Find all chainable unregistered relations
 		/* The strategy here is to process only the nodes in the class hierarchy graph that have been
@@ -438,7 +353,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 				for (const auto& it : unregisteredRelations) {
 					auto& derivedMap = baseMap.find(it.first)->second;
 					derivedMap[it.second.first] = it.second.second;
-					VIDE_EMPLACE_MAP(reverseMap, it.second.first, it.first);
+					reverseMap.emplace(it.second.first, it.first);
 				}
 
 				// Mark current parent as modified
@@ -456,8 +371,6 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 			} // end loop over parent stack
 		} // end chainable relations
 	} // end PolymorphicVirtualCaster()
-
-#undef VIDE_EMPLACE_MAP
 
 	//! Performs the proper downcast with the templated types
 	const void* downcast(const void* const ptr) const override {
@@ -670,33 +583,6 @@ struct OutputBindingCreator {
 		std::shared_ptr<const T> wrappedPtr; //!< The wrapped pointer
 	};
 
-	//! Does the actual work of saving a polymorphic shared_ptr
-	/*! This function will properly create a shared_ptr from the void * that is passed in
-		before passing it to the archive for serialization.
-
-		In addition, this will also preserve the state of any internal enable_shared_from_this mechanisms
-
-		@param ar The archive to serialize to
-		@param dptr Pointer to the actual data held by the shared_ptr */
-	static inline void savePolymorphicSharedPtr(Archive& ar, const T* dptr, std::true_type /* has_shared_from_this */) {
-		::vide::detail::EnableSharedStateHelper<T> state(const_cast<T*>(dptr));
-		PolymorphicSharedPointerWrapper psptr(dptr);
-		memory_detail::aux_save(ar, psptr());
-	}
-
-	//! Does the actual work of saving a polymorphic shared_ptr
-	/*! This function will properly create a shared_ptr from the void * that is passed in
-		before passing it to the archive for serialization.
-
-		This version is for types that do not inherit from std::enable_shared_from_this.
-
-		@param ar The archive to serialize to
-		@param dptr Pointer to the actual data held by the shared_ptr */
-	static inline void savePolymorphicSharedPtr(Archive& ar, const T* dptr, std::false_type /* has_shared_from_this */) {
-		PolymorphicSharedPointerWrapper psptr(dptr);
-		memory_detail::aux_save(ar, psptr());
-	}
-
 	//! Initialize the binding
 	OutputBindingCreator() {
 		auto& map = StaticObject<OutputBindingMap>::getInstance().map<Archive>();
@@ -714,7 +600,8 @@ struct OutputBindingCreator {
 					writeMetadata(ar);
 
 					auto ptr = PolymorphicCasters::template downcast<T>(dptr, baseInfo);
-					savePolymorphicSharedPtr(ar, ptr, typename::vide::traits::has_shared_from_this<T>::type());
+					PolymorphicSharedPointerWrapper psptr(ptr);
+					memory_detail::aux_save(ar, psptr());
 				};
 
 		serializers.unique_ptr =

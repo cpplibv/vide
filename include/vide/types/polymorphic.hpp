@@ -90,7 +90,7 @@
 /*! In some cases the default name used with
     VIDE_REGISTER_TYPE (the name of the type) may not be
     suitable.  This macro allows any name to be associated
-    with the type.  The name should be unique */
+    with the type.  The name must be unique */
 #define VIDE_REGISTER_TYPE_WITH_NAME(T, Name)                     \
   namespace vide {                                                \
   namespace detail {                                                \
@@ -279,34 +279,9 @@ inline bool serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint3
 // =================================================================================================
 // Pointer serialization for polymorphic types
 
-//! Saving std::shared_ptr for polymorphic types, abstract
+/// Saving std::shared_ptr for polymorphic types
 template <class Archive, class T>
-		requires std::is_polymorphic_v<T> && std::is_abstract_v<T>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) {
-	if (!var) {
-		// same behavior as nullptr in memory implementation
-		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
-		return;
-	}
-
-	const std::type_info& ptrinfo = typeid(*var.get());
-	static const std::type_info& tinfo = typeid(T);
-	// ptrinfo can never be equal to T info since we can't have an instance
-	// of an abstract object
-	//  this implies we need to do the lookup
-
-	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
-
-	auto binding = bindingMap.find(std::type_index(ptrinfo));
-	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
-
-	binding->second.shared_ptr(&to_underlying_ar(ar), var.get(), tinfo);
-}
-
-//! Saving std::shared_ptr for polymorphic types, not abstract
-template <class Archive, class T>
-		requires std::is_polymorphic_v<T> && (!std::is_abstract_v<T>)
+		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) {
 	if (!var) {
 		// same behavior as nullptr in memory implementation
@@ -317,24 +292,32 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) 
 	const std::type_info& ptrinfo = typeid(*var.get());
 	static const std::type_info& tinfo = typeid(T);
 
-	if (ptrinfo == tinfo) {
-		// The 2nd msb signals that the following pointer does not need to be
-		// cast with our polymorphic machinery
-		ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
-		memory_detail::aux_save(ar, var);
-		return;
+	// If T is abstract ptrinfo can never be equal to T info (can't have an instance of an abstract class)
+	// this implies we need to do the lookup
+	if constexpr (!std::is_abstract_v<T>) {
+		if (ptrinfo == tinfo) {
+			// The 2nd msb signals that the following pointer does not need to be
+			// cast with our polymorphic machinery
+			ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
+			memory_detail::aux_save(ar, var);
+			return;
+		}
 	}
 
 	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
 	auto binding = bindingMap.find(std::type_index(ptrinfo));
-	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+	if (binding == bindingMap.end()) {
+		if constexpr (std::is_abstract_v<T>)
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+		else
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+	}
 
 	binding->second.shared_ptr(&to_underlying_ar(ar), var.get(), tinfo);
 }
 
-//! Loading std::shared_ptr for polymorphic types
+/// Loading std::shared_ptr for polymorphic types
 template <class Archive, class T>
 		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
@@ -351,34 +334,9 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 	var = std::static_pointer_cast<T>(result);
 }
 
-//! Saving std::unique_ptr for polymorphic types that are abstract
+/// Saving std::unique_ptr for polymorphic types
 template <class Archive, class T, class D>
-		requires std::is_polymorphic_v<T> && std::is_abstract_v<T>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& var) {
-	if (!var) {
-		// same behavior as nullptr in memory implementation
-		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
-		return;
-	}
-
-	const std::type_info& ptrinfo = typeid(*var.get());
-	static const std::type_info& tinfo = typeid(T);
-	// ptrinfo can never be equal to T info since we can't have an instance
-	// of an abstract object
-	//  this implies we need to do the lookup
-
-	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
-
-	auto binding = bindingMap.find(std::type_index(ptrinfo));
-	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
-
-	binding->second.unique_ptr(&to_underlying_ar(ar), var.get(), tinfo);
-}
-
-//! Saving std::unique_ptr for polymorphic types, not abstract
-template <class Archive, class T, class D>
-		requires std::is_polymorphic_v<T> && (!std::is_abstract_v<T>)
+		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& var) {
 	if (!var) {
 		// same behavior as nullptr in memory implementation
@@ -389,24 +347,32 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& va
 	const std::type_info& ptrinfo = typeid(*var.get());
 	static const std::type_info& tinfo = typeid(T);
 
-	if (ptrinfo == tinfo) {
-		// The 2nd msb signals that the following pointer does not need to be
-		// cast with our polymorphic machinery
-		ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
-		memory_detail::aux_save(ar, var);
-		return;
+	// If T is abstract ptrinfo can never be equal to T info (can't have an instance of an abstract class)
+	// this implies we need to do the lookup
+	if constexpr (!std::is_abstract_v<T>) {
+		if (ptrinfo == tinfo) {
+			// The 2nd msb signals that the following pointer does not need to be
+			// cast with our polymorphic machinery
+			ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
+			memory_detail::aux_save(ar, var);
+			return;
+		}
 	}
 
 	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
 	auto binding = bindingMap.find(std::type_index(ptrinfo));
-	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+	if (binding == bindingMap.end()) {
+		if constexpr (std::is_abstract_v<T>)
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+		else
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+	}
 
 	binding->second.unique_ptr(&to_underlying_ar(ar), var.get(), tinfo);
 }
 
-//! Loading std::unique_ptr, case when user provides load_and_construct for polymorphic types
+/// Loading std::unique_ptr for polymorphic types
 template <class Archive, class T, class D>
 		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {

@@ -1,87 +1,15 @@
 #pragma once
 
-#include <type_traits>
-#include <typeindex>
-
 #include <vide/access.hpp>
-#include <vide/concept.hpp>
-#include <vide/macros.hpp>
 
 
-namespace vide {
-namespace traits {
-
-// -------------------------------------------------------------------------------------------------
-
-using yes = std::true_type;
-using no = std::false_type;
-
-namespace detail {
-
-// SFINAE Helpers
-
-//! Return type for SFINAE Enablers
-enum class sfinae {};
-
-// Helper functionality for boolean integral constants and Enable/DisableIf
-template <bool H, bool ... T> struct meta_bool_and : std::integral_constant<bool, H && meta_bool_and<T...>::value> {};
-template <bool B> struct meta_bool_and<B> : std::integral_constant<bool, B> {};
-
-// workaround needed due to bug in MSVC 2013, see
-// http://connect.microsoft.com/VisualStudio/feedback/details/800231/c-11-alias-template-issue
-template <bool ... Conditions>
-struct EnableIfHelper : std::enable_if<meta_bool_and<Conditions...>::value, sfinae> {};
-
-} // namespace detail
-
-//! Used as the default value for EnableIf and DisableIf template parameters
-/*! @relates EnableIf
-	@relates DisableIf */
-static const detail::sfinae sfinae = {};
-
-// ######################################################################
-//! Provides a way to enable a function if conditions are met
-/*! This is intended to be used in a near identical fashion to std::enable_if
-	while being significantly easier to read at the cost of not allowing for as
-	complicated of a condition.
-
-	This will compile (allow the function) if every condition evaluates to true.
-	at compile time.  This should be used with SFINAE to ensure that at least
-	one other candidate function works when one fails due to an EnableIf.
-
-	This should be used as the las template parameter to a function as
-	an unnamed parameter with a default value of vide::traits::sfinae:
-
-	@code{cpp}
-	// using by making the last template argument variadic
-	template <class T, EnableIf<std::is_same<T, bool>::value> = sfinae>
-	void func(T t );
-	@endcode
-
-	Note that this performs a logical AND of all conditions, so you will need
-	to construct more complicated requirements with this fact in mind.
-
-	@relates DisableIf
-	@relates sfinae
-	@tparam Conditions The conditions which will be logically ANDed to enable the function. */
-template <bool ... Conditions>
-using EnableIf = typename detail::EnableIfHelper<Conditions...>::type;
-
-// -------------------------------------------------------------------------------------------------
-
-// NOTE: The get_output_from_input only used for save_minimal/load_minimal
-//			and there only to determine the return type of save_minimal
-//
-//template <typename Archive>
-//using get_output_from_input = typename Archive::ArchiveOutput;
-
-// -------------------------------------------------------------------------------------------------
+namespace vide::traits { // ------------------------------------------------------------------------
 
 //! Determines whether the class T can be default constructed by vide::access
 template <class T>
 concept is_default_constructible = requires { vide::access::construct<T>(); };
 
-} // namespace traits ------------------------------------------------------------------------------
+} // namespace vide::traits ------------------------------------------------------------------------
 
 // =================================================================================================
 // =================================================================================================
@@ -231,7 +159,3 @@ concept is_default_constructible = requires { vide::access::construct<T>(); };
 // 			(has_global_load_minimal_versioned<T, InputArchive>::value && has_global_load_minimal<T, InputArchive>::value)> {
 // 	};
 // };
-
-// -------------------------------------------------------------------------------------------------
-
-} // namespace vide

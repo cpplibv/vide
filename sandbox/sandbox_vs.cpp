@@ -2,7 +2,6 @@
 #include <derived.hpp>
 
 #include <vide/access.hpp>
-#include <vide/details/traits.hpp>
 #include <vide/details/helpers.hpp>
 #include <vide/types/base_class.hpp>
 #include <vide/vide.hpp>

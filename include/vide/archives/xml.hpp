@@ -31,7 +31,6 @@
 
 #include <vide/access.hpp>
 #include <vide/concept.hpp>
-#include <vide/details/util.hpp>
 #include <vide/macros.hpp>
 #include <vide/vide.hpp>
 
@@ -637,19 +636,16 @@ public:
 	}
 
 	//! Loads a bool from the current top node
-	template <class T, traits::EnableIf<std::is_unsigned<T>::value,
-			std::is_same<T, bool>::value> = traits::sfinae> inline
-	void loadValue(T& value) {
+	void loadValue(bool& value) {
 		std::istringstream is(itsNodes.top().node->value());
 		is.setf(std::ios::boolalpha);
 		is >> value;
 	}
 
 	//! Loads a char (signed or unsigned) from the current top node
-	template <class T, traits::EnableIf<std::is_integral<T>::value,
-			!std::is_same<T, bool>::value,
-			sizeof(T) == sizeof(char)> = traits::sfinae> inline
-	void loadValue(T& value) {
+	template <class T>
+			requires (std::is_integral_v<T> && !std::is_same_v<T, bool> && sizeof(T) == sizeof(char))
+	inline void loadValue(T& value) {
 		value = *reinterpret_cast<T*>( itsNodes.top().node->value());
 	}
 
@@ -668,44 +664,49 @@ public:
 	}
 
 	//! Loads a type best represented as an unsigned long from the current top node
-	template <class T, traits::EnableIf<std::is_unsigned<T>::value,
-			!std::is_same<T, bool>::value,
-			!std::is_same<T, char>::value,
-			!std::is_same<T, unsigned char>::value,
-			sizeof(T) < sizeof(long long)> = traits::sfinae> inline
-	void loadValue(T& value) {
+	template <class T> requires (
+			std::is_unsigned_v<T> &&
+			!std::is_same_v<T, bool> &&
+			!std::is_same_v<T, char> &&
+			!std::is_same_v<T, unsigned char> &&
+			sizeof(T) < sizeof(long long))
+	inline void loadValue(T& value) {
 		value = static_cast<T>( std::stoul(itsNodes.top().node->value()));
 	}
 
 	//! Loads a type best represented as an unsigned long long from the current top node
-	template <class T, traits::EnableIf<std::is_unsigned<T>::value,
-			!std::is_same<T, bool>::value,
-			sizeof(T) >= sizeof(long long)> = traits::sfinae> inline
+	template <class T> requires (
+			std::is_unsigned_v<T> &&
+			!std::is_same_v<T, bool> &&
+			sizeof(T) >= sizeof(long long))
 	void loadValue(T& value) {
 		value = static_cast<T>( std::stoull(itsNodes.top().node->value()));
 	}
 
 	//! Loads a type best represented as an int from the current top node
-	template <class T, traits::EnableIf<std::is_signed<T>::value,
-			!std::is_same<T, char>::value,
-			sizeof(T) <= sizeof(int)> = traits::sfinae> inline
-	void loadValue(T& value) {
+	template <class T> requires (
+			std::is_signed_v<T> &&
+			!std::is_same_v<T, char> &&
+			sizeof(T) <= sizeof(int))
+	inline void loadValue(T& value) {
 		value = static_cast<T>( std::stoi(itsNodes.top().node->value()));
 	}
 
 	//! Loads a type best represented as a long from the current top node
-	template <class T, traits::EnableIf<std::is_signed<T>::value,
-			(sizeof(T) > sizeof(int)),
-			sizeof(T) <= sizeof(long)> = traits::sfinae> inline
-	void loadValue(T& value) {
+	template <class T> requires (
+			std::is_signed_v<T> &&
+			(sizeof(T) > sizeof(int)) &&
+			sizeof(T) <= sizeof(long))
+	inline void loadValue(T& value) {
 		value = static_cast<T>( std::stol(itsNodes.top().node->value()));
 	}
 
 	//! Loads a type best represented as a long long from the current top node
-	template <class T, traits::EnableIf<std::is_signed<T>::value,
-			(sizeof(T) > sizeof(long)),
-			sizeof(T) <= sizeof(long long)> = traits::sfinae> inline
-	void loadValue(T& value) {
+	template <class T> requires (
+			std::is_signed_v<T> &&
+			(sizeof(T) > sizeof(long)) &&
+			sizeof(T) <= sizeof(long long))
+	inline void loadValue(T& value) {
 		value = static_cast<T>( std::stoll(itsNodes.top().node->value()));
 	}
 

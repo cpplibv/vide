@@ -31,7 +31,6 @@
 
 #include <vide/access.hpp>
 #include <vide/concept.hpp>
-#include <vide/details/util.hpp>
 #include <vide/vide.hpp>
 
 
@@ -245,23 +244,37 @@ public:
 		itsNextName = name;
 	}
 
-	//! Saves a bool to the current node
-	void saveValue(bool b) { itsWriter.Bool(b); }
+	//! Saves an intergal type to the current node
+	template <std::integral T>
+	void saveValue(T value) {
+		if constexpr (std::is_same_v<T, bool>) {
+			itsWriter.Bool(value);
+		} else if constexpr (sizeof(T) <= 4) {
+			if constexpr (std::is_signed_v<T>)
+				itsWriter.Int(static_cast<int32_t>(value));
+			else
+				itsWriter.Uint(static_cast<uint32_t>(value));
+		} else {
+			if constexpr (std::is_signed_v<T>)
+				itsWriter.Int64(static_cast<int64_t>(value));
+			else
+				itsWriter.Uint64(static_cast<uint64_t>(value));
+		}
+	}
 
-	//! Saves an int to the current node
-	void saveValue(int i) { itsWriter.Int(i); }
-
-	//! Saves a uint to the current node
-	void saveValue(unsigned u) { itsWriter.Uint(u); }
-
-	//! Saves an int64 to the current node
-	void saveValue(int64_t i64) { itsWriter.Int64(i64); }
-
-	//! Saves a uint64 to the current node
-	void saveValue(uint64_t u64) { itsWriter.Uint64(u64); }
+	//! Saves a float to the current node
+	void saveValue(float value) { itsWriter.Double(static_cast<double>(value)); }
 
 	//! Saves a double to the current node
 	void saveValue(double d) { itsWriter.Double(d); }
+
+	// Save exotic arithmetic as strings to current node
+	void saveValue(long double t) {
+		std::stringstream ss;
+		ss.precision(std::numeric_limits<long double>::max_digits10);
+		ss << t;
+		saveValue(ss.str());
+	}
 
 	//! Saves a string to the current node
 	void saveValue(const std::string& s) { itsWriter.String(s.c_str(), static_cast<VIDE_RAPIDJSON_NAMESPACE::SizeType>( s.size())); }
@@ -272,64 +285,29 @@ public:
 	//! Saves a nullptr to the current node
 	void saveValue(std::nullptr_t) { itsWriter.Null(); }
 
-private:
-	// Some compilers/OS have difficulty disambiguating the above for various flavors of longs, so we provide
-	// special overloads to handle these cases.
-
-	//! 32 bit signed long saving to current node
-	template <class T, traits::EnableIf<sizeof(T) == sizeof(std::int32_t),
-			std::is_signed<T>::value> = traits::sfinae> inline
-	void saveLong(T l) { saveValue(static_cast<std::int32_t>( l )); }
-
-	//! non 32 bit signed long saving to current node
-	template <class T, traits::EnableIf<sizeof(T) != sizeof(std::int32_t),
-			std::is_signed<T>::value> = traits::sfinae> inline
-	void saveLong(T l) { saveValue(static_cast<std::int64_t>( l )); }
-
-	//! 32 bit unsigned long saving to current node
-	template <class T, traits::EnableIf<sizeof(T) == sizeof(std::int32_t),
-			std::is_unsigned<T>::value> = traits::sfinae> inline
-	void saveLong(T lu) { saveValue(static_cast<std::uint32_t>( lu )); }
-
-	//! non 32 bit unsigned long saving to current node
-	template <class T, traits::EnableIf<sizeof(T) != sizeof(std::int32_t),
-			std::is_unsigned<T>::value> = traits::sfinae> inline
-	void saveLong(T lu) { saveValue(static_cast<std::uint64_t>( lu )); }
-
 public:
-#if defined(_MSC_VER) && _MSC_VER < 1916
-	//! MSVC only long overload to current node
-	void saveValue( unsigned long lu ){ saveLong( lu ); };
-#else // _MSC_VER
-
-	//! Serialize a long if it would not be caught otherwise
-	template <class T, traits::EnableIf<std::is_same<T, long>::value,
-			!std::is_same<T, int>::value,
-			!std::is_same<T, std::int64_t>::value> = traits::sfinae> inline
-	void saveValue(T t) { saveLong(t); }
-
-	//! Serialize an unsigned long if it would not be caught otherwise
-	template <class T, traits::EnableIf<std::is_same<T, unsigned long>::value,
-			!std::is_same<T, unsigned>::value,
-			!std::is_same<T, std::uint64_t>::value> = traits::sfinae> inline
-	void saveValue(T t) { saveLong(t); }
-
-#endif // _MSC_VER
+// #if defined(_MSC_VER) && _MSC_VER < 1916
+// 	//! MSVC only long overload to current node
+// 	void saveValue( unsigned long lu ){ saveLong( lu ); };
+// #else // _MSC_VER
+//
+// 	//! Serialize a long if it would not be caught otherwise
+// 	template <class T, traits::EnableIf<std::is_same<T, long>::value,
+// 			!std::is_same<T, int>::value,
+// 			!std::is_same<T, std::int64_t>::value> = traits::sfinae> inline
+// 	void saveValue(T t) { saveLong(t); }
+//
+// 	//! Serialize an unsigned long if it would not be caught otherwise
+// 	template <class T, traits::EnableIf<std::is_same<T, unsigned long>::value,
+// 			!std::is_same<T, unsigned>::value,
+// 			!std::is_same<T, std::uint64_t>::value> = traits::sfinae> inline
+// 	void saveValue(T t) { saveLong(t); }
+//
+// #endif // _MSC_VER
 
 	//! Save exotic arithmetic as strings to current node
 	/*! Handles long long (if distinct from other types), unsigned long (if distinct), and long double */
-	template <class T, traits::EnableIf<std::is_arithmetic<T>::value,
-			!std::is_same<T, long>::value,
-			!std::is_same<T, unsigned long>::value,
-			!std::is_same<T, std::int64_t>::value,
-			!std::is_same<T, std::uint64_t>::value,
-			(sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long))> = traits::sfinae> inline
-	void saveValue(const T& t) {
-		std::stringstream ss;
-		ss.precision(std::numeric_limits<long double>::max_digits10);
-		ss << t;
-		saveValue(ss.str());
-	}
+
 
 	//! Write the name of the upcoming node and prepare object/array state
 	/*! Since writeName is called for every value that is output, regardless of
@@ -688,9 +666,10 @@ protected:
 	}
 
 	//! Loads a value from the current node - small signed overload
-	template <class T, traits::EnableIf<std::is_signed<T>::value,
-			sizeof(T) < sizeof(int64_t)> = traits::sfinae> inline
-	void loadValue(T& val) {
+	template <class T> requires (
+			std::is_signed_v<T> &&
+			sizeof(T) < sizeof(int64_t))
+	inline void loadValue(T& val) {
 		search();
 
 		val = static_cast<T>( itsIteratorStack.back().value().GetInt());
@@ -698,10 +677,10 @@ protected:
 	}
 
 	//! Loads a value from the current node - small unsigned overload
-	template <class T, traits::EnableIf<std::is_unsigned<T>::value,
-			sizeof(T) < sizeof(uint64_t),
-			!std::is_same<bool, T>::value> = traits::sfinae> inline
-	void loadValue(T& val) {
+	template <class T> requires (
+			std::is_unsigned_v<T> &&
+			sizeof(T) < sizeof(uint64_t))
+	inline void loadValue(T& val) {
 		search();
 
 		val = static_cast<T>( itsIteratorStack.back().value().GetUint());
@@ -810,12 +789,13 @@ private:
 
 public:
 	//! Loads a value from the current node - long double and long long overloads
-	template <class T, traits::EnableIf<std::is_arithmetic<T>::value,
-			!std::is_same<T, long>::value,
-			!std::is_same<T, unsigned long>::value,
-			!std::is_same<T, std::int64_t>::value,
-			!std::is_same<T, std::uint64_t>::value,
-			(sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long))> = traits::sfinae>
+	template <class T> requires (
+			std::is_arithmetic_v<T> &&
+			!std::is_same_v<T, long> &&
+			!std::is_same_v<T, unsigned long> &&
+			!std::is_same_v<T, std::int64_t> &&
+			!std::is_same_v<T, std::uint64_t> &&
+			(sizeof(T) >= sizeof(long double) || sizeof(T) >= sizeof(long long)))
 	inline void loadValue(T& val) {
 		std::string encoded;
 		loadValue(encoded);

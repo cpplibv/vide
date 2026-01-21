@@ -180,6 +180,12 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 - (Preliminary) Version 3.0.0:
   - Major breaking change in the serialized archives (expected to be the last)
 
+### Known Issues:
+- Polymorphic serialization of non-virtual independent and duplicate base subobjects when loaded with the
+duplicate type will correctly load but will incorrectly upcast/point to the first virtual occurrence or the
+first occurrence if it has no virtual occurrence of that type
+regardless which object was pointed to during saving.
+
 -------------------------------------------------------------------------------------------------
 
 cereal - A C++11 library for serialization

@@ -12,37 +12,19 @@
 
 
 
-merge every polymorphic serialization into a T*
-		make the polymorphic part independent from the
-		smart pointer parts
-	\ this will allow removing PolymorphicSharedPointerWrapper
 
-type id check return of registerSharedPointer
-
-
-
-
-
-polymorphic_id should be serialized inside the data not before the ref
-	(BUT, DO VERIFY it upon loading)
+patch note:
+	dependent name for base_class stuff
+	VIDE_POLYMORPHIC_ID_TYPE
+		Determines the data type used for polymorphic_id
+		uint16_t as polymorphic_id
+	type mismatch detection on shared_ptr loading
 
 
 
-
-
-
-msb_32bit remove from polymophic stuff too
-msb2_32bit replace with msb_32bit and/or remove?
-		used to indicate that skip poly serialization
-		aka when static type matches dynamic type
-		| I think remove and replace with a proper check
-
-polymorphic with proxy archives?
-
-move binding maps int the archives? (DLL pr did not want that)
-
-
-
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
 
 private:
    struct IntrusivePtrInput {
@@ -73,7 +55,7 @@ public:
    std::unordered_map<uint32_t, IntrusivePtrInput> inputIntrusivePtrLookup;
    std::unordered_map<void*, IntrusivePtrOutput> outputIntrusivePtrLookup;
 
-
+-------------------------------------------------------------------------------------------------
 
 // TODO P1: Move intrusive_ptr serialization support to somewhere more generic, provide better archive support for
 //         any smart pointer
@@ -112,6 +94,8 @@ inline void load(Archive& ar, libv::intrusive_ptr<T>& var) {
    var = libv::intrusive_ptr<T>(static_cast<T*>(it->second.ptr));
 }
 
+-------------------------------------------------------------------------------------------------
+
 template <typename Archive, typename T>
 inline void save(Archive& ar, const libv::intrusive_ptr<T>& var) {
    const auto [it, isNew] = ar.outputIntrusivePtrLookup.emplace(var.ptr(), 0);
@@ -137,6 +121,70 @@ inline void save(Archive& ar, const libv::intrusive_ptr<T>& var) {
    }
 }
 
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+
+std::string hex_dump_with_ascii(const std::string_view& s) {
+	if (s.empty())
+		return "";
+
+	std::ostringstream ss;
+	ss << std::hex << std::setfill('0') << std::setw(2) << std::uppercase;
+
+	std::size_t i = 0;
+	while (true) {
+		ss << std::setw(2) << uint16_t{static_cast<unsigned char>(s[i])};
+		++i;
+
+		if (i == s.size())
+			break;
+
+		if (i % 32 == 0) {
+			ss << " | ";
+			for (std::size_t j = i - 32; j < i;) {
+				ss << (std::isprint(s[j]) ? s[j] : '.');
+				++j;
+				if (j % 8 == 0 && j % 32 != 0)
+					ss << ' ';
+			}
+			ss << "\n";
+		} else if (i % 8 == 0) {
+			ss << "  ";
+		} else {
+			ss << ' ';
+		}
+	}
+
+	if (i % 32 != 0) {
+		const auto r_begin = i;
+		const auto r_end = (i / 32 + 1) * 32;
+
+		for (std::size_t r = r_begin; r < r_end; ++r) {
+			if (r % 32 == 0) {
+				ss << " ";
+			} else if (r % 8 == 0) {
+				ss << "    ";
+			} else {
+				ss << "   ";
+			}
+		}
+	}
+
+	ss << " | ";
+	for (std::size_t j = (i - 1) / 32 * 32; j < i;) {
+		ss << (std::isprint(s[j]) ? s[j] : '.');
+		++j;
+		if (j % 8 == 0 && j % 32 != 0)
+			ss << ' ';
+	}
+
+	return std::move(ss).str();
+}
+
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
 
 
 
@@ -145,6 +193,8 @@ inline void save(Archive& ar, const libv::intrusive_ptr<T>& var) {
 
 
 
+vide: polymorphic with proxy archives?
+	\ only if proxy opt-ins for it
 
 vide: Customization point for smart pointers (libv::intrusive_ptr support)
 	\ shared_ptr could/should use this too (granted that would require polymorphic features in it)
@@ -156,7 +206,7 @@ things to break:
 vide: archive.eof() or some API to check if the whole of the buffer was consumed
 
 
-
+vide: ar.peek<T>() (load without progressing the input it (binary)/array index (text))
 
 vide: Make sure binary_data does not swap bytes for floating points numbers
 
@@ -166,9 +216,9 @@ vide: archive.binary_data(ptr, size) and archive.binary_data(name, ptr, size) de
 vide: archive.enable_trace(): detailed exception (try-catch and append debug info in every serializer), as this might be heavy it might need to be a compile time flag not runtime
 
 vide: visiting_archive
+vide: force inlines
 
 Files that should remove the vide/vide.hpp include:
-    types/memory.hpp (transitive via vide/traits/shared_from_this.hpp)
     types/polymorphic.hpp
 
 Better document:
@@ -188,6 +238,4 @@ Merge/Implement the following PRs:
 	https://github.com/USCiLab/cereal/pull/641 Use unordered containers and remove std::function from polymorphic_impl.hpp
 
 Think about it:
-	https://github.com/USCiLab/cereal/pull/658 Adding ability to detect a RapidJSON parse error in JSONInputArchive
 	https://github.com/USCiLab/cereal/pull/321 Json/XML Archive improvement (basically only the stack info is relevant improvement)
-	https://github.com/USCiLab/cereal/pull/653 Added JSONInputArchive constructor from an already parsed rapidjson::Document

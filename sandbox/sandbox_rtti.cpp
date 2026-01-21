@@ -139,6 +139,9 @@ struct OurType : public OurBase {
 	}
 };
 
+// VIDE_REGISTER_TYPE(OurType) // No need, OurType is never base class serialized
+// VIDE_REGISTER_POLYMORPHIC_RELATION(OurBase, OurType) // No need, virtual_base_class is used
+
 struct BaseVirtual {
 	int x;
 
@@ -146,6 +149,7 @@ struct BaseVirtual {
 	void serialize(Archive& ar) { ar(x); }
 
 	virtual void foo() = 0;
+	virtual ~BaseVirtual() = default;
 };
 
 struct DerivedVirtual : public virtual BaseVirtual {
@@ -157,18 +161,26 @@ struct DerivedVirtual : public virtual BaseVirtual {
 	virtual void foo() {
 	}
 
+	// template <class Archive>
+	// void save(Archive& ar) const {
+	// 	ar(vide::virtual_base_class<BaseVirtual>(this));
+	// 	ar(y);
+	// }
+	//
+	// template <class Archive>
+	// void load(Archive& ar) {
+	// 	ar(vide::virtual_base_class<BaseVirtual>(this));
+	// 	ar(y);
+	// }
 	template <class Archive>
-	void save(Archive& ar) const {
-		ar(vide::virtual_base_class<BaseVirtual>(this));
-		ar(y);
-	}
-
-	template <class Archive>
-	void load(Archive& ar) {
+	void serialize(Archive& ar) {
 		ar(vide::virtual_base_class<BaseVirtual>(this));
 		ar(y);
 	}
 };
+
+VIDE_REGISTER_TYPE(DerivedVirtual)
+// VIDE_REGISTER_POLYMORPHIC_RELATION(BaseVirtual, DerivedVirtual) // No need, virtual_base_class is used
 
 struct TestType {
 	int x;
@@ -178,12 +190,6 @@ struct TestType {
 		ar(x);
 	}
 };
-
-//namespace vide
-//{
-//  template <class Archive> struct specialize<Archive, DerivedVirtual, vide::specialization::member_load_save> {};
-//  template <class Archive> struct specialize<Archive, TestType, vide::specialization::member_serialize> {};
-//}
 
 struct AAA {
 	virtual void foo() = 0;
@@ -219,12 +225,16 @@ int main() {
 		std::weak_ptr<Base> ptr4 = ptr2;
 
 		std::shared_ptr<OurType> ptr5 = std::make_shared<OurType>(99);
+		std::shared_ptr<DerivedVirtual> ptr6 = std::make_shared<DerivedVirtual>();
+		std::shared_ptr<BaseVirtual> ptr7 = std::make_shared<DerivedVirtual>();
 
 		oarchive(ptr1);
 		oarchive(ptr2);
 		oarchive(ptr3);
 		oarchive(ptr4);
 		oarchive(ptr5);
+		oarchive(ptr6);
+		oarchive(ptr7);
 
 		//std::shared_ptr<AAA> a = std::make_shared<BBB>();
 		//oarchive(a);
@@ -239,11 +249,15 @@ int main() {
 		std::weak_ptr<Base> ptr4;
 
 		std::shared_ptr<OurType> ptr5;
+		std::shared_ptr<DerivedVirtual> ptr6;
+		std::shared_ptr<BaseVirtual> ptr7;
 
 		iarchive(ptr1);
 		iarchive(ptr2);
 		iarchive(ptr3);
 		iarchive(ptr4);
 		iarchive(ptr5);
+		iarchive(ptr6);
+		iarchive(ptr7);
 	}
 }

@@ -1,42 +1,20 @@
-/*! \file polymorphic.hpp
-    \brief Support for pointers to polymorphic base classes
-    \ingroup OtherTypes */
-/*
-  Copyright (c) 2013-2022, Randolph Voorhies, Shane Grant
-  All rights reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-      * Redistributions of source code must retain the above copyright
-        notice, this list of conditions and the following disclaimer.
-      * Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in the
-        documentation and/or other materials provided with the distribution.
-      * Neither the name of the copyright holder nor the
-        names of its contributors may be used to endorse or promote products
-        derived from this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+//
 
 #pragma once
 
-#include <vide/vide.hpp>
-#include <vide/types/memory.hpp>
-
-#include <vide/details/util.hpp>
 #include <vide/details/helpers.hpp>
-#include <vide/details/traits.hpp>
+#include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/polymorphic_impl.hpp>
+#include <vide/details/traits.hpp>
+#include <vide/details/util.hpp>
+#include <vide/details/vide_types.hpp>
+#include <vide/exception.hpp>
+#include <vide/macros.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/std_string.hpp>
+
+#include <cassert>
+#include <string>
 
 
 //! Registers a derived polymorphic type with vide
@@ -74,16 +52,14 @@
 
     Polymorphic support in vide requires RTTI to be
     enabled */
-#define VIDE_REGISTER_TYPE(...)                                        \
-  namespace vide {                                                     \
-  namespace detail {                                                     \
-  template <>                                                            \
-  struct binding_name<__VA_ARGS__>                                       \
-  {                                                                      \
-    static constexpr char const * name() { return #__VA_ARGS__; } \
-  };                                                                     \
-  } } /* end namespaces */                                               \
-  VIDE_BIND_TO_ARCHIVES(__VA_ARGS__)
+#define VIDE_REGISTER_TYPE(...)                                       \
+	namespace vide::detail {                                          \
+	template <>                                                       \
+	struct binding_name<__VA_ARGS__> {                                \
+		static constexpr char const * name() { return #__VA_ARGS__; } \
+	};                                                                \
+	} /* namespace vide::detail */                                    \
+	VIDE_BIND_TO_ARCHIVES(__VA_ARGS__)
 
 //! Registers a polymorphic type with vide, giving it a
 //! user defined name
@@ -91,14 +67,14 @@
     VIDE_REGISTER_TYPE (the name of the type) may not be
     suitable.  This macro allows any name to be associated
     with the type.  The name must be unique */
-#define VIDE_REGISTER_TYPE_WITH_NAME(T, Name)                     \
-  namespace vide {                                                \
-  namespace detail {                                                \
-  template <>                                                       \
-  struct binding_name<T>                                            \
-  { static constexpr char const * name() { return Name; } }; \
-  } } /* end namespaces */                                          \
-  VIDE_BIND_TO_ARCHIVES(T)
+#define VIDE_REGISTER_TYPE_WITH_NAME(T, Name)                 \
+	namespace vide::detail {                                  \
+	template <>                                               \
+	struct binding_name<T> {                                  \
+		static constexpr char const * name() { return Name; } \
+	};                                                        \
+	} /* namespace vide::detail */                            \
+	VIDE_BIND_TO_ARCHIVES(T)
 
 //! Registers the base-derived relationship for a polymorphic type
 /*! When polymorphic serialization occurs, vide needs to know how to
@@ -113,13 +89,15 @@
     class serialization that will be used to store a Derived pointer.
 
     Placement of this is the same as for VIDE_REGISTER_TYPE. */
-#define VIDE_REGISTER_POLYMORPHIC_RELATION(Base, Derived)                     \
-  namespace vide {                                                            \
-  namespace detail {                                                            \
-  template <>                                                                   \
-  struct PolymorphicRelation<Base, Derived>                                     \
-  { static void bind() { RegisterPolymorphicCaster<Base, Derived>::bind(); } }; \
-  } } /* end namespaces */
+#define VIDE_REGISTER_POLYMORPHIC_RELATION(Base, Derived)     \
+	namespace vide::detail {                                  \
+	template <>                                               \
+	struct PolymorphicRelation<Base, Derived> {               \
+		static void bind() {                                  \
+			RegisterPolymorphicCaster<Base, Derived>::bind(); \
+		}                                                     \
+	};                                                        \
+	} /* namespace vide::detail */
 
 //! Adds a way to force initialization of a translation unit containing
 //! calls to VIDE_REGISTER_TYPE
@@ -148,10 +126,9 @@
     @relates VIDE_FORCE_DYNAMIC_INIT
     */
 #define VIDE_REGISTER_DYNAMIC_INIT(LibName)                \
-  namespace vide {                                         \
-  namespace detail {                                         \
-    void VIDE_DLL_EXPORT dynamic_init_dummy_##LibName() {} \
-  } } /* end namespaces */
+	namespace vide::detail {                               \
+	void VIDE_DLL_EXPORT dynamic_init_dummy_##LibName() {} \
+	} /* namespace vide::detail */
 
 //! Forces dynamic initialization of polymorphic support in a
 //! previously registered source file
@@ -160,235 +137,274 @@
     See VIDE_REGISTER_DYNAMIC_INIT for detailed explanation
     of how this macro should be used.  The name used should
     match that for VIDE_REGISTER_DYNAMIC_INIT. */
-#define VIDE_FORCE_DYNAMIC_INIT(LibName)                 \
-  namespace vide {                                       \
-  namespace detail {                                       \
-    void VIDE_DLL_EXPORT dynamic_init_dummy_##LibName(); \
-  } /* end detail */                                       \
-  } /* end vide */                                       \
-  namespace {                                              \
-    struct dynamic_init_##LibName {                        \
-      dynamic_init_##LibName() {                           \
-        ::vide::detail::dynamic_init_dummy_##LibName();  \
-      }                                                    \
-    } dynamic_init_instance_##LibName;                     \
-  } /* end anonymous namespace */
+#define VIDE_FORCE_DYNAMIC_INIT(LibName)                    \
+	namespace vide::detail {                                \
+	void VIDE_DLL_EXPORT dynamic_init_dummy_##LibName();    \
+	} /* namespace vide::detail */                          \
+	namespace {                                             \
+	struct dynamic_init_##LibName {                         \
+		dynamic_init_##LibName() {                          \
+			::vide::detail::dynamic_init_dummy_##LibName(); \
+		}                                                   \
+	} dynamic_init_instance_##LibName;                      \
+	} /* namespace */
 
-namespace vide {
-namespace polymorphic_detail {
+
+namespace vide::polymorphic_detail { // ------------------------------------------------------------
+
 //! Error message used for unregistered polymorphic types
 /*! @internal */
-#define UNREGISTERED_POLYMORPHIC_EXCEPTION(LoadSave, Name, ArName)                                                                                  \
-      throw vide::Exception("Trying to " LoadSave " an unregistered polymorphic type: " + Name + " with " + ArName + ".\n"                       \
-                              "Make sure your type is registered with VIDE_REGISTER_TYPE and that the archive "                                   \
+#define UNREGISTERED_POLYMORPHIC_EXCEPTION(LoadSave, Name, ArName)                                                                              \
+      throw vide::Exception("Trying to " LoadSave " an unregistered polymorphic type: " + Name + " with " + ArName + ".\n"                      \
+                              "Make sure your type is registered with VIDE_REGISTER_TYPE and that the archive "                                 \
                               "you are using was included (and registered with VIDE_REGISTER_ARCHIVE) prior to calling VIDE_REGISTER_TYPE.\n"   \
                               "If your type is already registered and you still see this error, you may need to use VIDE_REGISTER_DYNAMIC_INIT.");
 
-//! Get an input binding from the given archive by deserializing the type meta data
+//! Get an input binding from the given archive by deserializing the type metadata
 /*! @internal */
 template <class Archive>
-inline typename ::vide::detail::InputBindingMap::Serializers aux_getInputBinding(Archive& ar, const std::uint32_t nameid) {
-	// If the nameid is zero, we serialized a null pointer
-	if (nameid == 0) {
-		typename ::vide::detail::InputBindingMap::Serializers emptySerializers;
-		emptySerializers.shared_ptr = [](void*, std::shared_ptr<void>& ptr, const std::type_info&) { ptr.reset(); };
-		emptySerializers.unique_ptr = [](void*, std::unique_ptr<void, ::vide::detail::EmptyDeleter<void>>& ptr, const std::type_info&) { ptr.reset(nullptr); };
-		return emptySerializers;
-	}
-
-	std::string name;
-	if (nameid & detail::msb_32bit) {
-		ar(VIDE_NVP_("polymorphic_name", name));
-		ar.registerPolymorphicName(nameid, name);
-	} else
-		name = ar.getPolymorphicName(nameid);
-
+inline ::vide::polymorphic_detail::InputSerializers aux_getPolymorphicInputSerializer(Archive& ar, const std::string& polymorphic_name) {
 	const auto& bindingMap = detail::getBindingMapInput<Archive>();
-
-	auto binding = bindingMap.find(name);
-	if (binding == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION("load", name, vide::util::demangle(typeid(ar).name()))
-	return binding->second;
+	auto it = bindingMap.find(polymorphic_name);
+	if (it == bindingMap.end())
+		UNREGISTERED_POLYMORPHIC_EXCEPTION("load", polymorphic_name, vide::util::demangle(typeid(ar).name()))
+	return it->second;
 }
 
 template <class Archive>
-inline auto getInputBinding(Archive& ar, const std::uint32_t nameid) {
+inline ::vide::polymorphic_detail::InputSerializers getPolymorphicInputSerializer(Archive& ar, const std::string& polymorphic_name) {
 	if constexpr (Archive::is_proxy)
-		return aux_getInputBinding(ar.underlying(), nameid);
+		return aux_getPolymorphicInputSerializer(ar.underlying(), polymorphic_name);
 	else
-		return aux_getInputBinding(ar, nameid);
+		return aux_getPolymorphicInputSerializer(ar, polymorphic_name);
 }
 
-//! Serialize a shared_ptr if the 2nd msb in the nameid is set, and if we can actually construct the pointee
-/*! This check lets us try and skip doing polymorphic machinery if we can get away with
-	using the derived class serialize function
-	@internal */
-template <class Archive, class T>
-		requires (traits::is_default_constructible<T> && !std::is_abstract_v<T>)
-inline bool serialize_wrapper(Archive& ar, std::shared_ptr<T>& var, const std::uint32_t nameid) {
-	if (nameid & detail::msb2_32bit) {
-		memory_detail::aux_load(ar, var);
-		return true;
-	}
-	return false;
-}
-
-//! Serialize a unique_ptr if the 2nd msb in the nameid is set, and if we can actually construct the pointee
-/*! This check lets us try and skip doing polymorphic machinery if we can get away with
-	using the derived class serialize function
-	@internal */
-template <class Archive, class T, class D>
-		requires (traits::is_default_constructible<T> && !std::is_abstract_v<T>)
-inline bool serialize_wrapper(Archive& ar, std::unique_ptr<T, D>& var, const std::uint32_t nameid) {
-	if (nameid & detail::msb2_32bit) {
-		memory_detail::aux_load(ar, var);
-		return true;
-	}
-	return false;
-}
-
-//! Serialize a shared_ptr if the 2nd msb in the nameid is set, and if we can actually construct the pointee
-/*! This case is for when we can't actually construct the shared pointer.  Normally this would be caught
-	as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
-	the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
-	this was a polymorphic type serialized by its proper pointer type
-	@internal */
-template <class Archive, class T>
-		requires (!traits::is_default_constructible<T> || std::is_abstract_v<T>)
-inline bool serialize_wrapper(Archive&, std::shared_ptr<T>&, const std::uint32_t nameid) {
-	if (nameid & detail::msb2_32bit)
-		throw vide::Exception("Cannot load a polymorphic type that is not default constructable and does not have a load_and_construct function");
-	return false;
-}
-
-//! Serialize a unique_ptr if the 2nd msb in the nameid is set, and if we can actually construct the pointee
-/*! This case is for when we can't actually construct the unique pointer.  Normally this would be caught
-	as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
-	the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
-	this was a polymorphic type serialized by its proper pointer type
-	@internal */
-template <class Archive, class T, class D>
-		requires (!traits::is_default_constructible<T> || std::is_abstract_v<T>)
-inline bool serialize_wrapper(Archive&, std::unique_ptr<T, D>&, const std::uint32_t nameid) {
-	if (nameid & detail::msb2_32bit)
-		throw vide::Exception("Cannot load a polymorphic type that is not default constructable and does not have a load_and_construct function");
-	return false;
-}
-} // polymorphic_detail
-
-// =================================================================================================
-// Pointer serialization for polymorphic types
+} // namespace vide::polymorphic_detail ===========================================================
+namespace vide { // -------------------------------------------------------------------------------
 
 /// Saving std::shared_ptr for polymorphic types
 template <class Archive, class T>
 		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) {
 	if (!var) {
-		// same behavior as nullptr in memory implementation
-		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
+		ar.nvp("ref", std::uint32_t{0});
 		return;
 	}
 
-	const std::type_info& ptrinfo = typeid(*var.get());
+	const std::type_info& varinfo = typeid(*var);
 	static const std::type_info& tinfo = typeid(T);
 
-	// If T is abstract ptrinfo can never be equal to T info (can't have an instance of an abstract class)
-	// this implies we need to do the lookup
+	// varinfo can never match tinfo if T is abstract (can't have an instance of an abstract class)
 	if constexpr (!std::is_abstract_v<T>) {
-		if (ptrinfo == tinfo) {
-			// The 2nd msb signals that the following pointer does not need to be
-			// cast with our polymorphic machinery
-			ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
-			memory_detail::aux_save(ar, var);
+		if (varinfo == tinfo) {
+			// Matching type_info means this pointer does not need to be cast with our polymorphic machinery
+			// as the current T (static type) matched the variable real (dynamic) type. We indicate this with
+			// a zero as polymorphic_id.
+			const auto [ref, new_] = ar.registerSharedPointer(var);
+			ar.nvp("ref", ref);
+			if (!new_)
+				return;
+
+			ar.nvp("polymorphic_id", polymorphic_id_t{0});
+			ar.nvp("data", *var);
 			return;
 		}
 	}
 
 	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
-
-	auto binding = bindingMap.find(std::type_index(ptrinfo));
+	auto binding = bindingMap.find(std::type_index(varinfo));
 	if (binding == bindingMap.end()) {
 		if constexpr (std::is_abstract_v<T>)
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(varinfo.name()), vide::util::demangle(typeid(ar).name()))
 		else
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(varinfo.name()), vide::util::demangle(typeid(ar).name()))
 	}
 
-	binding->second.shared_ptr(&to_underlying_ar(ar), var.get(), tinfo);
+	const auto downCastedVar = binding->second.downcast(var.get(), tinfo);
+	auto downCastedSP = std::shared_ptr<const void>(var, downCastedVar); // Aliasing constructor
+
+	const auto [ref, new_] = ar.registerSharedPointer(std::move(downCastedSP));
+
+	ar.nvp("ref", ref);
+	if (!new_)
+		return;
+
+	binding->second.generic_ptr(&to_underlying_ar(ar), downCastedVar);
 }
 
 /// Loading std::shared_ptr for polymorphic types
 template <class Archive, class T>
 		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
-	std::uint32_t nameid;
-	ar(VIDE_NVP_("polymorphic_id", nameid));
+	using NonConstT = std::remove_const_t<T>;
+	static const std::type_info& tinfo = typeid(T);
 
-	// Check to see if we can skip all of this polymorphism business
-	if (polymorphic_detail::serialize_wrapper(ar, var, nameid))
-		return;
-
-	auto binding = polymorphic_detail::getInputBinding(ar, nameid);
-	std::shared_ptr<void> result;
-	binding.shared_ptr(&to_underlying_ar(ar), result, typeid(T));
-	var = std::static_pointer_cast<T>(result);
-}
-
-/// Saving std::unique_ptr for polymorphic types
-template <class Archive, class T, class D>
-		requires std::is_polymorphic_v<T>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& var) {
-	if (!var) {
-		// same behavior as nullptr in memory implementation
-		ar(VIDE_NVP_("polymorphic_id", std::uint32_t(0)));
+	std::uint32_t ref;
+	ar.nvp("ref", ref);
+	if (ref == 0) {
+		var = nullptr;
 		return;
 	}
 
-	const std::type_info& ptrinfo = typeid(*var.get());
+	const auto [stored, new_] = ar.registerSharedPointer(ref);
+	if (new_) {
+		polymorphic_id_t polymorphic_id;
+		ar.nvp("polymorphic_id", polymorphic_id);
+
+		if (polymorphic_id == 0) {
+			// Zero polymorphic_id means this pointer does not need to be cast with our polymorphic machinery
+			// as the current T (static type) matched the variable real (dynamic) type
+
+			if constexpr (std::is_abstract_v<T> || !traits::is_default_constructible<T>) {
+				// This case is for when we can't actually construct the shared pointer. Normally this would be caught
+				// as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
+				// the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
+				// this was a polymorphic type serialized by its proper pointer type
+				throw vide::Exception("Cannot load a polymorphic type that is not default constructable");
+			} else {
+				//! Serialize a shared_ptr if the 2nd msb in the polymorphic_id is set, and if we can actually construct the pointee
+				/*! This check lets us try and skip doing polymorphic machinery if we can get away with
+					using the derived class serialize function
+					@internal */
+				std::shared_ptr<NonConstT> ptr(::vide::access::construct<NonConstT>());
+				NonConstT* addr = ptr.get();
+				stored.ptr = ptr;
+				stored.info = tinfo;
+				stored.upcast = +[](void* varptr, const std::type_info& baseInfo) -> void* {
+					return detail::PolymorphicCasters::upcast<T>(static_cast<T*>(varptr), baseInfo);
+					//return nullptr;
+				};
+				ar.nvp("data", *addr);
+				var = std::move(ptr);
+				return;
+			}
+		} else {
+			auto [serializer, new_] = ar.registerPolymorphicType(polymorphic_id);
+			if (new_) {
+				std::string polymorphic_name;
+				ar.nvp("polymorphic_name", polymorphic_name);
+				serializer = polymorphic_detail::getPolymorphicInputSerializer(ar, polymorphic_name);
+			}
+
+			// Info and upcast must be set before the actual serialization
+			stored.upcast = serializer.upcast;
+			serializer.generic_ptr(&to_underlying_ar(ar), typeid(T), [&](void* realPtr, void* varPtr, const auto& varinfo) {
+				// registerFn takes ownership of the loaded pointer
+				// We create the shared_ptr by pointing it to varPtr, but with aliasing constructor we store
+				// the real (most downcasted / dynamic type) ptr.
+				var = std::shared_ptr<NonConstT>(static_cast<NonConstT*>(varPtr));
+				stored.info = varinfo;
+				stored.ptr = std::shared_ptr<void>(var, realPtr); // Aliasing constructor
+			});
+			return;
+		}
+	}
+
+	if (stored.info == tinfo) {
+		var = std::static_pointer_cast<T>(stored.ptr);
+	} else {
+		// !!! during incorrect type load proper exception is expected
+		var = std::shared_ptr<T>(stored.ptr, static_cast<T*>(stored.upcast(stored.ptr.get(), typeid(T)))); // Aliasing constructor
+	}
+}
+
+// -------------------------------------------------------------------------------------------------
+
+/// Saving std::unique_ptr for polymorphic types
+template <class Archive, class T, class D>
+	requires std::is_polymorphic_v<T>
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& var) {
+	// unique_ptr gets one bool of metadata which signifies whether they were a nullptr
+	ar.nvp("valid", var != nullptr);
+	if (var == nullptr)
+		return;
+
+	const std::type_info& varinfo = typeid(*var);
 	static const std::type_info& tinfo = typeid(T);
 
-	// If T is abstract ptrinfo can never be equal to T info (can't have an instance of an abstract class)
-	// this implies we need to do the lookup
+	// varinfo can never match tinfo if T is abstract (can't have an instance of an abstract class)
 	if constexpr (!std::is_abstract_v<T>) {
-		if (ptrinfo == tinfo) {
-			// The 2nd msb signals that the following pointer does not need to be
-			// cast with our polymorphic machinery
-			ar(VIDE_NVP_("polymorphic_id", detail::msb2_32bit));
-			memory_detail::aux_save(ar, var);
+		if (varinfo == tinfo) {
+			// Matching type_info means this pointer does not need to be cast with our polymorphic machinery
+			// as the current T (static type) matched the variable real (dynamic) type. We indicate this with
+			// a zero as polymorphic_id.
+			ar.nvp("polymorphic_id", polymorphic_id_t{0});
+			ar.nvp("data", *var);
 			return;
 		}
 	}
 
 	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
 
-	auto binding = bindingMap.find(std::type_index(ptrinfo));
+	auto binding = bindingMap.find(std::type_index(varinfo));
 	if (binding == bindingMap.end()) {
 		if constexpr (std::is_abstract_v<T>)
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(varinfo.name()), vide::util::demangle(typeid(ar).name()))
 		else
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(ptrinfo.name()), vide::util::demangle(typeid(ar).name()))
+			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(varinfo.name()), vide::util::demangle(typeid(ar).name()))
 	}
 
-	binding->second.unique_ptr(&to_underlying_ar(ar), var.get(), tinfo);
+	const auto downCastedVar = binding->second.downcast(var.get(), tinfo);
+	binding->second.generic_ptr(&to_underlying_ar(ar), downCastedVar);
 }
 
 /// Loading std::unique_ptr for polymorphic types
 template <class Archive, class T, class D>
 		requires std::is_polymorphic_v<T>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& ptr) {
-	std::uint32_t nameid;
-	ar(VIDE_NVP_("polymorphic_id", nameid));
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& var) {
+	bool valid;
+	ar.nvp("valid", valid);
 
-	// Check to see if we can skip all of this polymorphism business
-	if (polymorphic_detail::serialize_wrapper(ar, ptr, nameid))
+	if (!valid) {
+		var = nullptr;
 		return;
+	}
 
-	auto binding = polymorphic_detail::getInputBinding(ar, nameid);
-	std::unique_ptr<void, ::vide::detail::EmptyDeleter<void>> result;
-	binding.unique_ptr(&to_underlying_ar(ar), result, typeid(T));
-	ptr.reset(static_cast<T*>(result.release()));
+	polymorphic_id_t polymorphic_id;
+	ar.nvp("polymorphic_id", polymorphic_id);
+
+	if (polymorphic_id == 0) {
+		// Zero polymorphic_id means this pointer does not need to be cast with our polymorphic machinery
+		// as the current T (static type) matched the variable real (dynamic) type
+
+		if constexpr (std::is_abstract_v<T> || !traits::is_default_constructible<T>) {
+			// This case is for when we can't actually construct the shared pointer. Normally this would be caught
+			// as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
+			// the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
+			// this was a polymorphic type serialized by its proper pointer type
+			throw vide::Exception("Cannot load a polymorphic type that is not default constructable");
+		} else {
+			// //! Serialize a unique_ptr if the 2nd msb in the polymorphic_id is set, and if we can actually construct the pointee
+			// /*! This check lets us try and skip doing polymorphic machinery if we can get away with
+			// 	using the derived class serialize function
+			// 	@internal */
+			// if (polymorphic_id & detail::msb2_32bit) {
+			// 	memory_detail::aux_load(ar, var);
+			// 	return;
+			// }
+			using NonConstT = std::remove_const_t<T>;
+			std::unique_ptr<NonConstT, D> ptr(::vide::access::construct<NonConstT>());
+			ar.nvp("data", *ptr);
+			var = std::move(ptr);
+		}
+	} else {
+		auto [serializer, new_] = ar.registerPolymorphicType(polymorphic_id);
+		if (new_) {
+			std::string polymorphic_name;
+			ar.nvp("polymorphic_name", polymorphic_name);
+			serializer = polymorphic_detail::getPolymorphicInputSerializer(ar, polymorphic_name);
+		}
+
+		const auto registerFn = [&var](void* realPtr, void* varPtr, const auto& varinfo) {
+			// registerFn takes ownership of the loaded pointer
+			(void) realPtr;
+			(void) varinfo;
+			var = std::unique_ptr<T, D>(static_cast<T*>(varPtr));
+		};
+		serializer.generic_ptr(&to_underlying_ar(ar), typeid(T), registerFn);
+	}
 }
 
-#undef UNREGISTERED_POLYMORPHIC_EXCEPTION
-
 } // namespace vide --------------------------------------------------------------------------------
+
+#undef UNREGISTERED_POLYMORPHIC_EXCEPTION

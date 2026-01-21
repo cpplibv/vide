@@ -39,21 +39,14 @@ struct Data : std::enable_shared_from_this<Data>
   int32_t x;
   int64_t y;
 
+  Data() : x(-1), y(-1) {}
   Data( int32_t xx, int64_t yy ) : x(xx), y(yy) {}
 
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( x, y );
-  }
-
-  template <class Archive>
-  static void load_and_construct( Archive & ar, vide::construct<Data> & construct )
-  {
-    int32_t xx;
-    int64_t yy;
-    ar( xx, yy );
-    construct( xx, yy );
+    ar(x);
+    ar(y);
   }
 
   bool operator==( Data const & other ) const

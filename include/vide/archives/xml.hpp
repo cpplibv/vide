@@ -607,7 +607,7 @@ public:
 			next = itsNodes.top().search(expectedName);
 
 			if (next == nullptr)
-				throw Exception("XML Parsing failed - provided NVP (" + std::string(expectedName) + ") not found");
+				throw Exception("XML Parsing failed - requested NVP (" + std::string(expectedName) + ") not found");
 		}
 
 		itsNodes.emplace(next);

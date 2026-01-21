@@ -1,68 +1,38 @@
-/*! \file polymorphic_impl.hpp
-    \brief Internal polymorphism support
-    \ingroup Internal */
-/*
-  Copyright (c) 2013-2022, Randolph Voorhies, Shane Grant
-  All rights reserved.
+//
 
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-      * Redistributions of source code must retain the above copyright
-        notice, this list of conditions and the following disclaimer.
-      * Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in the
-        documentation and/or other materials provided with the distribution.
-      * Neither the name of the copyright holder nor the
-        names of its contributors may be used to endorse or promote products
-        derived from this software without specific prior written permission.
+#pragma once
 
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+// This code is heavily inspired by the boost serialization implementation by the following authors
+// See /boost/serialization/export.hpp, /boost/archive/detail/register_archive.hpp,
+// and /boost/serialization/void_cast.hpp for their implementation. Additional details
+// found in other files split across serialization and archive.
 
-/* This code is heavily inspired by the boost serialization implementation by the following authors
-
-   (C) Copyright 2002 Robert Ramey - http://www.rrsd.com .
-   Use, modification and distribution is subject to the Boost Software
-   License, Version 1.0. (See http://www.boost.org/LICENSE_1_0.txt)
-
-    See http://www.boost.org for updates, documentation, and revision history.
-
-   (C) Copyright 2006 David Abrahams - http://www.boost.org.
-
-   See /boost/serialization/export.hpp, /boost/archive/detail/register_archive.hpp,
-   and /boost/serialization/void_cast.hpp for their implementation. Additional details
-   found in other files split across serialization and archive.
-*/
-#ifndef VIDE_DETAILS_POLYMORPHIC_IMPL_HPP_
-#define VIDE_DETAILS_POLYMORPHIC_IMPL_HPP_
-
+#include <vide/access.hpp>
+#include <vide/details/function_ref.hpp>
+#include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/polymorphic_impl_fwd.hpp>
 #include <vide/details/static_object.hpp>
+#include <vide/details/util.hpp>
 #include <vide/traits/underlying_archive.hpp>
 #include <vide/types/memory.hpp>
-#include <vide/types/std_string.hpp>
 
-#include <functional>
 #include <limits>
 #include <map>
+#include <memory>
 #include <stack>
+#include <type_traits>
 #include <typeindex>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 
 //! Helper macro to omit unused warning
 #if defined(__GNUC__)
-// GCC / clang don't want the function
+	// GCC / clang don't want the function
 	#define VIDE_BIND_TO_ARCHIVES_UNUSED_FUNCTION
 #else
-	#define VIDE_BIND_TO_ARCHIVES_UNUSED_FUNCTION static void unused() { (void)b; }
+	#define VIDE_BIND_TO_ARCHIVES_UNUSED_FUNCTION static void unused() { (void) b; }
 #endif
 
 //! Binds a polymorphic type to all registered archives
@@ -75,7 +45,7 @@
     namespace detail {                                                   \
     template<>                                                           \
     struct init_binding<__VA_ARGS__> {                                   \
-        static inline const bind_to_archives<__VA_ARGS__>& b=            \
+        static inline const bind_to_archives<__VA_ARGS__>& b =           \
         ::vide::detail::StaticObject<                                    \
             bind_to_archives<__VA_ARGS__>                                \
         >::getInstance().bind();                                         \
@@ -115,8 +85,8 @@ struct PolymorphicCaster {
 	virtual const void* downcast(const void* const ptr) const = 0;
 	//! Upcast to proper base type
 	virtual void* upcast(void* const ptr) const = 0;
-	//! Upcast to proper base type, shared_ptr version
-	virtual std::shared_ptr<void> upcast(std::shared_ptr<void> const& ptr) const = 0;
+	// //! Upcast to proper base type, shared_ptr version
+	// virtual std::shared_ptr<void> upcast(std::shared_ptr<void> const& ptr) const = 0;
 };
 
 //! Holds registered mappings between base and derived types for casting
@@ -124,7 +94,7 @@ struct PolymorphicCaster {
 	all registered mappings between base and derived types. */
 struct PolymorphicCasters {
 	//! Maps from a derived type index to a set of chainable casters
-	using DerivedCasterMap = std::unordered_map<std::type_index, std::vector<PolymorphicCaster const*>>;
+	using DerivedCasterMap = std::unordered_map<std::type_index, std::vector<const PolymorphicCaster*>>;
 	//! Maps from base type index to a map from derived type index to caster
 	std::unordered_map<std::type_index, DerivedCasterMap> map;
 
@@ -133,7 +103,7 @@ struct PolymorphicCasters {
 	//! Error message used for unregistered polymorphic casts
 #define UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(LoadSave)                                                                                                                \
         throw vide::Exception("Trying to " #LoadSave " a registered polymorphic type with an unregistered polymorphic cast.\n"                                               \
-                                "Could not find a path to a base class (" + util::demangle(baseInfo.name()) + ") for type: " + ::vide::util::demangledName<Derived>() + "\n" \
+                                "Could not find a path to a base class '" + util::demangle(baseInfo.name()) + "' for type: '" + ::vide::util::demangledName<Derived>() + "'\n" \
                                 "Make sure you either serialize the base class at some point via vide::base_class or vide::virtual_base_class.\n"                          \
                                 "Alternatively, manually register the association with VIDE_REGISTER_POLYMORPHIC_RELATION.");
 
@@ -192,7 +162,7 @@ struct PolymorphicCasters {
 		for (const auto* dmap : mapping)
 			dptr = dmap->downcast(dptr);
 
-		return static_cast<Derived const*>(dptr);
+		return static_cast<const Derived*>(dptr);
 	}
 
 	//! Performs an upcast to the registered base type using the given a derived type
@@ -213,21 +183,21 @@ struct PolymorphicCasters {
 		return uptr;
 	}
 
-	//! Upcasts for shared pointers
-	template <class Derived>
-	static inline std::shared_ptr<void> upcast(const std::shared_ptr<Derived>& dptr, const std::type_info& baseInfo) {
-		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) };
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdangling-reference"
-		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
-#pragma GCC diagnostic pop
-
-		std::shared_ptr<void> uptr = dptr;
-		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
-			uptr = (*mIter)->upcast(uptr);
-
-		return uptr;
-	}
+// 	//! Upcasts for shared pointers
+// 	template <class Derived>
+// 	static inline std::shared_ptr<void> upcast(const std::shared_ptr<Derived>& dptr, const std::type_info& baseInfo) {
+// 		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) };
+// #pragma GCC diagnostic push
+// #pragma GCC diagnostic ignored "-Wdangling-reference"
+// 		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
+// #pragma GCC diagnostic pop
+//
+// 		std::shared_ptr<void> uptr = dptr;
+// 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
+// 			uptr = (*mIter)->upcast(uptr);
+//
+// 		return uptr;
+// 	}
 
 #undef UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION
 };
@@ -268,8 +238,8 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 		{
 			// Checks whether there is a path from parent->child and returns a <dist, path> pair
 			// dist is set to MAX if the path does not exist
-			auto checkRelation = [](std::type_index const& parentInfo, std::type_index const& childInfo) ->
-					std::pair<size_t, std::vector<PolymorphicCaster const*> const&> {
+			auto checkRelation = [](const std::type_index& parentInfo, const std::type_index& childInfo) ->
+					std::pair<size_t, const std::vector<const PolymorphicCaster*>&> {
 				auto result = PolymorphicCasters::lookup_if_exists(parentInfo, childInfo);
 				if (result.first) {
 					const auto& path = result.second;
@@ -278,7 +248,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 					return {(std::numeric_limits<size_t>::max)(), {}};
 			};
 
-			std::stack<std::type_index> parentStack;      // Holds the parent nodes to be processed
+			std::stack<std::type_index> parentStack;              // Holds the parent nodes to be processed
 			std::vector<std::type_index> dirtySet;                // Marks child nodes that have been changed
 			std::unordered_set<std::type_index> processedParents; // Marks parent nodes that have been processed
 
@@ -374,18 +344,18 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 
 	//! Performs the proper downcast with the templated types
 	const void* downcast(const void* const ptr) const override {
-		return dynamic_cast<Derived const*>( static_cast<Base const*>( ptr ));
+		return dynamic_cast<const Derived*>(static_cast<Base const*>(ptr));
 	}
 
 	//! Performs the proper upcast with the templated types
 	void* upcast(void* const ptr) const override {
-		return dynamic_cast<Base*>( static_cast<Derived*>( ptr ));
+		return dynamic_cast<Base*>(static_cast<Derived*>(ptr));
 	}
 
-	//! Performs the proper upcast with the templated types (shared_ptr version)
-	std::shared_ptr<void> upcast(std::shared_ptr<void> const& ptr) const override {
-		return std::dynamic_pointer_cast<Base>(std::static_pointer_cast<Derived>(ptr));
-	}
+	// //! Performs the proper upcast with the templated types (shared_ptr version)
+	// std::shared_ptr<void> upcast(std::shared_ptr<void> const& ptr) const override {
+	// 	return std::dynamic_pointer_cast<Base>(std::static_pointer_cast<Derived>(ptr));
+	// }
 };
 
 //! Registers a polymorphic casting relation between a Base and Derived type
@@ -421,18 +391,23 @@ struct binding_name {};
 	properly cast the type to its real type in polymorphic scenarios for
 	shared_ptr, weak_ptr, and unique_ptr. */
 struct OutputBindingMap {
+
+	using DowncastFn = const void*(*)(const void*, const std::type_info&);
 	//! A serializer function
 	/*! Serializer functions return nothing and take an archive as
 		their first parameter (will be cast properly inside the function,
 		a pointer to actual data (contents of smart_ptr's get() function)
 		as their second parameter, and the type info of the owning smart_ptr
 		as their final parameter */
-	using Serializer = void(*)(void*, const void*, const std::type_info&);
+	// using Serializer = void(*)(void*, const void*, const std::type_info&);
+	using Serializer = void(*)(void*, const void*);
 
 	//! Struct containing the serializer functions for all pointer types
 	struct Serializers {
-		Serializer shared_ptr; //!< Serializer function for shared/weak pointers
-		Serializer unique_ptr; //!< Serializer function for unique pointers
+		DowncastFn downcast;
+		Serializer generic_ptr;
+		// Serializer shared_ptr; //!< Serializer function for shared/weak pointers
+		// Serializer unique_ptr; //!< Serializer function for unique pointers
 	};
 
 	//! A map of serializers for pointers of all registered types
@@ -455,24 +430,8 @@ template <class T> struct EmptyDeleter { void operator()(T*) const {}};
 	properly cast the type to its real type in polymorphic scenarios for
 	shared_ptr, weak_ptr, and unique_ptr. */
 struct InputBindingMap {
-	//! Shared ptr serializer function
-	/*! Serializer functions return nothing and take an archive as
-		their first parameter (will be cast properly inside the function,
-		a shared_ptr (or unique_ptr for the unique case) of any base
-		type, and the type id of said base type as the third parameter.
-		Internally it will properly be loaded and cast to the correct type. */
-	using SharedSerializer = void(*)(void*, std::shared_ptr<void>&, const std::type_info&);
-	//! Unique ptr serializer function
-	using UniqueSerializer = void(*)(void*, std::unique_ptr<void, EmptyDeleter<void>>&, const std::type_info&);
-
-	//! Struct containing the serializer functions for all pointer types
-	struct Serializers {
-		SharedSerializer shared_ptr; //!< Serializer function for shared/weak pointers
-		UniqueSerializer unique_ptr; //!< Serializer function for unique pointers
-	};
-
 	//! A map of serializers for pointers of all registered types
-	using Serializers_map = std::map<std::string, Serializers>;
+	using Serializers_map = std::map<std::string, polymorphic_detail::InputSerializers>;
 	//! A map of archive typeid -> map of serializers for given archive
 	using Archives_map = std::map<std::type_index, Serializers_map>;
 	Archives_map archives_map;
@@ -513,22 +472,23 @@ struct InputBindingCreator {
 		if (lb != map.end() && lb->first == key)
 			return;
 
-		InputBindingMap::Serializers serializers;
+		polymorphic_detail::InputSerializers serializers;
 
-		serializers.shared_ptr =
-				+[](void* arptr, std::shared_ptr<void>& dptr, const std::type_info& baseInfo) {
-					Archive& ar = *static_cast<Archive*>(arptr);
-					std::shared_ptr<T> ptr;
-					memory_detail::aux_load(ar, ptr);
-					dptr = PolymorphicCasters::template upcast<T>(ptr, baseInfo);
+		serializers.upcast =
+				+[](void* varptr, const std::type_info& baseInfo) -> void* {
+					return PolymorphicCasters::upcast<T>(static_cast<T*>(varptr), baseInfo);
 				};
-
-		serializers.unique_ptr =
-				+[](void* arptr, std::unique_ptr<void, EmptyDeleter<void>> & dptr, std::type_info const &baseInfo) {
+		serializers.generic_ptr =
+				+[](void* arptr, const std::type_info& baseInfo, function_ref<void(void*, void*, const std::type_index&)> registerFn) {
 					Archive& ar = *static_cast<Archive*>(arptr);
-					std::unique_ptr<T> ptr;
-					memory_detail::aux_load(ar, ptr);
-					dptr.reset(PolymorphicCasters::template upcast<T>(ptr.release(), baseInfo));
+					using NonConstT = std::remove_const_t<T>;
+					// Place the heap allocated object into a unique_ptr for the duration of the deserialization
+					auto ptrGuard = std::unique_ptr<NonConstT>(access::construct<NonConstT>());
+					auto* ptr = ptrGuard.get();
+					registerFn(ptr, PolymorphicCasters::upcast<T>(ptr, baseInfo), typeid(T));
+					ptrGuard.release(); // Once registerFn completes the pointer has a new owner, release it here
+
+					ar.nvp("data", *ptr);
 				};
 
 		map.insert(lb, {std::move(key), std::move(serializers)});
@@ -546,42 +506,42 @@ struct OutputBindingCreator {
 	static void writeMetadata(Archive& ar) {
 		// Register the polymorphic type name with the archive, and get the id
 		const char* name = binding_name<T>::name();
-		std::uint32_t id = ar.registerPolymorphicType(name);
+		const auto [polymorphic_id, new_] = ar.registerPolymorphicType(name);
 
 		// Serialize the id
-		ar(VIDE_NVP_("polymorphic_id", id));
+		ar.nvp("polymorphic_id", polymorphic_id);
 
-		// If the msb of the id is 1, then the type name is new, and we should serialize it
-		if (id & detail::msb_32bit) {
-			std::string namestring(name);
-			ar(VIDE_NVP_("polymorphic_name", namestring));
+		if (new_) {
+			// The type name is new, and we should serialize it
+			std::string polymorphic_name(name);
+			ar.nvp("polymorphic_name", polymorphic_name);
 		}
 	}
 
-	//! Holds a properly typed shared_ptr to the polymorphic type
-	class PolymorphicSharedPointerWrapper {
-	public:
-		/*! Wrap a raw polymorphic pointer in a shared_ptr to its true type
-
-			The wrapped pointer will not be responsible for ownership of the held pointer
-			so it will not attempt to destroy it; instead the refcount of the wrapped
-			pointer will be tied to a fake 'ownership pointer' that will do nothing
-			when it ultimately goes out of scope.
-
-			The main reason for doing this, other than not to destroy the true object
-			with our wrapper pointer, is to avoid meddling with the internal reference
-			count in a polymorphic type that inherits from std::enable_shared_from_this.
-
-			@param dptr A void pointer to the contents of the shared_ptr to serialize */
-		explicit PolymorphicSharedPointerWrapper(const T* dptr) : refCount(), wrappedPtr(refCount, dptr) {}
-
-		//! Get the wrapped shared_ptr */
-		inline const std::shared_ptr<const T>& operator()() const { return wrappedPtr; }
-
-	private:
-		std::shared_ptr<void> refCount;      //!< The ownership pointer
-		std::shared_ptr<const T> wrappedPtr; //!< The wrapped pointer
-	};
+// 	//! Holds a properly typed shared_ptr to the polymorphic type
+// 	class PolymorphicSharedPointerWrapper {
+// 	public:
+// 		/*! Wrap a raw polymorphic pointer in a shared_ptr to its true type
+//
+// 			The wrapped pointer will not be responsible for ownership of the held pointer
+// 			so it will not attempt to destroy it; instead the refcount of the wrapped
+// 			pointer will be tied to a fake 'ownership pointer' that will do nothing
+// 			when it ultimately goes out of scope.
+//
+// 			The main reason for doing this, other than not to destroy the true object
+// 			with our wrapper pointer, is to avoid meddling with the internal reference
+// 			count in a polymorphic type that inherits from std::enable_shared_from_this.
+//
+// 			@param dptr A void pointer to the contents of the shared_ptr to serialize */
+// 		explicit PolymorphicSharedPointerWrapper(const T* dptr) : refCount(), wrappedPtr(refCount, dptr) {}
+//
+// 		//! Get the wrapped shared_ptr */
+// 		inline const std::shared_ptr<const T>& operator()() const { return wrappedPtr; }
+//
+// 	private:
+// 		std::shared_ptr<void> refCount;      //!< The ownership pointer
+// 		std::shared_ptr<const T> wrappedPtr; //!< The wrapped pointer
+// 	};
 
 	//! Initialize the binding
 	OutputBindingCreator() {
@@ -594,24 +554,35 @@ struct OutputBindingCreator {
 
 		OutputBindingMap::Serializers serializers;
 
-		serializers.shared_ptr =
-				+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
+		serializers.downcast =
+				+[](const void* varptr, const std::type_info& baseInfo) -> const void* {
+					return PolymorphicCasters::downcast<T>(varptr, baseInfo);
+				};
+		serializers.generic_ptr =
+				+[](void* arptr, const void* downCastedVar) {
 					Archive& ar = *static_cast<Archive*>(arptr);
 					writeMetadata(ar);
-
-					auto ptr = PolymorphicCasters::template downcast<T>(dptr, baseInfo);
-					PolymorphicSharedPointerWrapper psptr(ptr);
-					memory_detail::aux_save(ar, psptr());
+					ar.nvp("data", *static_cast<const T*>(downCastedVar));
 				};
 
-		serializers.unique_ptr =
-				+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
-					Archive& ar = *static_cast<Archive*>(arptr);
-					writeMetadata(ar);
-
-					const std::unique_ptr<const T, EmptyDeleter<const T>> ptr(PolymorphicCasters::template downcast<T>(dptr, baseInfo));
-					memory_detail::aux_save(ar, ptr);
-				};
+		// serializers.shared_ptr =
+		// 		+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
+		// 			Archive& ar = *static_cast<Archive*>(arptr);
+		// 			writeMetadata(ar);
+		//
+		// 			auto ptr = PolymorphicCasters::downcast<T>(dptr, baseInfo);
+		// 			PolymorphicSharedPointerWrapper psptr(ptr);
+		// 			memory_detail::aux_save(ar, psptr());
+		// 		};
+		//
+		// serializers.unique_ptr =
+		// 		+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
+		// 			Archive& ar = *static_cast<Archive*>(arptr);
+		// 			writeMetadata(ar);
+		//
+		// 			const std::unique_ptr<const T, EmptyDeleter<const T>> ptr(PolymorphicCasters::downcast<T>(dptr, baseInfo));
+		// 			memory_detail::aux_save(ar, ptr);
+		// 		};
 
 		map.insert({std::move(key), std::move(serializers)});
 	}
@@ -731,7 +702,6 @@ struct init_binding;
 	See the documentation for the other functions to try and understand this */
 template <class T, typename BindingTag>
 void instantiate_polymorphic_binding(T*, int, BindingTag, adl_tag) {}
+
 } // namespace detail
 } // namespace vide
-
-#endif // VIDE_DETAILS_POLYMORPHIC_IMPL_HPP_

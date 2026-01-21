@@ -69,8 +69,15 @@
 
     If you choose to modify this type, ensure that you use a fixed
     size type (e.g. uint32_t). */
-#define VIDE_SIZE_TYPE uint32_t
+#define VIDE_SIZE_TYPE std::uint32_t
 #endif // VIDE_SIZE_TYPE
+
+#ifndef VIDE_POLYMORPHIC_ID_TYPE
+/// Determines the data type used for polymorphic_id
+///		If you choose to modify this type, ensure that you use a fixed
+///		size type (e.g. uint16_t)
+#define VIDE_POLYMORPHIC_ID_TYPE std::uint16_t
+#endif // VIDE_POLYMORPHIC_ID_TYPE
 
 #ifndef VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER
 /// Multiplier for the input data size which determines the memory budget that can be used to reserve containers.

@@ -275,21 +275,6 @@ public:
 	}
 };
 
-//namespace vide
-//{
-//  template <>
-//  struct LoadAndConstruct<NoDefaultCtor>
-//  {
-//    template <class Archive>
-//    static void load_and_construct( Archive & ar, vide::construct<NoDefaultCtor> & construct )
-//    {
-//      int y;
-//      ar( y );
-//      construct( y );
-//    }
-//  };
-//}
-
 struct unordered_naming {
 	int x;
 	int y;

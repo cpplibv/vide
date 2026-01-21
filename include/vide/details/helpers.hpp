@@ -33,21 +33,21 @@
 #include <type_traits>
 #include <cstdint>
 #include <utility>
-#include <memory>
 #include <unordered_map>
-#include <stdexcept>
 
-#include <vide/details/static_object.hpp>
+// #include <vide/details/static_object.hpp>
 #include <vide/details/validation.hpp>
-#include <vide/macros.hpp>
-#include <vide/map_item.hpp>
+// #include <vide/macros.hpp>
+// #include <vide/map_item.hpp>
 
 
 namespace vide {
 
 namespace detail {
+
 struct DeferredDataCore {}; //!< Traits struct for DeferredData
-}
+
+} // namespace detail
 
 // ######################################################################
 //! A wrapper around data that should be serialized after all non-deferred data
@@ -56,7 +56,7 @@ struct DeferredDataCore {}; //!< Traits struct for DeferredData
 
 	@internal */
 template <class T>
-class DeferredData : detail::DeferredDataCore {
+class DeferredData : public detail::DeferredDataCore {
 private:
 	// If we get passed an array, keep the type as is, otherwise store
 	// a reference if we were passed an l value reference, else copy the value
@@ -67,8 +67,7 @@ private:
 					typename std::decay<T>::type>::type>::type;
 
 	// prevent nested nvps
-	static_assert(!std::is_base_of<detail::DeferredDataCore, T>::value,
-			"Cannot defer DeferredData");
+	static_assert(!std::is_base_of<detail::DeferredDataCore, T>::value, "Cannot defer DeferredData");
 
 	DeferredData& operator=(DeferredData const&) = delete;
 
@@ -88,6 +87,7 @@ public:
 // ######################################################################
 
 namespace detail {
+
 // base classes for type checking
 /* The rtti virtual function only exists to enable an archive to
    be used in a polymorphic fashion, if necessary.  See the
@@ -139,9 +139,7 @@ public:
 // forward decls for polymorphic support
 template <class Archive, class T> struct polymorphic_serialization_support;
 struct adl_tag;
-}
 
-namespace detail {
 //! Tag for Version, which due to its anonymous namespace, becomes a different
 //! type in each translation unit
 /*! This allows VIDE_CLASS_VERSION to be safely called in a header file */
@@ -166,6 +164,7 @@ struct Versions {
 		return result.first->second;
 	}
 }; // struct Versions
+
 } // namespace detail
 } // namespace vide
 

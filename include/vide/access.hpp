@@ -357,7 +357,7 @@ struct access {
 	// Used for non-placement new with a default constructor
 	template <class T>
 			requires requires { T(); }
-	static constexpr inline T* construct() {
+	[[nodiscard]] static constexpr inline T* construct() {
 		return new T();
 	}
 };

@@ -130,16 +130,16 @@ public:
 		return ar.registerSharedPointer(ptr);
 	}
 
+	[[nodiscard]] inline auto registerPolymorphicType(std::uint32_t polymorphic_id) requires is_input {
+		return ar.registerPolymorphicType(polymorphic_id);
+	}
+
+	[[nodiscard]] inline auto registerPolymorphicType(const char* name) requires is_output {
+		return ar.registerPolymorphicType(name);
+	}
+
 	inline void serializeDeferments() {
 		ar.serializeDeferments();
-	}
-
-	inline void registerPolymorphicName(const std::uint32_t id, const std::string& name) {
-		ar.registerPolymorphicName(id, name);
-	}
-
-	[[nodiscard]] inline std::string getPolymorphicName(const std::uint32_t id) {
-		return ar.getPolymorphicName(id);
 	}
 
 	[[nodiscard]] inline underlying_archive& underlying() noexcept {

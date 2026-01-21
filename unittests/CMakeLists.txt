@@ -49,6 +49,13 @@ foreach (TEST_SOURCE ${TESTS})
         target_link_libraries(${TEST_TARGET} ${VIDE_THREAD_LIBS})
         add_test(NAME "${TEST_TARGET}" COMMAND "${TEST_TARGET}")
 
+		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+			# Large serialization unit tests (like polymorphic) generate an extreme number of COFF sections
+			# due to high test class count with debug info enabled. GNU as defaults to 16-bit section indices
+			# and fails with "too many sections". --mbig-obj enables extended indices
+			target_compile_options(${TEST_TARGET} PRIVATE -Wa,--mbig-obj)
+		endif()
+
         # If we are on a 64-bit machine, create an extra 32-bit version of the test if portability testing is enabled
         if ((NOT MSVC) AND (${CMAKE_SIZEOF_VOID_P} EQUAL 8) AND (NOT SKIP_PORTABILITY_TEST))
             add_executable(${TEST_TARGET}_32 ${TEST_SOURCE})

@@ -18,10 +18,6 @@ using no = std::false_type;
 
 namespace detail {
 
-//! Used to delay a static_assert until template instantiation
-template <class T>
-struct delay_static_assert : std::false_type {};
-
 // SFINAE Helpers
 
 //! Return type for SFINAE Enablers

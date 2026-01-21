@@ -3,7 +3,7 @@
 #include <type_traits>
 #include <utility>
 
-#include <vide/size_type.hpp> // Convenience include as size_type is always used with SizeTag
+#include <vide/details/vide_types.hpp>
 
 
 namespace vide {

@@ -31,10 +31,11 @@
 #include <vide/access.hpp>
 #include <vide/binary_data.hpp>
 #include <vide/binary_serializable_type.hpp>
-#include <vide/details/bits.hpp>
 #include <vide/details/helpers.hpp>
-#include <vide/details/traits.hpp>
+#include <vide/details/polymorphic_helper.hpp>
+#include <vide/details/static_object.hpp>
 #include <vide/details/value_if_nvp.hpp>
+#include <vide/details/vide_types.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
 #include <vide/nvp.hpp>
@@ -44,7 +45,7 @@
 #include <vide/types/enum.hpp>
 #include <vide/unserializable_type_tag.hpp>
 
-#include <iostream>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -54,6 +55,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <vide/types/polymorphic.hpp>
 
 
 namespace vide {
@@ -296,18 +298,18 @@ private:
 	//! A set of all base classes that have been serialized
 	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> itsBaseClassSet;
 
-	//! Maps from addresses to pointer ids
-	std::unordered_map<const void*, std::uint32_t> itsSharedPointerMap;
+	//! Maps from addresses to pointer ref ids
+	std::unordered_map<const void*, std::uint32_t> storedSmartPointerMap;
 
-	//! Copy of shared pointers used in #itsSharedPointerMap to make sure they are kept alive
-	//  during lifetime of itsSharedPointerMap to prevent CVE-2020-11105.
+	//! Copy of shared pointers used in #storedSmartPointerMap to make sure they are kept alive
+	//  during lifetime of storedSmartPointerMap to prevent CVE-2020-11105.
 	std::vector<std::shared_ptr<const void>> itsSharedPointerStorage;
 
 	//! Maps from polymorphic type name strings to ids
-	std::unordered_map<const char*, std::uint32_t> itsPolymorphicTypeMap;
+	std::unordered_map<const char*, polymorphic_id_t> itsPolymorphicTypeMap;
 
 	//! The id to be given to the next polymorphic type name
-	std::uint32_t itsCurrentPolymorphicTypeId = 1;
+	polymorphic_id_t itsCurrentPolymorphicTypeId = 1;
 
 	//! Keeps track of classes that have versioning information associated with them
 	std::unordered_set<std::uint64_t> itsVersionedTypes;
@@ -353,6 +355,16 @@ public:
 			return (*this)(::vide::make_nvp(name, std::forward<T>(var)), validators...);
 	}
 
+	template <typename Base, typename Derived>
+	inline ArchiveType& base_class(const Derived* derivedThis) {
+		return (*this)(::vide::base_class<Base>(derivedThis));
+	}
+
+	template <typename Base, typename Derived>
+	inline ArchiveType& virtual_base_class(const Derived* derivedThis) {
+		return (*this)(::vide::virtual_base_class<Base>(derivedThis));
+	}
+
 	template <typename T, typename... Validators>
 	inline ArchiveType& ignore(const Validators&...) {
 		// During output ignore does nothing
@@ -384,18 +396,11 @@ public:
 	// }
 
 public:
-	//! Serializes any data marked for deferment using defer
-	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
-	void serializeDeferments() {
-		// To allow recursive deferments we iterate by indexes instead of iterators
-		for (std::size_t i = 0; i < itsDeferments.size(); i++)
-			itsDeferments[i]();
-	}
-
 	struct RegisterSharedPointerResult {
 		std::uint32_t ref = 0;
 		bool new_ = false;
 	};
+
 	/// Registers a shared pointer with the archive
 	/// This function is used to track shared pointer targets to properly reconstruct their relations
 	/// @internal
@@ -404,37 +409,49 @@ public:
 	/// 		as long as the address is used as id. This is needed to prevent CVE-2020-11105.
 	/// @return A key that uniquely identifies the pointer */
 	RegisterSharedPointerResult registerSharedPointer(const std::shared_ptr<const void>& ptr) {
+		assert(ptr != nullptr);
 		const void* addr = ptr.get();
-		if (addr == nullptr)
-			return {0, false}; // Handle null pointers by referencing zero
 
 		itsSharedPointerStorage.push_back(ptr);
 
-		auto it = itsSharedPointerMap.find(addr);
-		if (it != itsSharedPointerMap.end())
+		auto it = storedSmartPointerMap.find(addr);
+		if (it != storedSmartPointerMap.end())
 			return {it->second, false};
 
-		auto ptrId = static_cast<std::uint32_t>(itsSharedPointerMap.size() + 1);
-		itsSharedPointerMap.insert({addr, ptrId});
-		return {ptrId, true};
+		auto ptrId = static_cast<std::uint32_t>(storedSmartPointerMap.size() + 1);
+		auto r = storedSmartPointerMap.emplace(addr, ptrId);
+		return {r.first->second, r.second};
 	}
 
-	//! Registers a polymorphic type name with the archive
-	/*! This function is used to track polymorphic types to prevent
-		unnecessary saves of identifying strings used by the polymorphic
-		support functionality.
+	struct RegisterPolymorphicTypeResult {
+		polymorphic_id_t polymorphic_id = 0;
+		bool new_ = false;
+	};
 
-		@internal
-		@param name The name to associate with a polymorphic type
-		@return A key that uniquely identifies the polymorphic type name */
-	inline std::uint32_t registerPolymorphicType(const char* name) {
+	/// Registers a polymorphic type name with the archive
+	/// This function is used to track polymorphic types to prevent
+	/// unnecessary saves of identifying strings used by the polymorphic
+	/// support functionality.
+	/// @internal
+	///
+	/// @param name The name to associate with a polymorphic type
+	/// @return A key that uniquely identifies the polymorphic type name
+	RegisterPolymorphicTypeResult registerPolymorphicType(const char* name) {
 		auto id = itsPolymorphicTypeMap.find(name);
-		if (id == itsPolymorphicTypeMap.end()) {
-			auto polyId = itsCurrentPolymorphicTypeId++;
-			itsPolymorphicTypeMap.insert({name, polyId});
-			return polyId | detail::msb_32bit; // mask MSB to be 1
-		} else
-			return id->second;
+		if (id != itsPolymorphicTypeMap.end())
+			return {id->second, false};
+
+		const auto polymorphic_id = itsCurrentPolymorphicTypeId++;
+		itsPolymorphicTypeMap.insert({name, polymorphic_id});
+		return {polymorphic_id, true};
+	}
+
+	//! Serializes any data marked for deferment using defer
+	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
+	void serializeDeferments() {
+		// To allow recursive deferments we iterate by indexes instead of iterators
+		for (std::size_t i = 0; i < itsDeferments.size(); i++)
+			itsDeferments[i]();
 	}
 
 	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
@@ -478,7 +495,7 @@ public:
 protected:
 	void reset() {
 		itsBaseClassSet.clear();
-		itsSharedPointerMap.clear();
+		storedSmartPointerMap.clear();
 		itsSharedPointerStorage.clear();
 		itsPolymorphicTypeMap.clear();
 		itsCurrentPolymorphicTypeId = 1;
@@ -504,14 +521,17 @@ private:
 	}
 
 	template <class As, class T>
-	inline void processImpl(As& as, const base_class<T>& b) {
+	inline void processImpl(As& as, const vide::base_class<T>& b) {
 		self().processImpl(as, *b.base_ptr);
 	}
 
 	template <class As, class T>
-	inline void processImpl(As& as, const virtual_base_class<T>& b) {
+	inline void processImpl(As& as, const vide::virtual_base_class<T>& b) {
 		detail::base_class_id id(b.base_ptr);
 		if (itsBaseClassSet.emplace(id).second)
+			// TODO P5: This way of abort serialization of virtual_base_class
+			//			leaves an empty node in text archives
+			//			This would require an operator() level interceptor as it has to happen before process_as
 			self().processImpl(as, *b.base_ptr);
 	}
 
@@ -671,11 +691,17 @@ private:
 	//! A set of all base classes that have been serialized
 	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> itsBaseClassSet;
 
+	struct StoredPointer {
+		std::shared_ptr<void> ptr = nullptr;
+		polymorphic_detail::InputSerializers::UpcastFn upcast = nullptr;
+		std::optional<std::type_index> info;
+	};
 	//! Maps from pointer ids to metadata
-	std::unordered_map<std::uint32_t, std::shared_ptr<void>> itsSharedPointerMap;
+	/// StoredPointer are used by address, it requires unordered_map's address stability
+	std::unordered_map<std::uint32_t, StoredPointer> storedSmartPointerMap;
 
-	//! Maps from name ids to names
-	std::unordered_map<std::uint32_t, std::string> itsPolymorphicTypeMap;
+	/// Maps from polymorphic_id to serializers
+	std::unordered_map<polymorphic_id_t, polymorphic_detail::InputSerializers> itsPolymorphicTypeMap;
 
 	//! Maps from type hash codes to version numbers
 	std::unordered_map<std::uint64_t, std::uint32_t> itsVersionedTypes;
@@ -724,6 +750,16 @@ public:
 			return (*this)(std::forward<T>(var), validators...);
 		else
 			return (*this)(::vide::make_nvp(name, std::forward<T>(var)), validators...);
+	}
+
+	template <typename Base, typename Derived>
+	inline ArchiveType& base_class(const Derived* derivedThis) {
+		return (*this)(::vide::base_class<Base>(derivedThis));
+	}
+
+	template <typename Base, typename Derived>
+	inline ArchiveType& virtual_base_class(const Derived* derivedThis) {
+		return (*this)(::vide::virtual_base_class<Base>(derivedThis));
 	}
 
 	template <typename T, typename... Validators>
@@ -784,16 +820,8 @@ public:
 	}
 
 public:
-	//! Serializes any data marked for deferment using defer
-	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
-	void serializeDeferments() {
-		// To allow recursive deferments we iterate by indexes instead of iterators
-		for (std::size_t i = 0; i < itsDeferments.size(); i++)
-			itsDeferments[i]();
-	}
-
 	struct RegisterSharedPointerResult {
-		std::shared_ptr<void>* ptr;
+		StoredPointer& stored;
 		bool new_ = false;
 	};
 
@@ -804,38 +832,33 @@ public:
 	/// @return A shared pointer to the data
 	/// @throw Exception if the id does not exist
 	RegisterSharedPointerResult registerSharedPointer(const std::uint32_t ref) {
-		if (ref == 0)
-			return {nullptr, false};
-
-		auto r = itsSharedPointerMap.emplace(ref, nullptr);
-		return {&r.first->second, r.second};
+		assert(ref != 0);
+		auto r = storedSmartPointerMap.emplace(ref, StoredPointer{});
+		return {r.first->second, r.second};
 	}
 
-	//! Retrieves the string for a polymorphic type given a unique key for it
-	/*! This is used to retrieve a string previously registered during
-		a polymorphic load.
+	struct RegisterPolymorphicTypeResult {
+		polymorphic_detail::InputSerializers& serializer;
+		bool new_ = false;
+	};
 
-		@internal
-		@param id The unique id that was serialized for the polymorphic type
-		@return The string identifier for the type */
-	inline std::string getPolymorphicName(const std::uint32_t id) {
-		auto name = itsPolymorphicTypeMap.find(id);
-		if (name == itsPolymorphicTypeMap.end()) {
-			throw Exception("Error while trying to deserialize a polymorphic pointer. Could not find type id " + std::to_string(id));
-		}
-		return name->second;
+	///	Retrieves the polymorphic type's entry given a unique key for it
+	///	@internal
+	///	@param id The unique id that was serialized for the polymorphic type
+	///	@return A result struct that contains the serializer reference for the polymorphic type and weather it is the
+	///			first time encountering this type. If it is the first encounter the caller is responsible to initalize
+	///			the returned serializer.
+	RegisterPolymorphicTypeResult registerPolymorphicType(polymorphic_id_t polymorphic_id) {
+		auto r = itsPolymorphicTypeMap.emplace(polymorphic_id, polymorphic_detail::InputSerializers{nullptr, nullptr});
+		return {r.first->second, r.second};
 	}
 
-	//! Registers a polymorphic name string to its unique identifier
-	/*! After a polymorphic type has been loaded for the first time, it should
-		be registered with its loaded id for future references to it.
-
-		@internal
-		@param id The unique identifier for the polymorphic type
-		@param name The name associated with the type */
-	inline void registerPolymorphicName(const std::uint32_t id, const std::string& name) {
-		const std::uint32_t stripped_id = id & ~detail::msb_32bit;
-		itsPolymorphicTypeMap.insert({stripped_id, name});
+	//! Serializes any data marked for deferment using defer
+	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
+	void serializeDeferments() {
+		// To allow recursive deferments we iterate by indexes instead of iterators
+		for (std::size_t i = 0; i < itsDeferments.size(); i++)
+			itsDeferments[i]();
 	}
 
 	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
@@ -881,11 +904,11 @@ public:
 protected:
 	void reset() {
 		itsBaseClassSet.clear();
-		itsSharedPointerMap.clear();
+		storedSmartPointerMap.clear();
 		itsPolymorphicTypeMap.clear();
 		itsVersionedTypes.clear();
 		itsDeferments.clear();
-		reserveMemoryBudget = 64 * 1024;
+		reserveMemoryBudget = 64z * 1024;
 	}
 
 public:
@@ -906,12 +929,12 @@ private:
 	}
 
 	template <class As, class T>
-	inline void processImpl(As& as, base_class<T>& b) {
+	inline void processImpl(As& as, vide::base_class<T>& b) {
 		self().processImpl(as, *b.base_ptr);
 	}
 
 	template <class As, class T>
-	inline void processImpl(As& as, virtual_base_class<T>& b) {
+	inline void processImpl(As& as, vide::virtual_base_class<T>& b) {
 		detail::base_class_id id(b.base_ptr);
 		if (itsBaseClassSet.emplace(id).second)
 			self().processImpl(as, *b.base_ptr);

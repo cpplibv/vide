@@ -11,15 +11,8 @@
 
 
 
-
-
-patch note:
-	dependent name for base_class stuff
-	VIDE_POLYMORPHIC_ID_TYPE
-		Determines the data type used for polymorphic_id
-		uint16_t as polymorphic_id
-	type mismatch detection on shared_ptr loading
-
+split poly test file into 3-4
+move tester into a separate file
 
 
 -------------------------------------------------------------------------------------------------
@@ -217,9 +210,6 @@ vide: archive.enable_trace(): detailed exception (try-catch and append debug inf
 
 vide: visiting_archive
 vide: force inlines
-
-Files that should remove the vide/vide.hpp include:
-    types/polymorphic.hpp
 
 Better document:
 	validate_read_size

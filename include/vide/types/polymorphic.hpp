@@ -303,7 +303,6 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 	if (stored.info == tinfo) {
 		var = std::static_pointer_cast<T>(stored.ptr);
 	} else {
-		// !!! during incorrect type load proper exception is expected
 		var = std::shared_ptr<T>(stored.ptr, static_cast<T*>(stored.upcast(stored.ptr.get(), typeid(T)))); // Aliasing constructor
 	}
 }

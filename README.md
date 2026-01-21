@@ -3,11 +3,11 @@
 Originally based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 Compared to the original project the most notable changes are:
-  - Fixed numerous security vulnerability
+  - Fix security vulnerabilities
   - New features and utilities: ProxyArchives, Validations
-  - Improved API flexibility and composability
-  - Significantly improved compile time
-  - Modernized and simplified the codebase
+  - Improve API flexibility and composability
+  - Significantly improve compile time
+  - Modernize and simplify the codebase
 
 Compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
 As development is treated as experimental neither forward, nor backward compatibility is guaranteed (but the library
@@ -16,7 +16,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
 
 ### Changes / Differences to Cereal:
 - Change name to `vide` to indicate the incompatibility with upstream
-  - `vide` comes from latin word serial
+  - `vide` comes from the latin word serial
   - Name change was necessary due to incompatibilities
 - Remove some legacy compiler support
 - Bump required versions to C++23, GCC 11.2, CMake 3.20
@@ -60,25 +60,25 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Breaking change: Serialized data format changed breaking compatibility with data generated before this version
   - Sync with upstream 2024.05.02 d1fcec807
   - Security: Fix vulnerability where invalid data could allocate unbounded amount of memory during deserialization
-    - Add archive.safe_to_reserve<T>() to check and clamp the amount of memory reserved
-    - Add archive.validate_read_size<T>() to check if the archive has enough data for binary deserialization
-  	- Add archive.maximumBinaryReadSize() to report how much data could be extracted during binary deserialization
+    - Add `ar.safe_to_reserve<T>()` to check and clamp the amount of memory reserved
+    - Add `ar.validate_read_size<T>()` to check if the archive has enough data for binary deserialization
+  	- Add `ar.maximumBinaryReadSize()` to report how much data could be extracted during binary deserialization
   - Refactor and modernize type traits
-  - Add archive.size_tag() as a dependent name for vide::make_size_tag
-  - Add Archive::is_binary_archive
-  - Add Archive::size_type as a dependent name for vide::size_type
-  - Add Archive::supports_binary<T> to test if the archive can binary serialize T
-  - Remove Archive::could_serialize<T>
+  - Add `ar.size_tag()` as a dependent name for vide::make_size_tag
+  - Add `Archive::is_binary`_archive
+  - Add `Archive::size_type` as a dependent name for vide::size_type
+  - Add `Archive::supports_binary<T>` to test if the archive can binary serialize T
+  - Remove `Archive::could_serialize<T>`
   - Improve compile time performance
   - Improve and modernize meta programming practices and techniques
-  - Improve archive.nvp() to respect IgnoreNVP flag
+  - Improve `ar.nvp()` to respect IgnoreNVP flag
   - Cleanup compiler warnings
 - Version 2.4.0:
   - Security: Fix vulnerability where binary bool would allow loading non 0 or 1 as value which could result in UB
   - Add support for static member serialize_class_version-ing which is serialized regardless if it is used in serializers or not
-  - Add VIDE_CLASS_VERSION_TAG_NAME as a customization macro for vide_class_version
+  - Add `VIDE_CLASS_VERSION_TAG_NAME` as a customization macro for vide_class_version
   - Improve CMAKE_BUILD_TYPE to be case-insensitive
-  - Rename VIDE_XML_STRING_VALUE to VIDE_XML_ROOT_TAG_NAME
+  - Rename `VIDE_XML_STRING_VALUE` to `VIDE_XML_ROOT_TAG_NAME`
   - Move out exception.hpp header from details
   - Remove compatibility operator>>, operator<< and operator&
 - Version 2.5.0:
@@ -95,9 +95,9 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Defining a free function `serialize_enum_max_value(EnumType) : Underlying` reachable by ADL returning with the max value. Valid values: \[0..max_value].
     - Defining a free function `serialize_enum_verify(EnumType) : bool` reachable by ADL returning the value's validity. Valid values will those which return true.
     - As soon as C++ reflection are implemented additional (better) definition ways will be added
-  - Add VIDE_STRICT_ENUM_VALUE_SET macro to specify whether vide should enforce enum value set specification. Should be defined to 0 or 1. Defaults to (0) disabled.
+  - Add `VIDE_STRICT_ENUM_VALUE_SET` macro to specify whether vide should enforce enum value set specification. Should be defined to 0 or 1. Defaults to (0) disabled.
   - Add static_assert message for incomplete types
-  - Add `archive.ignore<T>()` and `archive.nvp_ignore<T>(name)` to load and discard a value from an input archive. Does nothing for output archives.
+  - Add `ar.ignore<T>()` and `ar.nvp_ignore<T>(name)` to load and discard a value from an input archive. Does nothing for output archives.
   Useful for ignoring variables from data serialized by old versions.
     ```c++
     template <class Archive> void serialize(Archive& ar, uint32_t version) {
@@ -107,7 +107,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
         }
     }
     ```
-  - Add `archive.load<T>() : T` and `archive.nvp_load<T>(name) : T` to direct load a value from an input archive. Does not exist for output archives.
+  - Add `ar.load<T>() : T` and `ar.nvp_load<T>(name) : T` to direct load a value from an input archive. Does not exist for output archives.
   Useful shorthand if the deserialized value is not directly assigned to a final object.
     ```c++
     template <class Archive> void serialize(Archive& ar, uint32_t version) {
@@ -125,12 +125,12 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     ar.nvp("pointer", pointer, ar.notnull);
     ar.nvp("vector", vector, ar.notempty, ar.maxsize(10));
   ```
-    - `archive.operator()`, `archive.nvp`, `archive.load`, `archive.nvp_load`, `archive.ignore`, `archive.nvp_ignore` now accepts
+    - `ar.operator()`, `ar.nvp`, `ar.load`, `ar.nvp_load`, `ar.ignore`, `ar.nvp_ignore` now accepts
     a variadic set of validation objects.
-    - `archive.verify(bool, string)` can be used to throw exception if the is enforcing validation.
-    - `vide::notnull` or `archive.notnull`: A `var` bool testing validation object.
-    - `vide::notempty` or `archive.notempty`: A `!var.empty()` testing validation object.
-    - `vide::maxsize(limit)` or `archive.maxsize(limit)`: A `var.size() <= limit` testing validation object.
+    - `ar.verify(bool, string)` can be used to throw exception if the is enforcing validation.
+    - `vide::notnull` or `ar.notnull`: A `var` bool testing validation object.
+    - `vide::notempty` or `ar.notempty`: A `!var.empty()` testing validation object.
+    - `vide::maxsize(limit)` or `ar.maxsize(limit)`: A `var.size() <= limit` testing validation object.
     - Proxy archives can opt-out of validation tests with declaring a `static constexpr bool enforce_validation = false;` member.
   - Sync with upstream 2025.01.20 a56bad8bb
   - Sync, review and merge most upstream PRs up until 2025.09.14 872
@@ -140,10 +140,19 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Merge https://github.com/USCiLab/cereal/pull/807
     - Merge https://github.com/USCiLab/cereal/pull/761
   - Update RapidJSON and RapidXML
-- Version 2.6.0:
-  - Overhaul test and types code structure. Most std type's serializer file not received std_ prefix.
+- Version 3.0.0:
+  - Breaking changes in the serialized archive data format
+  - Rework polymorphic serialization logic
+  - Security: Fix vulnerability where shared_ptrs could be manipulated to point to an incorrect type after loading.
+    Type mismatches are now detected for both polymorphic and non-polymorphic shared_ptrs.
+  - Overhaul test and types code structure. Most std type's serializer file now received std_ prefix.
+  - Move set and unordered_set serializer implementations into a separate file
+  - Extend validator support for NVPs
+  - Add element check for notnull when used with non-bool convertible ranges
+  - Add notnullrange validator (which can be used if the range is bool convertible)
+  - Add validation check for duplicate key loading for types with unique key constraints
   - Add `T& serialize_minimal()` customization point as an alternative shorthand for `load_minimal`/`save_minimal` syntax
-  ```c++
+    ```c++
     struct StructMemberSerializeMinimal {
       std::int32_t x;
 
@@ -152,20 +161,16 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
         return x;
       }
     };
-  ```
-  The new customization point is available as usual in global/member and versioned/non-versioned format.
-  - Add element check for notnull when used with non-bool convertible ranges
-  - Add notnullrange validator (which can be used if the range is bool convertible)
-  - Add validation check for duplicate key loading for types with unique key constraints
+    ```
+    The new customization point is available as usual in global/member and versioned/non-versioned format.
   - Add boost flat_set and flat_map serializers
-  - Extend validator support for NVPs
-  - Move set and unordered_set serializer implementations into a separate file
+  - Add dependent name accessors for: `ar.template base_class<Base>(this)` and `ar.template virtual_base_class<Base>(this)`
+  - Add `VIDE_POLYMORPHIC_ID_TYPE` macro that determines the data type used for polymorphic_id. Defaults to uint16_t.
 
 
 ### Planned:
 - TODO: Customization point for smart pointers
 - Foreach iteration/visitor algorithms
-- Further improved compile time performance (by organizing includes)
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments
 - Maybe: Versioned<->type selector
@@ -177,14 +182,10 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   ar(body_a);
   ar(index_body_a_loc, body_a_offset);
   ```
-- (Preliminary) Version 3.0.0:
-  - Major breaking change in the serialized archives (expected to be the last)
 
 ### Known Issues:
 - Polymorphic serialization of non-virtual independent and duplicate base subobjects when loaded with the
-duplicate type will correctly load but will incorrectly upcast/point to the first virtual occurrence or the
-first occurrence if it has no virtual occurrence of that type
-regardless which object was pointed to during saving.
+duplicate type will correctly load but will incorrectly upcast/point to the first occurrence regardless which object was pointed to during saving.
 
 -------------------------------------------------------------------------------------------------
 

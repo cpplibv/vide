@@ -11,8 +11,7 @@
 
 
 
-split poly test file into 3-4
-move tester into a separate file
+"the last breaking change" non serialization of a virtual base
 
 
 -------------------------------------------------------------------------------------------------

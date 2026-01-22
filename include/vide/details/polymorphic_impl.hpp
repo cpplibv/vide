@@ -2,7 +2,7 @@
 
 #pragma once
 
-// This code is heavily inspired by the boost serialization implementation by the following authors
+// This code is heavily inspired by the boost serialization implementation.
 // See /boost/serialization/export.hpp, /boost/archive/detail/register_archive.hpp,
 // and /boost/serialization/void_cast.hpp for their implementation. Additional details
 // found in other files split across serialization and archive.
@@ -14,7 +14,6 @@
 #include <vide/details/static_object.hpp>
 #include <vide/details/util.hpp>
 #include <vide/traits/underlying_archive.hpp>
-#include <vide/types/memory.hpp>
 
 #include <limits>
 #include <map>
@@ -182,22 +181,6 @@ struct PolymorphicCasters {
 
 		return uptr;
 	}
-
-// 	//! Upcasts for shared pointers
-// 	template <class Derived>
-// 	static inline std::shared_ptr<void> upcast(const std::shared_ptr<Derived>& dptr, const std::type_info& baseInfo) {
-// 		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) };
-// #pragma GCC diagnostic push
-// #pragma GCC diagnostic ignored "-Wdangling-reference"
-// 		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
-// #pragma GCC diagnostic pop
-//
-// 		std::shared_ptr<void> uptr = dptr;
-// 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
-// 			uptr = (*mIter)->upcast(uptr);
-//
-// 		return uptr;
-// 	}
 
 #undef UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION
 };
@@ -518,31 +501,6 @@ struct OutputBindingCreator {
 		}
 	}
 
-// 	//! Holds a properly typed shared_ptr to the polymorphic type
-// 	class PolymorphicSharedPointerWrapper {
-// 	public:
-// 		/*! Wrap a raw polymorphic pointer in a shared_ptr to its true type
-//
-// 			The wrapped pointer will not be responsible for ownership of the held pointer
-// 			so it will not attempt to destroy it; instead the refcount of the wrapped
-// 			pointer will be tied to a fake 'ownership pointer' that will do nothing
-// 			when it ultimately goes out of scope.
-//
-// 			The main reason for doing this, other than not to destroy the true object
-// 			with our wrapper pointer, is to avoid meddling with the internal reference
-// 			count in a polymorphic type that inherits from std::enable_shared_from_this.
-//
-// 			@param dptr A void pointer to the contents of the shared_ptr to serialize */
-// 		explicit PolymorphicSharedPointerWrapper(const T* dptr) : refCount(), wrappedPtr(refCount, dptr) {}
-//
-// 		//! Get the wrapped shared_ptr */
-// 		inline const std::shared_ptr<const T>& operator()() const { return wrappedPtr; }
-//
-// 	private:
-// 		std::shared_ptr<void> refCount;      //!< The ownership pointer
-// 		std::shared_ptr<const T> wrappedPtr; //!< The wrapped pointer
-// 	};
-
 	//! Initialize the binding
 	OutputBindingCreator() {
 		auto& map = StaticObject<OutputBindingMap>::getInstance().map<Archive>();
@@ -564,25 +522,6 @@ struct OutputBindingCreator {
 					writeMetadata(ar);
 					ar.nvp("data", *static_cast<const T*>(downCastedVar));
 				};
-
-		// serializers.shared_ptr =
-		// 		+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
-		// 			Archive& ar = *static_cast<Archive*>(arptr);
-		// 			writeMetadata(ar);
-		//
-		// 			auto ptr = PolymorphicCasters::downcast<T>(dptr, baseInfo);
-		// 			PolymorphicSharedPointerWrapper psptr(ptr);
-		// 			memory_detail::aux_save(ar, psptr());
-		// 		};
-		//
-		// serializers.unique_ptr =
-		// 		+[](void* arptr, const void* dptr, const std::type_info& baseInfo) {
-		// 			Archive& ar = *static_cast<Archive*>(arptr);
-		// 			writeMetadata(ar);
-		//
-		// 			const std::unique_ptr<const T, EmptyDeleter<const T>> ptr(PolymorphicCasters::downcast<T>(dptr, baseInfo));
-		// 			memory_detail::aux_save(ar, ptr);
-		// 		};
 
 		map.insert({std::move(key), std::move(serializers)});
 	}

@@ -141,7 +141,10 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
     - Merge https://github.com/USCiLab/cereal/pull/761
   - Update RapidJSON and RapidXML
 - Version 3.0.0:
-  - Breaking changes in the serialized archive data format
+  - Breaking changes in the serialized archive data format. These changes are expected to be the last and final breaking changes:
+  	- Change shared_ptr representation
+  	- Change polymorphic representation
+  	- Remove unnecessary empty node in text archives when serializing the same virtual base multiple times
   - Rework polymorphic serialization logic
   - Security: Fix vulnerability where shared_ptrs could be manipulated to point to an incorrect type after loading.
     Type mismatches are now detected for both polymorphic and non-polymorphic shared_ptrs.

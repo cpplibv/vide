@@ -44,16 +44,24 @@ public:
 	inline void process_as(As& as, T&& var) {
 		ar.process_as(as, var);
 	}
+	template <typename As, typename T>
+	inline void process_as_virtual_base_class(As& as, const vide::virtual_base_class<T>& var) {
+		ar.process_as_virtual_base_class(as, var);
+	}
 
 public:
 	template <typename T, typename... Validators>
 	inline CRTP& operator()(T&& var, const Validators&... validators) {
 		auto& as = static_cast<CRTP&>(*this);
-		if constexpr (CRTP::enforce_validation && is_output)
-			(validators(value_if_nvp(var)), ...); // Output archive check before save
-		as.process_as(as, std::forward<T>(var));
-		if constexpr (CRTP::enforce_validation && is_input)
-			(validators(value_if_nvp(var)), ...); // Input archive check after load
+		if constexpr (requires { typename std::remove_reference_t<T>::is_virtual_base_class; }) {
+			as.process_as_virtual_base_class(as, var);
+		} else {
+			if constexpr (CRTP::enforce_validation && is_output)
+				(validators(value_if_nvp(var)), ...); // Output archive check before save
+			as.process_as(as, std::forward<T>(var));
+			if constexpr (CRTP::enforce_validation && is_input)
+				(validators(value_if_nvp(var)), ...); // Input archive check after load
+		}
 		return as;
 	}
 

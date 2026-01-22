@@ -90,6 +90,8 @@ struct RegisterPolymorphicBaseClass<Base, Derived, true> {
 	@endcode */
 template <class Base>
 struct base_class {
+	using is_base_class = void;
+
 	Base* base_ptr;
 
 	template <class Derived>
@@ -168,6 +170,8 @@ struct base_class {
 	@endcode */
 template <class Base>
 struct virtual_base_class {
+	using is_virtual_base_class = void;
+
 	Base* base_ptr;
 
 	template <class Derived>

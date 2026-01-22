@@ -239,7 +239,7 @@ struct base_class_id {
 	size_t hash;
 
 	template <class T>
-	base_class_id(T const* const t) :
+	explicit base_class_id(const T* const t) :
 		type(typeid(T)),
 		ptr(t),
 		hash(std::hash<std::type_index>()(typeid(T)) ^ (std::hash<const void*>()(t) << 1)) {
@@ -296,7 +296,7 @@ public:
 
 private:
 	//! A set of all base classes that have been serialized
-	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> itsBaseClassSet;
+	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> serializedVirtualBaseClasses;
 
 	//! Maps from addresses to pointer ref ids
 	std::unordered_map<const void*, std::uint32_t> storedSmartPointerMap;
@@ -341,9 +341,17 @@ public:
 	/*! This is the primary interface for serializing data with an archive */
 	template <typename T, typename... Validators>
 	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
-		if constexpr (enforce_validation)
-			(validators(value_if_nvp(var)), ...); // Output archive check before save
-		process_self(std::forward<T>(var));
+		if constexpr (requires { typename std::remove_reference_t<T>::is_virtual_base_class; }) {
+			// To support that virtual_base_class-es are not always serialized
+			// (they are only serialized once per object, even if it was referenced more time)
+			// This interception must happen before the normal process_as chain
+			// otherwise text based arhives would already open the object/node tags for it.
+			self().process_as_virtual_base_class(self(), var);
+		} else {
+			if constexpr (enforce_validation)
+				(validators(value_if_nvp(var)), ...); // Output archive check before save
+			process_self(std::forward<T>(var));
+		}
 		return self();
 	}
 
@@ -494,7 +502,7 @@ public:
 
 protected:
 	void reset() {
-		itsBaseClassSet.clear();
+		serializedVirtualBaseClasses.clear();
 		storedSmartPointerMap.clear();
 		itsSharedPointerStorage.clear();
 		itsPolymorphicTypeMap.clear();
@@ -513,6 +521,13 @@ public:
 			self().processImpl(as, var);
 	}
 
+	template <class As, class T>
+	inline void process_as_virtual_base_class(As& as, const vide::virtual_base_class<T>& var) {
+		detail::base_class_id id(var.base_ptr);
+		if (serializedVirtualBaseClasses.emplace(id).second)
+			as.process_as(as, *var.base_ptr);
+	}
+
 private:
 	//! Serializes data
 	template <class T>
@@ -523,16 +538,6 @@ private:
 	template <class As, class T>
 	inline void processImpl(As& as, const vide::base_class<T>& b) {
 		self().processImpl(as, *b.base_ptr);
-	}
-
-	template <class As, class T>
-	inline void processImpl(As& as, const vide::virtual_base_class<T>& b) {
-		detail::base_class_id id(b.base_ptr);
-		if (itsBaseClassSet.emplace(id).second)
-			// TODO P5: This way of abort serialization of virtual_base_class
-			//			leaves an empty node in text archives
-			//			This would require an operator() level interceptor as it has to happen before process_as
-			self().processImpl(as, *b.base_ptr);
 	}
 
 	template <class As, class T>
@@ -689,7 +694,7 @@ public:
 
 private:
 	//! A set of all base classes that have been serialized
-	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> itsBaseClassSet;
+	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> serializedVirtualBaseClasses;
 
 	struct StoredPointer {
 		std::shared_ptr<void> ptr = nullptr;
@@ -710,8 +715,8 @@ private:
 	std::vector<std::function<void()>> itsDeferments;
 
 protected:
-	/// Stores the amount of bytes that can be resaonably safely reserved during deserialization.
-	/// This is a security requirement as a single malicious size_tag could allocage all of system memory.
+	/// Stores the amount of bytes that can be reasonably safely reserved during deserialization.
+	/// This is a security requirement as a single malicious size_tag could allocate all of system memory.
 	/// To improve performance this budget can be used.
 	/// Each archive has to initialize this: recommended value is 2-8x times the original raw data size.
 	std::size_t reserveMemoryBudget = 64 * 1024; // Defaults to 64 KB but archives are expected to override it.
@@ -738,9 +743,17 @@ public:
 	/*! This is the primary interface for serializing data with an archive */
 	template <typename T, typename... Validators>
 	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
-		process_self(std::forward<T>(var));
-		if constexpr (enforce_validation)
-			(validators(value_if_nvp(var)), ...); // Input archive check after load
+		if constexpr (requires { typename std::remove_reference_t<T>::is_virtual_base_class; }) {
+			// To support that virtual_base_class-es are not always serialized
+			// (they are only serialized once per object, even if it was referenced more time)
+			// This interception must happen before the normal process_as chain
+			// otherwise text based arhives would already open the object/node tags for it.
+			self().process_as_virtual_base_class(self(), var);
+		} else {
+			process_self(std::forward<T>(var));
+			if constexpr (enforce_validation)
+				(validators(value_if_nvp(var)), ...); // Input archive check after load
+		}
 		return self();
 	}
 
@@ -903,7 +916,7 @@ public:
 
 protected:
 	void reset() {
-		itsBaseClassSet.clear();
+		serializedVirtualBaseClasses.clear();
 		storedSmartPointerMap.clear();
 		itsPolymorphicTypeMap.clear();
 		itsVersionedTypes.clear();
@@ -921,6 +934,13 @@ public:
 			self().processImpl(as, var);
 	}
 
+	template <class As, class T>
+	inline void process_as_virtual_base_class(As& as, vide::virtual_base_class<T>& var) {
+		detail::base_class_id id(var.base_ptr);
+		if (serializedVirtualBaseClasses.emplace(id).second)
+			as.process_as(as, *var.base_ptr);
+	}
+
 private:
 	//! Serializes data
 	template <class T>
@@ -933,12 +953,12 @@ private:
 		self().processImpl(as, *b.base_ptr);
 	}
 
-	template <class As, class T>
-	inline void processImpl(As& as, vide::virtual_base_class<T>& b) {
-		detail::base_class_id id(b.base_ptr);
-		if (itsBaseClassSet.emplace(id).second)
-			self().processImpl(as, *b.base_ptr);
-	}
+	// template <class As, class T>
+	// inline void processImpl(As& as, vide::virtual_base_class<T>& b) {
+	// 	detail::base_class_id id(b.base_ptr);
+	// 	if (serializedVirtualBaseClasses.emplace(id).second)
+	// 		self().processImpl(as, *b.base_ptr);
+	// }
 
 	template <class As, class T>
 	inline void processImpl(As& as, DeferredData<T> const& d) {

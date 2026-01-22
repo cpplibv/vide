@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vide/details/util.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
 
@@ -131,7 +132,7 @@ struct enum_value_set {
 			}
 
 			if (fail)
-				throw Exception("Invalid enum value \'" + std::to_string(std::to_underlying(var)) + "\' rejected by the specified 'enum value set' verification.");
+				throw Exception("Invalid '" + util::demangledName<T>() + "' enum value '" + std::to_string(std::to_underlying(var)) + "'. The specified enum value set validation failed.");
 		}
 	}
 };

@@ -79,6 +79,12 @@
 #define VIDE_POLYMORPHIC_ID_TYPE std::uint16_t
 #endif // VIDE_POLYMORPHIC_ID_TYPE
 
+#ifndef VIDE_SMART_PTR_MAX_SIZE
+/// Determines the max size for storing smart pointers during serialization
+///		Defaults to the size of a shared_ptr
+#define VIDE_SMART_PTR_MAX_SIZE (sizeof(void*) * 4)
+#endif // VIDE_SMART_PTR_MAX_SIZE
+
 #ifndef VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER
 /// Multiplier for the input data size which determines the memory budget that can be used to reserve containers.
 /// Typical values are 1 .. 8. It is meant as a reasonable upper estimate on how much C++ object memory

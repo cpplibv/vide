@@ -458,20 +458,20 @@ struct InputBindingCreator {
 		polymorphic_detail::InputSerializers serializers;
 
 		serializers.upcast =
-				+[](void* varptr, const std::type_info& baseInfo) -> void* {
-					return PolymorphicCasters::upcast<T>(static_cast<T*>(varptr), baseInfo);
+				+[](void* objectAddress, const std::type_info& loadingType) -> void* {
+					return PolymorphicCasters::upcast<T>(static_cast<T*>(objectAddress), loadingType);
 				};
 		serializers.generic_ptr =
-				+[](void* arptr, const std::type_info& baseInfo, function_ref<void(void*, void*, const std::type_index&)> registerFn) {
-					Archive& ar = *static_cast<Archive*>(arptr);
+				+[](void* arPtr, const std::type_info& loadingType, function_ref<void(void*, void*, const std::type_index&)> registerFn) {
+					Archive& ar = *static_cast<Archive*>(arPtr);
 					using NonConstT = std::remove_const_t<T>;
 					// Place the heap allocated object into a unique_ptr for the duration of the deserialization
-					auto ptrGuard = std::unique_ptr<NonConstT>(access::construct<NonConstT>());
-					auto* ptr = ptrGuard.get();
-					registerFn(ptr, PolymorphicCasters::upcast<T>(ptr, baseInfo), typeid(T));
-					ptrGuard.release(); // Once registerFn completes the pointer has a new owner, release it here
+					auto objectGuard = std::unique_ptr<NonConstT>(access::construct<NonConstT>());
+					auto* objectAddress = objectGuard.get();
+					registerFn(objectAddress, PolymorphicCasters::upcast<T>(objectAddress, loadingType), typeid(T));
+					objectGuard.release(); // Once registerFn completes the pointer has a new owner, release it here
 
-					ar.nvp("data", *ptr);
+					ar.nvp("data", *objectAddress);
 				};
 
 		map.insert(lb, {std::move(key), std::move(serializers)});
@@ -513,14 +513,14 @@ struct OutputBindingCreator {
 		OutputBindingMap::Serializers serializers;
 
 		serializers.downcast =
-				+[](const void* varptr, const std::type_info& baseInfo) -> const void* {
-					return PolymorphicCasters::downcast<T>(varptr, baseInfo);
+				+[](const void* varPtr, const std::type_info& savingType) -> const void* {
+					return PolymorphicCasters::downcast<T>(varPtr, savingType);
 				};
 		serializers.generic_ptr =
-				+[](void* arptr, const void* downCastedVar) {
-					Archive& ar = *static_cast<Archive*>(arptr);
+				+[](void* arPtr, const void* objectAddress) {
+					Archive& ar = *static_cast<Archive*>(arPtr);
 					writeMetadata(ar);
-					ar.nvp("data", *static_cast<const T*>(downCastedVar));
+					ar.nvp("data", *static_cast<const T*>(objectAddress));
 				};
 
 		map.insert({std::move(key), std::move(serializers)});

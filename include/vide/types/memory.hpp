@@ -3,14 +3,17 @@
 #pragma once
 
 #include <vide/access.hpp>
+#include <vide/details/util.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
+#include <vide/smart_ptr_tag.hpp>
 
 #include <memory>
-#include <vide/details/util.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
+
+constexpr inline SmartPtrTag type_tag_std_shared_ptr{"std::shared_ptr"};
 
 /// Saving std::shared_ptr for non-polymorphic types
 template <class Archive, class T>
@@ -21,10 +24,13 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) 
 		return;
 	}
 
-	const auto [ref, new_] = ar.registerSharedPointer(var);
+	const auto* objectAddress = var.get();
+	const auto [stored, ref, new_] = ar.registerSmartPointer(objectAddress);
 	ar.nvp("ref", ref);
-	if (new_)
-		ar.nvp("data", *var);
+	if (new_) {
+		stored.assign(var);
+		ar.nvp("data", *objectAddress);
+	}
 }
 
 /// Loading std::shared_ptr for non-polymorphic types
@@ -38,7 +44,7 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 		return;
 	}
 
-	const auto [stored, new_] = ar.registerSharedPointer(ref);
+	const auto [stored, new_] = ar.registerSmartPointer(ref);
 	if (new_) {
 		using NonConstT = std::remove_const_t<T>;
 		// TODO P2: switch to make_shared_for_overwrite
@@ -46,20 +52,24 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 		//		::vide::access::construct<T>(realPtr.get());
 		//		auto ptr = std::shared_ptr<NonConstT>(realPtr, reinterpret_cast<NonConstT>(realPtr.get().data));
 		std::shared_ptr<NonConstT> ptr(::vide::access::construct<NonConstT>());
-		NonConstT* addr = ptr.get();
-		stored.ptr = std::move(ptr);
-		stored.info = typeid(T);
-		ar.nvp("data", *addr);
-		var = std::static_pointer_cast<T>(stored.ptr);
+		NonConstT* objectAddress = ptr.get();
+		stored.assign(ptr, typeid(T), &type_tag_std_shared_ptr);
+		var = std::move(ptr);
+		ar.nvp("data", *objectAddress);
 		return;
 	}
 
-	if (stored.info != typeid(T))
+	if (stored.pointerType != &type_tag_std_shared_ptr)
 		throw Exception(
-				"Type mismatch. Non-polymorphic shared_ptr referenced by ref [" + std::to_string(ref) + "] was previously loaded as type '" +
-				util::demangle(stored.info->name()) + "' is now requested as type '" + util::demangledName<T>() + "'.");
+				"Type mismatch. Non-polymorphic pointer type '" + std::string(type_tag_std_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as a different '" +
+				std::string(stored.pointerType->name) + "' pointer type.");
 
-	var = std::static_pointer_cast<T>(stored.ptr);
+	if (stored.objectType != typeid(T)) // This check also handles any polymorphic mismatch
+		throw Exception(
+				"Type mismatch. Non-polymorphic '" + std::string(type_tag_std_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as type '" +
+				util::demangle(stored.objectType.name()) + "' is now requested as type '" + util::demangledName<T>() + "'.");
+
+	stored.copyTo(&var);
 }
 
 // -------------------------------------------------------------------------------------------------

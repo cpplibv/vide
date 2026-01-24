@@ -148,6 +148,7 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Rework polymorphic serialization logic
   - Security: Fix vulnerability where shared_ptrs could be manipulated to point to an incorrect type after loading.
     Type mismatches are now detected for both polymorphic and non-polymorphic shared_ptrs.
+  - Implement support for generic smart_ptr serialization
   - Overhaul test and types code structure. Most std type's serializer file now received std_ prefix.
   - Move set and unordered_set serializer implementations into a separate file
   - Extend validator support for NVPs

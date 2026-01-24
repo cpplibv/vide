@@ -11,169 +11,6 @@
 
 
 
--------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------
-
-private:
-   struct IntrusivePtrInput {
-       using Deleter = void(*)(void*);
-       std::type_index type = typeid(int); // TODO P5: better way to skip initialization, or use ctor args
-       void* ptr = nullptr;
-       Deleter deleter = nullptr;
-
-       explicit IntrusivePtrInput(int) {} // TODO P5: better way to default ctor with emplace?
-       ~IntrusivePtrInput() {
-           if (deleter)
-               deleter(ptr);
-       }
-   };
-   struct IntrusivePtrOutput {
-       using Deleter = void(*)(void*);
-       uint32_t ref = 0;
-       void* ptr = nullptr;
-       Deleter deleter = nullptr;
-
-       explicit IntrusivePtrOutput(int) {} // TODO P5: better way to default ctor with emplace?
-       ~IntrusivePtrOutput() {
-           if (deleter)
-               deleter(ptr);
-       }
-   };
-public:
-   std::unordered_map<uint32_t, IntrusivePtrInput> inputIntrusivePtrLookup;
-   std::unordered_map<void*, IntrusivePtrOutput> outputIntrusivePtrLookup;
-
--------------------------------------------------------------------------------------------------
-
-// TODO P1: Move intrusive_ptr serialization support to somewhere more generic, provide better archive support for
-//         any smart pointer
-// TODO P1: Polymorphic type support for intrusive_ptr
-// --- libv::intrusive_ptr
-template <typename Archive, typename T>
-inline void load(Archive& ar, libv::intrusive_ptr<T>& var) {
-   uint32_t ref = 0;
-   ar.nvp("ref", ref);
-
-   if (ref == 0) {
-       var = nullptr;
-       return;
-   }
-
-   const auto [it, isNew] = ar.inputIntrusivePtrLookup.emplace(ref, 0);
-   if (isNew) {
-       // TODO P2: Use libv::vide::access to create default object (?)
-       auto ptr = libv::make_intrusive_ptr<std::remove_const_t<T>>();
-       it->second.type = typeid(T);
-       it->second.ptr = ptr.ptr();
-       it->second.deleter = +[](void* ptr) {
-           // Use the destructor of the intrusive_ptr to clean up by creating/reattaching the detached pointer
-           // onto a stack variable
-           auto tmp = libv::intrusive_ptr<T>(static_cast<T*>(ptr), typename libv::intrusive_ptr<T>::no_increment_tag{});
-           (void) tmp;
-           // tmp's destructor cleans up the ref_count
-       };
-       ar.nvp("data", *ptr);
-       (void) ptr.detach(); // Detach the pointer to keep it alive, its ptr and its deleter was already saved
-
-   } else if (it->second.type != typeid(T)) {
-       throw vide::Exception("Error while trying to deserialize a smart pointer. Type mismatch find in ref " + std::to_string(ref));
-   }
-
-   var = libv::intrusive_ptr<T>(static_cast<T*>(it->second.ptr));
-}
-
--------------------------------------------------------------------------------------------------
-
-template <typename Archive, typename T>
-inline void save(Archive& ar, const libv::intrusive_ptr<T>& var) {
-   const auto [it, isNew] = ar.outputIntrusivePtrLookup.emplace(var.ptr(), 0);
-
-   if (!isNew) {
-       ar.nvp("ref", it->second.ref);
-   } else {
-       // Copy of shared pointers placed in outputIntrusivePtrLookup to make sure they are kept alive
-       //  during lifetime of the serialization to prevent CVE-2020-11105
-       auto ptr = var;
-       it->second.ref = static_cast<uint32_t>(ar.outputIntrusivePtrLookup.size());
-       it->second.ptr = ptr.ptr();
-       it->second.deleter = +[](void* ptr) {
-           // Use the destructor of the intrusive_ptr to clean up by creating/reattaching the detached pointer
-           // onto a stack variable
-           auto tmp = libv::intrusive_ptr<T>(static_cast<T*>(ptr), typename libv::intrusive_ptr<T>::no_increment_tag{});
-           (void) tmp;
-           // tmp's destructor cleans up the ref_count
-       };
-       ar.nvp("ref", it->second.ref);
-       ar.nvp("data", *var);
-       (void) ptr.detach(); // Detach the pointer to keep it alive, its ptr and its deleter was already saved
-   }
-}
-
--------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------
-
-std::string hex_dump_with_ascii(const std::string_view& s) {
-	if (s.empty())
-		return "";
-
-	std::ostringstream ss;
-	ss << std::hex << std::setfill('0') << std::setw(2) << std::uppercase;
-
-	std::size_t i = 0;
-	while (true) {
-		ss << std::setw(2) << uint16_t{static_cast<unsigned char>(s[i])};
-		++i;
-
-		if (i == s.size())
-			break;
-
-		if (i % 32 == 0) {
-			ss << " | ";
-			for (std::size_t j = i - 32; j < i;) {
-				ss << (std::isprint(s[j]) ? s[j] : '.');
-				++j;
-				if (j % 8 == 0 && j % 32 != 0)
-					ss << ' ';
-			}
-			ss << "\n";
-		} else if (i % 8 == 0) {
-			ss << "  ";
-		} else {
-			ss << ' ';
-		}
-	}
-
-	if (i % 32 != 0) {
-		const auto r_begin = i;
-		const auto r_end = (i / 32 + 1) * 32;
-
-		for (std::size_t r = r_begin; r < r_end; ++r) {
-			if (r % 32 == 0) {
-				ss << " ";
-			} else if (r % 8 == 0) {
-				ss << "    ";
-			} else {
-				ss << "   ";
-			}
-		}
-	}
-
-	ss << " | ";
-	for (std::size_t j = (i - 1) / 32 * 32; j < i;) {
-		ss << (std::isprint(s[j]) ? s[j] : '.');
-		++j;
-		if (j % 8 == 0 && j % 32 != 0)
-			ss << ' ';
-	}
-
-	return std::move(ss).str();
-}
-
--------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------
--------------------------------------------------------------------------------------------------
 
 
 
@@ -184,18 +21,8 @@ std::string hex_dump_with_ascii(const std::string_view& s) {
 
 vide: polymorphic with proxy archives?
 	\ only if proxy opt-ins for it
-
-vide: Customization point for smart pointers (libv::intrusive_ptr support)
-	\ shared_ptr could/should use this too (granted that would require polymorphic features in it)
-	yeah, polymorphic support would be nice for this too
-
-things to break:
-	smart pointer data representation
-
-vide: archive.eof() or some API to check if the whole of the buffer was consumed
-
-
 vide: ar.peek<T>() (load without progressing the input it (binary)/array index (text))
+vide: archive.eof() or some API to check if the whole of the buffer was consumed
 
 vide: Make sure binary_data does not swap bytes for floating points numbers
 
@@ -218,10 +45,88 @@ cleanup SizeTag
 vide: std::vector<std::byte> should be base64 serialized in JSON/XML
 	(any std::ranges::contiguous_range of std::byte)
 
-
-
 Merge/Implement the following PRs:
 	https://github.com/USCiLab/cereal/pull/641 Use unordered containers and remove std::function from polymorphic_impl.hpp
 
 Think about it:
 	https://github.com/USCiLab/cereal/pull/321 Json/XML Archive improvement (basically only the stack info is relevant improvement)
+		| it will be implemented differently, but there should be a full error stack
+
+
+------
+
+Helpers for smart pointers, currently their serializer functions
+	are pretty rough
+	"traits" class could help
+	| OR, we might be able to remap onto a single type
+	like weak_ptr is just shared_ptr, type erasure could happen
+	before (its similar to "traits" but maybe less work, more generic)
+
+
+struct Traits {
+	template <typename T>
+	using SmartPointer = std::shared_ptr<T>;
+	auto toStorage(auto var) {
+		return var;
+	}
+	const void* address(const auto& var) {
+		return var.get();
+	}
+};
+
+/// Saving std::shared_ptr for non-polymorphic types
+template <class Archive, class T>
+		requires (!std::is_polymorphic_v<T>)
+inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const my::shared_ptr<T>& var) {
+	if (!var) {
+		ar.nvp("ref", std::uint32_t{0});
+		return;
+	}
+
+	const auto* objectAddress = Traits::address(var);
+	const auto [stored, ref, new_] = ar.registerSmartPointer(objectAddress);
+	ar.nvp("ref", ref);
+	if (new_) {
+		stored.assign(Traits::toStorage(var));
+		ar.nvp("data", *var);
+	}
+ }
+
+/// Loading std::shared_ptr for non-polymorphic types
+template <class Archive, class T>
+		requires (!std::is_polymorphic_v<T>)
+inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, my::shared_ptr<T>& var) {
+	std::uint32_t ref;
+	ar.nvp("ref", ref);
+	if (ref == 0) {
+		var = nullptr;
+		return;
+	}
+
+	const auto [stored, new_] = ar.registerSmartPointer(ref);
+	if (new_) {
+		using NonConstT = std::remove_const_t<T>;
+		// TODO P2: switch to make_shared_for_overwrite
+		//		auto realPtr = std::make_shared<Storage<NonConstT>>();
+		//		::vide::access::construct<T>(realPtr.get());
+		//		auto ptr = std::shared_ptr<NonConstT>(realPtr, reinterpret_cast<NonConstT>(realPtr.get().data));
+		Traits::SmartPointer<NonConstT> ptr(::vide::access::construct<NonConstT>());
+		NonConstT* objectAddress = Traits::address(ptr);
+		stored.assign(Traits::toStorage(ptr), typeid(T), &type_tag_my_shared_ptr);
+		var = std::move(ptr);
+		ar.nvp("data", *objectAddress);
+		return;
+	}
+
+	if (stored.pointerType != &type_tag_my_shared_ptr)
+		throw vide::Exception(
+				"Type mismatch. Non-polymorphic pointer type '" + std::string(type_tag_my_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as a different '" +
+				std::string(stored.pointerType->name) + "' pointer type.");
+
+	if (stored.objectType != typeid(T)) // This check also handles any polymorphic mismatch
+		throw vide::Exception(
+				"Type mismatch. Non-polymorphic '" + std::string(type_tag_my_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as type '" +
+				vide::util::demangle(stored.objectType.name()) + "' is now requested as type '" + vide::util::demangledName<T>() + "'.");
+
+	stored.copyTo(&var);
+}

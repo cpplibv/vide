@@ -130,12 +130,12 @@ public:
 	}
 
 public:
-	[[nodiscard]] inline auto registerSharedPointer(const std::uint32_t id) requires is_input {
-		return ar.registerSharedPointer(id);
+	[[nodiscard]] inline auto registerSmartPointer(const std::uint32_t id) requires is_input {
+		return ar.registerSmartPointer(id);
 	}
 
-	[[nodiscard]] inline auto registerSharedPointer(const std::shared_ptr<const void>& ptr) requires is_output {
-		return ar.registerSharedPointer(ptr);
+	[[nodiscard]] inline auto registerSmartPointer(const void* objectAddress) requires is_output {
+		return ar.registerSmartPointer(objectAddress);
 	}
 
 	[[nodiscard]] inline auto registerPolymorphicType(std::uint32_t polymorphic_id) requires is_input {

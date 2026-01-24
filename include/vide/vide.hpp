@@ -34,6 +34,7 @@
 #include <vide/details/helpers.hpp>
 #include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/static_object.hpp>
+#include <vide/details/stored_smart_ptr.hpp>
 #include <vide/details/value_if_nvp.hpp>
 #include <vide/details/vide_types.hpp>
 #include <vide/exception.hpp>
@@ -298,12 +299,10 @@ private:
 	//! A set of all base classes that have been serialized
 	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> serializedVirtualBaseClasses;
 
-	//! Maps from addresses to pointer ref ids
-	std::unordered_map<const void*, std::uint32_t> storedSmartPointerMap;
-
-	//! Copy of shared pointers used in #storedSmartPointerMap to make sure they are kept alive
-	//  during lifetime of storedSmartPointerMap to prevent CVE-2020-11105.
-	std::vector<std::shared_ptr<const void>> itsSharedPointerStorage;
+	/// Maps from addresses to pointer ref ids
+	/// Stores copies of the smart pointers used to make sure they are kept alive
+	/// during lifetime of the serialization to prevent CVE-2020-11105.
+	std::unordered_map<const void*, detail::StoredOutputPointer> storedSmartPointerMap;
 
 	//! Maps from polymorphic type name strings to ids
 	std::unordered_map<const char*, polymorphic_id_t> itsPolymorphicTypeMap;
@@ -394,17 +393,19 @@ public:
 		return (*this)(::vide::SizeTag<size_type>(size));
 	}
 
+	// inline ArchiveType& binary_data(const char* data, uint64_t size) {
+	// 	return (*this)(...);
+	// }
+
 	inline void verify(bool pass, std::string_view message) const {
 		if constexpr (ArchiveType::enforce_validation)
 			if (!pass)
 				throw Exception("Validation failed during serialization: " + std::string(message));
 	}
-	// inline ArchiveType& binary_data(const char* data, uint64_t size) {
-	// 	return (*this)(...);
-	// }
 
 public:
 	struct RegisterSharedPointerResult {
+		detail::StoredOutputPointer& stored;
 		std::uint32_t ref = 0;
 		bool new_ = false;
 	};
@@ -416,19 +417,13 @@ public:
 	/// 		The archive takes a copy to prevent the memory location to be freed
 	/// 		as long as the address is used as id. This is needed to prevent CVE-2020-11105.
 	/// @return A key that uniquely identifies the pointer */
-	RegisterSharedPointerResult registerSharedPointer(const std::shared_ptr<const void>& ptr) {
-		assert(ptr != nullptr);
-		const void* addr = ptr.get();
-
-		itsSharedPointerStorage.push_back(ptr);
-
-		auto it = storedSmartPointerMap.find(addr);
-		if (it != storedSmartPointerMap.end())
-			return {it->second, false};
-
-		auto ptrId = static_cast<std::uint32_t>(storedSmartPointerMap.size() + 1);
-		auto r = storedSmartPointerMap.emplace(addr, ptrId);
-		return {r.first->second, r.second};
+	RegisterSharedPointerResult registerSmartPointer(const void* objectAddress) {
+		assert(objectAddress != nullptr);
+		auto& r = storedSmartPointerMap[objectAddress];
+		const auto isNew = !r.isAssigned();
+		if (isNew)
+			r.ref = static_cast<std::uint32_t>(storedSmartPointerMap.size());
+		return {r, r.ref, isNew};
 	}
 
 	struct RegisterPolymorphicTypeResult {
@@ -440,7 +435,6 @@ public:
 	/// This function is used to track polymorphic types to prevent
 	/// unnecessary saves of identifying strings used by the polymorphic
 	/// support functionality.
-	/// @internal
 	///
 	/// @param name The name to associate with a polymorphic type
 	/// @return A key that uniquely identifies the polymorphic type name
@@ -454,8 +448,8 @@ public:
 		return {polymorphic_id, true};
 	}
 
-	//! Serializes any data marked for deferment using defer
-	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
+	/// Serializes any data marked for deferment using defer
+	/// This will cause any data wrapped in DeferredData to be immediately serialized
 	void serializeDeferments() {
 		// To allow recursive deferments we iterate by indexes instead of iterators
 		for (std::size_t i = 0; i < itsDeferments.size(); i++)
@@ -504,7 +498,6 @@ protected:
 	void reset() {
 		serializedVirtualBaseClasses.clear();
 		storedSmartPointerMap.clear();
-		itsSharedPointerStorage.clear();
 		itsPolymorphicTypeMap.clear();
 		itsCurrentPolymorphicTypeId = 1;
 		itsVersionedTypes.clear();
@@ -696,14 +689,9 @@ private:
 	//! A set of all base classes that have been serialized
 	std::unordered_set<detail::base_class_id, detail::base_class_id_hash> serializedVirtualBaseClasses;
 
-	struct StoredPointer {
-		std::shared_ptr<void> ptr = nullptr;
-		polymorphic_detail::InputSerializers::UpcastFn upcast = nullptr;
-		std::optional<std::type_index> info;
-	};
 	//! Maps from pointer ids to metadata
 	/// StoredPointer are used by address, it requires unordered_map's address stability
-	std::unordered_map<std::uint32_t, StoredPointer> storedSmartPointerMap;
+	std::unordered_map<std::uint32_t, detail::StoredInputPointer> storedSmartPointerMap;
 
 	/// Maps from polymorphic_id to serializers
 	std::unordered_map<polymorphic_id_t, polymorphic_detail::InputSerializers> itsPolymorphicTypeMap;
@@ -811,6 +799,10 @@ public:
 		return size;
 	}
 
+	// inline ArchiveType& binary_data(const char* data, uint64_t size) {
+	// 	return (*this)(...);
+	// }
+
 	inline void verify(bool pass, std::string_view message) const {
 		if constexpr (ArchiveType::enforce_validation)
 			if (!pass)
@@ -833,21 +825,20 @@ public:
 	}
 
 public:
-	struct RegisterSharedPointerResult {
-		StoredPointer& stored;
+	struct RegisterSmartPointerResult {
+		detail::StoredInputPointer& stored;
 		bool new_ = false;
 	};
 
 	/// Registers a shared pointer with the archive
 	/// This function is used to track shared pointer targets to properly reconstruct their relations
-	/// @internal
 	/// @param id The unique id that was serialized for the pointer
 	/// @return A shared pointer to the data
 	/// @throw Exception if the id does not exist
-	RegisterSharedPointerResult registerSharedPointer(const std::uint32_t ref) {
+	RegisterSmartPointerResult registerSmartPointer(const std::uint32_t ref) {
 		assert(ref != 0);
-		auto r = storedSmartPointerMap.emplace(ref, StoredPointer{});
-		return {r.first->second, r.second};
+		auto& stored = storedSmartPointerMap[ref];
+		return {stored, stored.pointerType == nullptr};
 	}
 
 	struct RegisterPolymorphicTypeResult {
@@ -856,7 +847,6 @@ public:
 	};
 
 	///	Retrieves the polymorphic type's entry given a unique key for it
-	///	@internal
 	///	@param id The unique id that was serialized for the polymorphic type
 	///	@return A result struct that contains the serializer reference for the polymorphic type and weather it is the
 	///			first time encountering this type. If it is the first encounter the caller is responsible to initalize
@@ -866,8 +856,8 @@ public:
 		return {r.first->second, r.second};
 	}
 
-	//! Serializes any data marked for deferment using defer
-	/*! This will cause any data wrapped in DeferredData to be immediately serialized */
+	/// Serializes any data marked for deferment using defer
+	/// This will cause any data wrapped in DeferredData to be immediately serialized
 	void serializeDeferments() {
 		// To allow recursive deferments we iterate by indexes instead of iterators
 		for (std::size_t i = 0; i < itsDeferments.size(); i++)

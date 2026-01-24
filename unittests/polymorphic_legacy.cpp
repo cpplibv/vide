@@ -288,7 +288,7 @@ void test_polymorphic_legacy() {
 
 		// std::cout << std::endl;
 		// std::cout << "========" << std::endl;
-		// // std::cout << os.str() << std::endl;
+		// std::cout << os.str() << std::endl;
 		// std::cout << hex_dump_with_ascii(os.str()) << std::endl;
 
 		decltype(o_shared) i_shared;

@@ -34,6 +34,10 @@ inline void test_memory() {
 			oar(o_nullptr3);
 		}
 
+		// std::cout << std::endl;
+		// std::cout << "========" << std::endl;
+		// std::cout << os.str() << std::endl;
+
 		std::shared_ptr<int> i_xptr1;
 		std::shared_ptr<int> i_xptr2;
 		std::shared_ptr<const int> i_xptr3;

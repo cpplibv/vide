@@ -10,7 +10,7 @@ Compared to the original project the most notable changes are:
   - Modernize and simplify the codebase
 
 Compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
-Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2024.05.02 d1fcec807).
+Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2025.01.20 a56bad8bb).
 
 As of v3.0.0 the data representation is considered STABLE! Hurray!
 

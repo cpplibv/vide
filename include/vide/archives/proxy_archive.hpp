@@ -70,7 +70,17 @@ public:
 		if constexpr (ignores_nvp)
 			return (*this)(std::forward<T>(var), validators...);
 		else
-			return (*this)(::vide::make_nvp(name, std::forward<T>(var)), validators...);
+			return (*this)(vide::make_nvp(name, std::forward<T>(var)), validators...);
+	}
+
+	template <typename Base, typename Derived>
+	inline CRTP& base_class(const Derived* derivedThis) {
+		return (*this)(vide::base_class<Base>(derivedThis));
+	}
+
+	template <typename Base, typename Derived>
+	inline CRTP& virtual_base_class(const Derived* derivedThis) {
+		return (*this)(vide::virtual_base_class<Base>(derivedThis));
 	}
 
 	template <typename T, typename... Validators>

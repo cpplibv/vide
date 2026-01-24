@@ -1,6 +1,6 @@
 **cpplibv/vide** - A C++23 serialization library
 ==========================================
-Originally based on and forked from: [USCiLab/cereal](https://github.com/USCiLab/cereal)
+Originally started as a fork from [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 Compared to the original project the most notable changes are:
   - Fix security vulnerabilities
@@ -10,9 +10,9 @@ Compared to the original project the most notable changes are:
   - Modernize and simplify the codebase
 
 Compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
-As development is treated as experimental neither forward, nor backward compatibility is guaranteed (but the library
-is expected to reach a stable state soon.)
 Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2024.05.02 d1fcec807).
+
+As of v3.0.0 the data representation is considered STABLE! Hurray!
 
 ### Changes / Differences to Cereal:
 - Change name to `vide` to indicate the incompatibility with upstream
@@ -170,10 +170,10 @@ Bugfixes from the upstream are planned to be ported manually (and currently in s
   - Add boost flat_set and flat_map serializers
   - Add dependent name accessors for: `ar.template base_class<Base>(this)` and `ar.template virtual_base_class<Base>(this)`
   - Add `VIDE_POLYMORPHIC_ID_TYPE` macro that determines the data type used for polymorphic_id. Defaults to uint16_t.
-
+- Version 3.0.1:
+  - Add base_class/virtual_base_class dependent names to ProxyArchives
 
 ### Planned:
-- TODO: Customization point for smart pointers
 - Foreach iteration/visitor algorithms
 - Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
 - Maybe: Context variables passed as additional function arguments

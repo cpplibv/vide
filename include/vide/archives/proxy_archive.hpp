@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <vide/base_class.hpp>
 #include <vide/details/validation.hpp>
 #include <vide/details/value_if_nvp.hpp>
 #include <vide/exception.hpp>

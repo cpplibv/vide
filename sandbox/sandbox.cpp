@@ -30,7 +30,7 @@
 #include <vide/archives/portable_binary.hpp>
 #include <vide/archives/xml.hpp>
 
-#include <vide/types/base_class.hpp>
+#include <vide/base_class.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/polymorphic.hpp>
 #include <vide/types/std_array.hpp>

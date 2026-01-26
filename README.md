@@ -172,6 +172,9 @@ As of v3.0.0 the data representation is considered STABLE! Hurray!
   - Add `VIDE_POLYMORPHIC_ID_TYPE` macro that determines the data type used for polymorphic_id. Defaults to uint16_t.
 - Version 3.0.1:
   - Add base_class/virtual_base_class dependent names to ProxyArchives
+- Version 3.0.2:
+  - Move vide/types/base_class.hpp to vide/base_class.hpp
+  - Fix missing base_class include
 
 ### Planned:
 - Foreach iteration/visitor algorithms

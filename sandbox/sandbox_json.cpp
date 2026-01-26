@@ -25,11 +25,11 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <vide/vide.hpp>
 #include <vide/archives/binary.hpp>
 #include <vide/archives/json.hpp>
+#include <vide/base_class.hpp>
+#include <vide/vide.hpp>
 
-#include <vide/types/base_class.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/std_array.hpp>
 #include <vide/types/std_complex.hpp>

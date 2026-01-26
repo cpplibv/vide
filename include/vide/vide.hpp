@@ -29,6 +29,7 @@
 #pragma once
 
 #include <vide/access.hpp>
+#include <vide/base_class.hpp>
 #include <vide/binary_data.hpp>
 #include <vide/binary_serializable_type.hpp>
 #include <vide/details/helpers.hpp>
@@ -41,7 +42,6 @@
 #include <vide/macros.hpp>
 #include <vide/nvp.hpp>
 #include <vide/size_tag.hpp>
-#include <vide/types/base_class.hpp>
 #include <vide/types/common.hpp>
 #include <vide/types/enum.hpp>
 #include <vide/unserializable_type_tag.hpp>

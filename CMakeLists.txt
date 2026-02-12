@@ -1,16 +1,9 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 project(vide LANGUAGES CXX VERSION 3.0.2)
 
-if (PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-	set(VIDE_MASTER_PROJECT ON)
-endif ()
-
 
 include(cmake/wish_create.cmake)
-include(cmake/wish_date.cmake)
-include(cmake/wish_git.cmake)
-include(cmake/wish_util.cmake)
 include(cmake/wish_warning.cmake)
 
 
@@ -31,26 +24,16 @@ endif ()
 set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
 
 
-option(VIDE_BUILD_DOC "Build documentation" ${VIDE_MASTER_PROJECT})
-option(VIDE_BUILD_SANDBOX "Build sandbox examples" ${VIDE_MASTER_PROJECT})
-option(VIDE_BUILD_TESTS "Build tests" ${VIDE_MASTER_PROJECT})
+option(VIDE_BUILD_DOC "Build documentation" ${PROJECT_IS_TOP_LEVEL})
+option(VIDE_BUILD_SANDBOX "Build sandbox examples" ${PROJECT_IS_TOP_LEVEL})
+option(VIDE_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_JUST_INSTALL "Don't do anything besides installing the library" OFF)
 option(VIDE_SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
-option(VIDE_INSTALL "Generate the install target" ${VIDE_MASTER_PROJECT})
+option(VIDE_INSTALL "Generate the install target" ${PROJECT_IS_TOP_LEVEL})
 
 option(VIDE_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 option(VIDE_ALTERNATIVE_LINKER "Use an alternative linker. Leave empty for system default; alternatives are 'gold', 'lld', 'bfd', 'mold'" FALSE)
 
-
-set(VIDE_THREAD_LIBS)
-if (UNIX)
-	option(THREAD_SAFE "Use mutexes to ensure thread safety" OFF)
-	if (THREAD_SAFE)
-		message(STATUS "Use mutexes")
-		add_definitions(-DVIDE_THREAD_SAFE=1)
-		set(VIDE_THREAD_LIBS pthread)
-	endif ()
-endif ()
 
 if (${VIDE_FORCE_COLORED_OUTPUT})
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -90,71 +73,73 @@ endif ()
 ##    set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #endif()
 
-# -------------------------------------------------------------------------------------------------
+if (PROJECT_IS_TOP_LEVEL) # ---------------------------------------------------------------------------
 
-wish_warning(
-		MSVC /Wall
+	wish_warning(
+			MSVC /Wall
 
-		Clang -Weverything
-		Clang -Wmissing-override
-		Clang -Wconversion
+			Clang -Weverything
+			Clang -Wmissing-override
+			Clang -Wconversion
 
-		GNU -Wall
-		#        GNU -Warray-bounds
-		#        GNU -Wcast-align=strict
-		#        GNU -Wcast-qual
-		#        GNU -Wconversion
-		#        GNU -Wdelete-non-virtual-dtor
-		#        GNU -Wdouble-promotion
-		#        GNU -Wduplicated-branches
-		#        GNU -Wduplicated-cond
-		GNU -Wextra
-		#        GNU -Wlogical-op
-		#        GNU -Wmultistatement-macros
-		#        GNU -Wnon-virtual-dtor # Causes some false positives with efsw (suppressed)
-		#        GNU -Wold-style-cast
-		GNU -Wpedantic
-		#        GNU -Wrestrict
-		#        GNU -Wshadow-compatible-local
-		#        GNU -Wsuggest-override
-		#        GNU -Wundef
+			GNU -Wall
+			#        GNU -Warray-bounds
+			#        GNU -Wcast-align=strict
+			#        GNU -Wcast-qual
+			#        GNU -Wconversion
+			#        GNU -Wdelete-non-virtual-dtor
+			#        GNU -Wdouble-promotion
+			#        GNU -Wduplicated-branches
+			#        GNU -Wduplicated-cond
+			GNU -Wextra
+			#        GNU -Wlogical-op
+			#        GNU -Wmultistatement-macros
+			#        GNU -Wnon-virtual-dtor # Causes some false positives with efsw (suppressed)
+			#        GNU -Wold-style-cast
+			GNU -Wpedantic
+			#        GNU -Wrestrict
+			#        GNU -Wshadow-compatible-local
+			#        GNU -Wsuggest-override
+			#        GNU -Wundef
 
-		# Warnings that I don't care about
-		Clang -Wno-comment
-		GNU -Wno-comment
-		# GNU -Wnull-dereference # Causes too many false positives as of GCC 11.2
-)
+			# Warnings that I don't care about
+			Clang -Wno-comment
+			GNU -Wno-comment
+			# GNU -Wnull-dereference # Causes too many false positives as of GCC 11.2
+	)
 
-# -------------------------------------------------------------------------------------------------
+	# -------------------------------------------------------------------------------------------------
 
-string(TOLOWER ${CMAKE_BUILD_TYPE} vide_build_type)
-if (vide_build_type STREQUAL "debug")
-	#add_compile_options(-Og)
-	add_compile_options(-ggdb3)
-	#	add_compile_options(-fno-omit-frame-pointer)
+	string(TOLOWER ${CMAKE_BUILD_TYPE} vide_build_type)
+	if (vide_build_type STREQUAL "debug")
+		#add_compile_options(-Og)
+		add_compile_options(-ggdb3)
+		#	add_compile_options(-fno-omit-frame-pointer)
 
-elseif (vide_build_type STREQUAL "release")
-	add_compile_options(-O3)
-	#	add_compile_options(-flto)
-	#	SET(CMAKE_AR "gcc-ar")
-	#	SET(CMAKE_NM "gcc-nm")
-	#	SET(CMAKE_RANLIB "gcc-ranlib")
-	#	add_definitions(-DNDEBUG)
-	wish_static_link_std()
-	add_compile_options(-static) # Normally wish_static_link_std() would take care of this, but vide is not really using wish
+	elseif (vide_build_type STREQUAL "release")
+		add_compile_options(-O3)
+		#	add_compile_options(-flto)
+		#	SET(CMAKE_AR "gcc-ar")
+		#	SET(CMAKE_NM "gcc-nm")
+		#	SET(CMAKE_RANLIB "gcc-ranlib")
+		#	add_definitions(-DNDEBUG)
+		wish_static_link_std()
+		add_compile_options(-static) # Normally wish_static_link_std() would take care of this, but vide is not really using wish
 
-elseif (vide_build_type STREQUAL "dev")
-	add_compile_options(-O3)
-	#    add_compile_options(-ftemplate-backtrace-limit=0)
+	elseif (vide_build_type STREQUAL "dev")
+		add_compile_options(-O3)
+		#    add_compile_options(-ftemplate-backtrace-limit=0)
 
-else ()
-	message(WARNING "Failed to identify [${CMAKE_BUILD_TYPE}] as a build type")
-endif ()
+	else ()
+		message(WARNING "Failed to identify [${CMAKE_BUILD_TYPE}] as a build type")
+	endif ()
 
-add_compile_options(-m64)
-add_compile_options(-std=c++23)
+	add_compile_options(-m64)
+	add_compile_options(-std=c++23)
 
-# -------------------------------------------------------------------------------------------------
+	add_compile_options(-ftemplate-backtrace-limit=50)
+
+endif () # ----------------------------------------------------------------------------------------
 
 function(vide_alternative_linker linker_name)
 	if (NOT linker_name)
@@ -178,7 +163,15 @@ vide_alternative_linker(${VIDE_ALTERNATIVE_LINKER})
 
 # -------------------------------------------------------------------------------------------------
 
-add_compile_options(-ftemplate-backtrace-limit=30)
+set(VIDE_THREAD_LIBS)
+if (UNIX)
+	option(THREAD_SAFE "Use mutexes to ensure thread safety" OFF)
+	if (THREAD_SAFE)
+		message(STATUS "Use mutexes")
+		add_definitions(-DVIDE_THREAD_SAFE=1)
+		set(VIDE_THREAD_LIBS pthread)
+	endif ()
+endif ()
 
 add_library(vide INTERFACE)
 add_library(vide::vide ALIAS vide)
@@ -216,26 +209,22 @@ if (VIDE_INSTALL)
 endif ()
 
 
-if (VIDE_JUST_INSTALL)
-	return()
-endif ()
+if (NOT VIDE_JUST_INSTALL)
+	#if(NOT VIDE_SKIP_PERFORMANCE_COMPARISON)
+	#    # Boost serialization for performance sandbox
+	#    find_package(Boost REQUIRED COMPONENTS serialization)
+	#endif()
 
+	if (VIDE_BUILD_TESTS)
+		enable_testing()
+		add_subdirectory(unittests)
+	endif ()
 
-#if(NOT VIDE_SKIP_PERFORMANCE_COMPARISON)
-#    # Boost serialization for performance sandbox
-#    find_package(Boost REQUIRED COMPONENTS serialization)
-#endif()
+	if (VIDE_BUILD_SANDBOX)
+		add_subdirectory(sandbox)
+	endif ()
 
-
-if (VIDE_BUILD_TESTS)
-	enable_testing()
-	add_subdirectory(unittests)
-endif ()
-
-if (VIDE_BUILD_SANDBOX)
-	add_subdirectory(sandbox)
-endif ()
-
-if (VIDE_BUILD_DOC)
-	add_subdirectory(doc)
+	if (VIDE_BUILD_DOC)
+		add_subdirectory(doc)
+	endif ()
 endif ()

@@ -205,26 +205,13 @@ if (VIDE_INSTALL)
 			${configFile}
 			INSTALL_DESTINATION ${configInstallDestination}
 	)
-	# https://github.com/USCiLab/cereal/commit/83b6fa06a043e1a9cc4361df79270253439b88ab
-	if (${CMAKE_VERSION} VERSION_GREATER 3.13)
-		write_basic_package_version_file("${versionFile}" COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)
-	else ()
-		write_basic_package_version_file("${versionFile}" COMPATIBILITY SameMajorVersion)
-	endif ()
-	configure_file(
-			${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}.pc.in
-			${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
-			@ONLY
-	)
+
+	write_basic_package_version_file("${versionFile}" COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)
 	install(FILES ${configFile} ${versionFile} DESTINATION ${configInstallDestination})
 	install(
 			EXPORT ${PROJECT_NAME}Targets
 			NAMESPACE "vide::"
 			DESTINATION ${configInstallDestination}
-	)
-	install(
-			FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
-			DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
 	)
 endif ()
 

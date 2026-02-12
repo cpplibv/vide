@@ -9,6 +9,7 @@
 #include <vide/nvp.hpp>
 #include <vide/traits/underlying_archive.hpp>
 
+#include <cstdint>
 #include <utility>
 
 

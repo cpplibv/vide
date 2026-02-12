@@ -59,7 +59,7 @@ struct MyType : public Base {
 	virtual ~MyType() {
 	}
 
-	void foo() {
+	void foo() override {
 	}
 
 	template <class Archive>
@@ -90,7 +90,7 @@ struct YourType : public Base {
 	virtual ~YourType() {
 	}
 
-	void foo() {
+	void foo() override {
 	}
 
 	template <class Archive>
@@ -110,6 +110,7 @@ VIDE_REGISTER_TYPE(YourType)
 VIDE_REGISTER_POLYMORPHIC_RELATION(Base, YourType)
 
 struct OurBase {
+	virtual	~OurBase() = default;
 	virtual void foo() {
 	}
 
@@ -130,7 +131,7 @@ struct OurType : public OurBase {
 	virtual ~OurType() {
 	}
 
-	void foo() {
+	void foo() override {
 	}
 
 	template <class Archive>
@@ -158,7 +159,7 @@ struct DerivedVirtual : public virtual BaseVirtual {
 
 	int y;
 
-	virtual void foo() {
+	void foo() override {
 	}
 
 	// template <class Archive>
@@ -192,6 +193,7 @@ struct TestType {
 };
 
 struct AAA {
+	virtual	~AAA() = default;
 	virtual void foo() = 0;
 };
 
@@ -199,7 +201,7 @@ struct BBB : AAA {
 	virtual ~BBB() {
 	}
 
-	void foo() {
+	void foo() override {
 	}
 
 	template <class Archive>

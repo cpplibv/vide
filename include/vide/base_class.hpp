@@ -32,6 +32,8 @@
 
 #include <vide/details/polymorphic_impl_fwd.hpp>
 
+#include <type_traits>
+
 
 namespace vide { // --------------------------------------------------------------------------------
 namespace base_class_detail {

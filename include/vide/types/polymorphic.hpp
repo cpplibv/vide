@@ -274,8 +274,8 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 				return;
 			}
 		} else {
-			auto [serializer, new_] = ar.registerPolymorphicType(polymorphic_id);
-			if (new_) {
+			auto [serializer, newType] = ar.registerPolymorphicType(polymorphic_id);
+			if (newType) {
 				std::string polymorphic_name;
 				ar.nvp("polymorphic_name", polymorphic_name);
 				serializer = polymorphic_detail::getPolymorphicInputSerializer(ar, polymorphic_name);

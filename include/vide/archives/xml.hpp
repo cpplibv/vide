@@ -764,7 +764,7 @@ public:
 	//! Loads the size of the current top node
 	template <class T> inline
 	void loadSize(T& value) {
-		value = getNumChildren(itsNodes.top().node);
+		value = static_cast<size_type>(getNumChildren(itsNodes.top().node));
 	}
 
 protected:

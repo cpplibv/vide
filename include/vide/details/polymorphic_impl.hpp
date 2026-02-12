@@ -13,6 +13,7 @@
 #include <vide/details/polymorphic_impl_fwd.hpp>
 #include <vide/details/static_object.hpp>
 #include <vide/details/util.hpp>
+#include <vide/exception.hpp>
 #include <vide/traits/underlying_archive.hpp>
 
 #include <limits>

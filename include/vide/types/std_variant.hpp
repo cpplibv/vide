@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vide/exception.hpp>
 #include <vide/macros.hpp>
 
 #include <variant>

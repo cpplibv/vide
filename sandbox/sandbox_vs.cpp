@@ -102,7 +102,7 @@ struct A {
 struct B : A {
 	virtual ~B() {}
 
-	void foo() {}
+	void foo() override {}
 
 	template <class Archive>
 	void serialize(Archive&) {

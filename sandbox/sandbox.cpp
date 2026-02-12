@@ -109,7 +109,7 @@ public:
 	//   ar( y );
 	// }
 
-	void foo() {
+	void foo() override {
 	}
 
 	int y;

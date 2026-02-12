@@ -386,11 +386,11 @@ public:
 	}
 
 	inline ArchiveType& size_tag(uint32_t size) {
-		return (*this)(::vide::SizeTag<size_type>(size));
+		return (*this)(::vide::SizeTag<size_type>(static_cast<size_type>(size)));
 	}
 
 	inline ArchiveType& size_tag(uint64_t size) {
-		return (*this)(::vide::SizeTag<size_type>(size));
+		return (*this)(::vide::SizeTag<size_type>(static_cast<size_type>(size)));
 	}
 
 	// inline ArchiveType& binary_data(const char* data, uint64_t size) {

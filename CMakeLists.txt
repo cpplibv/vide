@@ -1,21 +1,12 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 
 project(vide LANGUAGES CXX VERSION 3.0.2)
 
-
+include(cmake/wish_color.cmake)
 include(cmake/wish_create.cmake)
+include(cmake/wish_linker.cmake)
 include(cmake/wish_warning.cmake)
 
-
-# https://github.com/USCiLab/cereal/commit/b2d68c522bdc3a3fd9ab65c26dbd0aedbc61e0e8
-#option(SKIP_PORTABILITY_TEST "Skip portability (32 bit) tests" OFF)
-#include(CheckCXXCompilerFlag)
-#set(CMAKE_REQUIRED_FLAGS "-m32")
-#check_cxx_compiler_flag("-m32" COMPILER_SUPPORT_M32)
-#unset(CMAKE_REQUIRED_FLAGS)
-#if (NOT COMPILER_SUPPORT_M32)
-#	set(SKIP_PORTABILITY_TEST ON CACHE BOOL "Skip portability (32 bit) tests" FORCE)
-#endif ()
 
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE RELEASE)
@@ -27,51 +18,15 @@ set(CMAKE_CONFIGURATION_TYPES "DEBUG;RELEASE;DEV" CACHE STRING "" FORCE)
 option(VIDE_BUILD_DOC "Build documentation" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_BUILD_SANDBOX "Build sandbox examples" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
-option(VIDE_JUST_INSTALL "Don't do anything besides installing the library" OFF)
-option(VIDE_SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" OFF)
+option(VIDE_JUST_INSTALL "Don't do anything besides installing the library" FALSE)
+option(VIDE_SKIP_PERFORMANCE_COMPARISON "Skip building performance sandbox comparison (requires boost)" FALSE)
 option(VIDE_INSTALL "Generate the install target" ${PROJECT_IS_TOP_LEVEL})
 
 option(VIDE_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
+wish_force_colored_output(${VIDE_FORCE_COLORED_OUTPUT})
 option(VIDE_ALTERNATIVE_LINKER "Use an alternative linker. Leave empty for system default; alternatives are 'gold', 'lld', 'bfd', 'mold'" FALSE)
+wish_alternative_linker(${VIDE_ALTERNATIVE_LINKER})
 
-
-if (${VIDE_FORCE_COLORED_OUTPUT})
-	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-		message(STATUS "Force colored output: GCC")
-		add_compile_options(-fdiagnostics-color=always)
-	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-		message(STATUS "Force colored output: Clang")
-		add_compile_options(-fcolor-diagnostics)
-	endif ()
-else ()
-	message(STATUS "Force colored output: False")
-endif ()
-
-
-#if(MSVC)
-#    add_compile_options(/bigobj /W3 /WX)
-#else()
-#    add_compile_options(-Wall -Wextra -pedantic -Wshadow -Wold-style-cast)
-#
-##    option(VIDE_WITH_WERROR "Compile with '-Werror' C++ compiler flag" ON)
-##    if(VIDE_WITH_WERROR)
-##        add_compile_options(-Werror)
-##    endif()
-#
-##    option(VIDE_CLANG_USE_LIBCPP "Use libc++ for clang compilation" OFF)
-##    if(APPLE OR VIDE_CLANG_USE_LIBCPP)
-##        message(STATUS "Use libc++")
-##        add_compile_options(-stdlib=libc++)
-##        # TODO: use add_link_options(-stdlib=libc++ -lc++abi") bud this needs cmake 3.13! CK
-##        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
-##    endif()
-#
-##    if(NOT DEFINED CMAKE_CXX_STANDARD OR CMAKE_CXX_STANDARD STREQUAL "98")
-##        set(CMAKE_CXX_STANDARD 11)
-##    endif()
-#
-##    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#endif()
 
 if (PROJECT_IS_TOP_LEVEL) # ---------------------------------------------------------------------------
 
@@ -80,32 +35,32 @@ if (PROJECT_IS_TOP_LEVEL) # ----------------------------------------------------
 
 			Clang -Weverything
 			Clang -Wmissing-override
-			Clang -Wconversion
+#			Clang -Wconversion
 
 			GNU -Wall
-			#        GNU -Warray-bounds
-			#        GNU -Wcast-align=strict
-			#        GNU -Wcast-qual
-			#        GNU -Wconversion
-			#        GNU -Wdelete-non-virtual-dtor
-			#        GNU -Wdouble-promotion
-			#        GNU -Wduplicated-branches
-			#        GNU -Wduplicated-cond
+			GNU -Warray-bounds
+#			GNU -Wcast-align=strict # rapidxml / rapidjson has a bunch of these
+			GNU -Wcast-qual
+#			GNU -Wconversion # Too many, but should cleanup all
+			GNU -Wdelete-non-virtual-dtor
+			GNU -Wdouble-promotion
+			GNU -Wduplicated-branches
+			GNU -Wduplicated-cond
 			GNU -Wextra
-			#        GNU -Wlogical-op
-			#        GNU -Wmultistatement-macros
-			#        GNU -Wnon-virtual-dtor # Causes some false positives with efsw (suppressed)
-			#        GNU -Wold-style-cast
+			GNU -Wlogical-op
+			GNU -Wmultistatement-macros
+			GNU -Wnon-virtual-dtor
+#			GNU -Wnull-dereference # Too many false positive
+			GNU -Wold-style-cast
 			GNU -Wpedantic
-			#        GNU -Wrestrict
-			#        GNU -Wshadow-compatible-local
-			#        GNU -Wsuggest-override
-			#        GNU -Wundef
+			GNU -Wrestrict
+			GNU -Wshadow-compatible-local
+			GNU -Wsuggest-override
+			GNU -Wundef
 
 			# Warnings that I don't care about
 			Clang -Wno-comment
 			GNU -Wno-comment
-			# GNU -Wnull-dereference # Causes too many false positives as of GCC 11.2
 	)
 
 	# -------------------------------------------------------------------------------------------------
@@ -135,37 +90,14 @@ if (PROJECT_IS_TOP_LEVEL) # ----------------------------------------------------
 	endif ()
 
 	add_compile_options(-m64)
-	add_compile_options(-std=c++23)
 
 	add_compile_options(-ftemplate-backtrace-limit=50)
 
 endif () # ----------------------------------------------------------------------------------------
 
-function(vide_alternative_linker linker_name)
-	if (NOT linker_name)
-		return()
-	endif ()
-
-	find_program(linker_executable ld.${linker_name} ${linker_name})
-	if (linker_executable)
-		if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND "${CMAKE_CXX_COMPILER_VERSION}" VERSION_LESS 12.0.0)
-			add_link_options("-ld-path=${linker_name}")
-		else ()
-			add_link_options("-fuse-ld=${linker_name}")
-		endif ()
-		message(STATUS "Vide: Alternative linker: ${linker_name}")
-	else ()
-		message(FATAL_ERROR "Vide: Could not enable alternative linker: ${linker_name} program was not found")
-	endif ()
-endfunction()
-
-vide_alternative_linker(${VIDE_ALTERNATIVE_LINKER})
-
-# -------------------------------------------------------------------------------------------------
-
 set(VIDE_THREAD_LIBS)
 if (UNIX)
-	option(THREAD_SAFE "Use mutexes to ensure thread safety" OFF)
+	option(THREAD_SAFE "Use mutexes to ensure thread safety" FALSE)
 	if (THREAD_SAFE)
 		message(STATUS "Use mutexes")
 		add_definitions(-DVIDE_THREAD_SAFE=1)
@@ -175,10 +107,17 @@ endif ()
 
 add_library(vide INTERFACE)
 add_library(vide::vide ALIAS vide)
-target_include_directories(vide INTERFACE
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
+
+file(GLOB_RECURSE vide_public_header_files LIST_DIRECTORIES false RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" CONFIGURE_DEPENDS "include/*.hpp")
+target_sources(vide PUBLIC
+		FILE_SET public_headers
+        TYPE HEADERS
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include"
+		FILES ${vide_public_header_files})
+if (PROJECT_IS_TOP_LEVEL)
+	set_target_properties(vide PROPERTIES VERIFY_INTERFACE_HEADER_SETS TRUE)
+endif ()
+
 list(APPEND VIDE_THREAD_LIBS vide::vide)
 
 target_compile_features(vide INTERFACE cxx_std_23)
@@ -186,7 +125,9 @@ target_compile_features(vide INTERFACE cxx_std_23)
 if (VIDE_INSTALL)
 	include(CMakePackageConfigHelpers)
 
-	install(TARGETS vide EXPORT ${PROJECT_NAME}Targets)
+	install(TARGETS vide
+			EXPORT ${PROJECT_NAME}Targets
+			FILE_SET public_headers DESTINATION include)
 	install(DIRECTORY include/vide DESTINATION include)
 
 	set(configFile ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake)
@@ -228,3 +169,15 @@ if (NOT VIDE_JUST_INSTALL)
 		add_subdirectory(doc)
 	endif ()
 endif ()
+
+
+# =================================================================================================
+# https://github.com/USCiLab/cereal/commit/b2d68c522bdc3a3fd9ab65c26dbd0aedbc61e0e8
+#option(SKIP_PORTABILITY_TEST "Skip portability (32 bit) tests" FALSE)
+#include(CheckCXXCompilerFlag)
+#set(CMAKE_REQUIRED_FLAGS "-m32")
+#check_cxx_compiler_flag("-m32" COMPILER_SUPPORT_M32)
+#unset(CMAKE_REQUIRED_FLAGS)
+#if (NOT COMPILER_SUPPORT_M32)
+#	set(SKIP_PORTABILITY_TEST ON CACHE BOOL "Skip portability (32 bit) tests" FORCE)
+#endif ()

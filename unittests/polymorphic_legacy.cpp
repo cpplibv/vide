@@ -36,7 +36,7 @@ struct PolyBaseAA : PolyBaseA {
 
 	virtual ~PolyBaseAA() = default;
 
-	void foo() {
+	void foo() override {
 	}
 
 	bool operator==(PolyBaseAA const& other) const {
@@ -138,7 +138,7 @@ struct PolyBase {
 	virtual void foo() = 0;
 
 	bool operator==(PolyBase const& other) const {
-		return x == other.x && std::abs(y - other.y) < 1e-5;
+		return x == other.x && std::abs(y - other.y) < 1e-5f;
 	}
 };
 
@@ -164,7 +164,7 @@ struct PolyDerived : PolyBase {
 		return PolyBase::operator==(other) && a == other.a && std::abs(b - other.b) < 1e-5;
 	}
 
-	void foo() {
+	void foo() override {
 	}
 };
 } // namespace legacy ------------------------------------------------------------------------------
@@ -196,7 +196,7 @@ struct PolyDerivedLA : public PolyLA {
 
 	virtual ~PolyDerivedLA() = default;
 
-	void foo() {
+	void foo() override {
 	}
 
 	bool operator==(PolyDerivedLA const& other) const {

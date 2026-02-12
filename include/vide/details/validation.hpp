@@ -72,6 +72,13 @@ struct indirect_t : private Base {
 	inline void operator()(const T& var) const {
 		if (var)
 			Base::operator()(*var);
+		// if (var) {
+		// 	try {
+		// 		Base::operator()(*var);
+		// 	} catch (const vide::Exception& e) {
+		// 		throw vide::Exception(e.what() + "\n\twithin indirect");
+		// 	}
+		// }
 	}
 };
 
@@ -86,6 +93,12 @@ struct ranged_t : private Base {
 	inline void operator()(const T& var) const {
 		for (const auto& item : var)
 			Base::operator()(item);
+		// for (const auto& item : var)
+		// 	try {
+		// 		Base::operator()(*var);
+		// 	} catch (const vide::Exception& e) {
+		// 		throw vide::Exception(e.what() + "\n\twithin the element at index {}");
+		// 	}
 	}
 };
 

@@ -13,7 +13,19 @@
 
 
 
+- reflection: Rework enum validation to rely more on reflection
+  - Replace unbounded_enumerator, end_value_enumerator and max_value_enumerator validation with attribute reflection
 
+
+
+
+cleanup cmake, confirm to a proper modern design
+	ensure vide works with CPM https://github.com/cpm-cmake/CPM.cmake
+
+review/remove threading
+	replace static_object with function static pattern
+	(the only place it should have been used is polymorphic type registration)
+	which is startup or dll load time
 
 
 

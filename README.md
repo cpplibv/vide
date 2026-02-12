@@ -1,20 +1,99 @@
-**cpplibv/vide** - A C++23 serialization library
+**cpplibv/vide** - A C++26 serialization library
 ==========================================
+
+Vide is a header-only C++11 serialization library.
+
+Vide takes arbitrary data types and reversibly turns them into different representations,
+such as compact binary encodings, XML, or JSON. Vide was designed to be fast, light-weight,
+and easy to extend - it has no external dependencies and can be easily bundled with other
+code or used standalone.
+
+### Vide is easy to use
+
+Installation and use of Vide is easy, but this is a quick and dirty version:
+
+* Download Vide and place the headers somewhere your code can see them
+* Write serialization functions for your custom types or use the built-in support for the standard library Vide provides
+* Use the serialization archives to save and load data
+
+```cpp
+#include <vide/archives/binary.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/std_unordered_map.hpp>
+#include <fstream>
+
+struct MyRecord {
+	uint8_t x;
+	float y;
+
+	template <class Archive> void serialize(Archive& ar) {
+		ar(x);
+		ar(y);
+	}
+};
+
+class SomeData {
+	std::shared_ptr<std::unordered_map<uint32_t, MyRecord>> data;
+	int cachedSize = 0;
+
+public:
+	template <class Archive> void save(Archive& ar) const {
+		ar(data);
+	}
+
+	template <class Archive> void load(Archive& ar) {
+		ar(data);
+		cachedSize = data ? data->size() : 0;
+	}
+};
+
+int main() {
+	std::ofstream os("out.bin", std::ios::binary | std::ios::out);
+
+	SomeData myData;
+	{
+		vide::BinaryOutputArchive archive(os);
+		archive(myData);
+	}
+
+	return 0;
+}
+```
+
+## Forked from Cereal:
+
 Originally started as a fork from [USCiLab/cereal](https://github.com/USCiLab/cereal)
 
 Compared to the original project the most notable changes are:
-  - Fix security vulnerabilities
-  - New features and utilities: ProxyArchives, Validations
-  - Improve API flexibility and composability
-  - Significantly improve compile time
-  - Modernize and simplify the codebase
+  - Fixed numerous security vulnerabilities
+  - New features and utilities: ProxyArchives, Validations, Reflection
+  - Improved API flexibility and composability
+  - Significantly improved compile time
+  - Modernized and simplify the codebase
 
-Compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
-Bugfixes from the upstream are planned to be ported manually (and currently in sync with 2025.01.20 a56bad8bb).
+Since compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
+Bugfixes from the upstream are manually ported (and currently in sync with 2026.07.24 22a1b369).
 
-As of v3.0.0 the data representation is considered STABLE! Hurray!
+Since v3.0.0 the data representation is considered STABLE! Hurray!
 
-### Changes / Differences to Cereal:
+## Planned / Upcoming new features:
+The library is considered production ready and almost feature complete.
+Additional nice to have extras may arrive in the future.
+
+- reflection: Comprehensive reflection based serialization
+- reflection: Comprehensive rework of metaprogramming to utilize reflection
+- reflection: Rework enum validation to rely more on reflection
+  - Replace unbounded_enumerator, end_value_enumerator and max_value_enumerator validation with attribute reflection
+- Comprehensive serialization error reporting. Additional stack information and archive position in error
+  - Both during normal serialization and during validation
+- Foreach iteration/visitor algorithms
+- Archive level global version: `const auto version_guard = ar.archive_version(config_version);` and `ar.archive_version()`
+- Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
+- Maybe: Context variables passed as additional function arguments
+- Maybe: Versioned<->type selector
+
+
+## Change log:
 - Change name to `vide` to indicate the incompatibility with upstream
   - `vide` comes from the latin word serial
   - Name change was necessary due to incompatibilities
@@ -175,107 +254,38 @@ As of v3.0.0 the data representation is considered STABLE! Hurray!
 - Version 3.0.2:
   - Move vide/types/base_class.hpp to vide/base_class.hpp
   - Fix missing base_class include
+- Version 3.1.0:
+  - Bump required CMake version to 3.24
+  - Remove pkgconfig file generation
+  - Remove AllowEmptyClassElision
+  - Change duration and time_point serialization to be minimal
+  - Improve the CMake scripts
+  - Enable and cleanup additional warnings and VERIFY_INTERFACE_HEADER_SETS
+  - Add `vide::indirect(base_validator)` or `ar.indirect(base_validator)` as a validator for `!var || base_validator(*var)` testing.
+  - Add `vide::indirect_maxsize(limit)` or `ar.indirect_maxsize(limit)` as a validator for `!var || var->size() <= limit` testing.
+  - Add `vide::ranged(base_validator)` or `ar.ranged(base_validator)` as a validator for `for (item : var) base_validator(var)` testing.
+  - Add `types/reflection.hpp` to support initial reflection based serialization
+    - Enabled by defining `using T::serialize_enable_reflection = void` inside the target type.
+    - Member validators can be assigned with annotations on the member
+    - Example:
+      ```
+       struct MyType {
+         using serialize_enable_reflection = void;
+         static constexpr std::uint32_t serialize_class_version = 166;
+         [[=vide::notnull]]
+         int a = 1;
+      };
+      ```
+  - Add `vide::minsize(limit)` or `ar.minsize(limit)`: A `var.size() >= limit` testing validation object.
+  - Fix multi-container deserialization order for equal keys (Upstream PR https://github.com/USCiLab/cereal/pull/874
+  - Sync, review and resolve upstream commits, PRs, and issues up to and including 2026.07.24 22a1b369
 
-### Planned:
-- Foreach iteration/visitor algorithms
-- Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
-- Maybe: Context variables passed as additional function arguments
-- Maybe: Versioned<->type selector
-- Maybe: Patch back location. A way to skip some bytes and write (patch) back the desired values later
-  ```
-  const auto index_body_a_loc = ar.patch<uint32_t>();
-  ar(header);
-  const auto body_a_offset = ar.tellp();
-  ar(body_a);
-  ar(index_body_a_loc, body_a_offset);
-  ```
-
-### Known Issues:
-- Polymorphic serialization of non-virtual independent and duplicate base subobjects when loaded with the
-duplicate type will correctly load but will incorrectly upcast/point to the first occurrence regardless which object was pointed to during saving.
 
 -------------------------------------------------------------------------------------------------
 
-cereal - A C++11 library for serialization
-==========================================
+## Known Issues:
+[KNOWN_ISSUES.md](KNOWN_ISSUES.md)
 
-<p>cereal is a header-only C++11 serialization library.  cereal takes arbitrary data types and reversibly turns them into different representations, such as compact binary encodings, XML, or JSON.  cereal was designed to be fast, light-weight, and easy to extend - it has no external dependencies and can be easily bundled with other code or used standalone.</p>
+## License
 
-### cereal has great documentation
-
-Looking for more information on how cereal works and its documentation?  Visit [cereal's web page](https://USCiLab.github.io/cereal) to get the latest information.
-
-### cereal is easy to use
-
-Installation and use of of cereal is fully documented on the [main web page](https://USCiLab.github.io/cereal), but this is a quick and dirty version:
-
-* Download cereal and place the headers somewhere your code can see them
-* Write serialization functions for your custom types or use the built in support for the standard library cereal provides
-* Use the serialization archives to load and save data
-
-```cpp
-#include <vide/archives/binary.hpp>
-#include <vide/types/memory.hpp>
-#include <vide/types/std_unordered_map.hpp>
-#include <fstream>
-
-struct MyRecord {
-	uint8_t x, y;
-	float z;
-
-	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(x);
-		ar(y);
-		ar(z);
-	}
-};
-
-struct SomeData {
-	int32_t id;
-	std::shared_ptr<std::unordered_map<uint32_t, MyRecord>> data;
-
-	template <class Archive>
-	void save(Archive& ar) const {
-		ar(data);
-	}
-
-	template <class Archive>
-	void load(Archive& ar) {
-		static int32_t idGen = 0;
-		id = idGen++;
-		ar(data);
-	}
-};
-
-int main() {
-	std::ofstream os("out.bin", std::ios::binary | std::ios::out);
-
-	SomeData myData;
-	{
-		vide::BinaryOutputArchive archive(os);
-		archive(myData);
-	}
-
-	return 0;
-}
-```
-
-### cereal has a mailing list
-
-Either get in touch over <a href="mailto:cerealcpp@googlegroups.com">email</a> or [on the web](https://groups.google.com/forum/#!forum/cerealcpp).
-
-
-
-## cereal has a permissive license
-
-cereal is licensed under the [BSD license](http://opensource.org/licenses/BSD-3-Clause).
-
-## cereal build status
-
-* master : [![Build Status](https://travis-ci.com/USCiLab/cereal.svg?branch=master)](https://travis-ci.com/USCiLab/cereal)
-[![Build status](https://ci.appveyor.com/api/projects/status/91aou6smj36or0vb/branch/master?svg=true)](https://ci.appveyor.com/project/AzothAmmo/cereal/branch/master)
-
----
-
-Were you looking for the Haskell cereal?  Go <a href="https://github.com/GaloisInc/cereal">here</a>.
+Vide is licensed under the permissive [BSD license](http://opensource.org/licenses/BSD-3-Clause).

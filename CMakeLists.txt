@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(vide LANGUAGES CXX VERSION 3.0.2)
+project(vide LANGUAGES CXX VERSION 3.1.0)
 
 include(cmake/wish_color.cmake)
 include(cmake/wish_create.cmake)

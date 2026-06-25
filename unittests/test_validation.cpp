@@ -2,6 +2,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
 #include "common.hpp"
+#include <vide/types/std_optional.hpp>
 
 
 TEST_SUITE_BEGIN("validation");
@@ -78,6 +79,7 @@ struct Tester {
 
 template <typename IArchive, typename OArchive>
 void test_validation() {
+	// --- Active
 	Tester<IArchive, OArchive> active{};
 	// Not null
 	CHECK_NOTHROW(active.test_out(std::make_unique<int>(42), vide::notnull));
@@ -133,6 +135,25 @@ void test_validation() {
 	CHECK_THROWS_AS(active.test_out_nvp(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
 	CHECK_THROWS_AS(active.test_in__nvp(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
 
+	// Test indirect
+	CHECK_NOTHROW(active.test_out(std::make_unique<int>(41), vide::indirect(vide::notnull), vide::indirect(is_odd{})));
+	CHECK_NOTHROW(active.test_in_(std::make_unique<int>(41), vide::indirect(vide::notnull), vide::indirect(is_odd{})));
+	CHECK_NOTHROW(active.test_out(std::make_unique<int>(41), vide::indirect(is_odd{}), vide::indirect(vide::notnull)));
+	CHECK_NOTHROW(active.test_in_(std::make_unique<int>(41), vide::indirect(is_odd{}), vide::indirect(vide::notnull)));
+	CHECK_THROWS_AS(active.test_out(std::make_unique<int>(42), vide::indirect(vide::notnull), vide::indirect(is_odd{})), vide::Exception);
+	CHECK_THROWS_AS(active.test_in_(std::make_unique<int>(42), vide::indirect(vide::notnull), vide::indirect(is_odd{})), vide::Exception);
+	CHECK_THROWS_AS(active.test_out(std::make_unique<int>(42), vide::indirect(is_odd{}), vide::indirect(vide::notnull)), vide::Exception);
+	CHECK_THROWS_AS(active.test_in_(std::make_unique<int>(42), vide::indirect(is_odd{}), vide::indirect(vide::notnull)), vide::Exception);
+
+	CHECK_NOTHROW(active.test_out(std::optional<int>(42), vide::indirect(vide::notnull)));
+	CHECK_NOTHROW(active.test_in_(std::optional<int>(42), vide::indirect(vide::notnull)));
+
+	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place}, vide::indirect(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0}}, vide::indirect(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1}}, vide::indirect(vide::maxsize(2))));
+	CHECK_THROWS_AS(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1, 2}}, vide::indirect(vide::maxsize(2))), vide::Exception);
+
+	// --- Inactive
 	Tester<NonValidatingProxy<IArchive>, NonValidatingProxy<OArchive>> inactive{};
 	// Not enforced - Not null
 	CHECK_NOTHROW(inactive.test_out(std::make_unique<int>(42), vide::notnull));

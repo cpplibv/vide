@@ -51,6 +51,20 @@ struct maxsize_t {
 	}
 };
 
+template <typename Base>
+struct indirect_t : private Base {
+	template <typename... Args>
+	explicit constexpr inline indirect_t(Args&&... args) :
+		Base(std::forward<Args>(args)...) {
+	}
+
+	template <typename T>
+	inline void operator()(const T& var) const {
+		if (var)
+			Base::operator()(*var);
+	}
+};
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 constexpr inline notnull_t notnull;
@@ -59,6 +73,15 @@ constexpr inline notempty_t notempty;
 
 [[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 	return maxsize_t{limit};
+}
+
+template <typename Base>
+[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
+	return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+}
+
+[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
+	return indirect_t<maxsize_t>{limit};
 }
 
 } // namespace vide ----------------------------------------------------------------------------------------------------

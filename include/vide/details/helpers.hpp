@@ -112,6 +112,13 @@ public:
 	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 		return maxsize_t{limit};
 	}
+	template <typename Base>
+	[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
+		return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+	}
+	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
+		return indirect_t<maxsize_t>{limit};
+	}
 };
 
 class InputArchiveBase {
@@ -133,6 +140,13 @@ public:
 	[[no_unique_address]] notempty_t notempty;
 	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 		return maxsize_t{limit};
+	}
+	template <typename Base>
+	[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
+		return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+	}
+	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
+		return indirect_t<maxsize_t>{limit};
 	}
 };
 

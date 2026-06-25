@@ -179,6 +179,13 @@ public:
 	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 		return maxsize_t{limit};
 	}
+	template <typename Base>
+	[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
+		return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+	}
+	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
+		return indirect_t<maxsize_t>{limit};
+	}
 	inline void verify(bool pass, std::string_view message) const {
 		if constexpr (CRTP::enforce_validation)
 			if (!pass)

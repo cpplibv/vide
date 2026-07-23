@@ -115,19 +115,8 @@ inline DeferredData<T> defer(T&& value) {
 
 // ######################################################################
 //! Special flags for archives
-/*! AllowEmptyClassElision
-	  This allows for empty classes to be serialized even if they do not provide
-	  a serialization function.  Classes with no data members are considered to be
-	  empty.  Be warned that if this is enabled and you attempt to serialize an
-	  empty class with improperly formed serialize or load/save functions, no
-	  static error will occur - the error will propagate silently and your
-	  intended serialization functions may not be called.  You can manually
-	  ensure that your classes that have custom serialization are correct
-	  by using the traits is_output_serializable and is_input_serializable
-	  in vide/details/traits.hpp.
-	@ingroup Internal */
 enum Flags {
-	AllowEmptyClassElision = 1u << 0u,
+	//	____ = 1u << 0u,
 	IgnoreNVP = 1u << 1u,
 	TextArchive = 1u << 2u,
 	BinaryArchive = 1u << 3u,
@@ -540,14 +529,6 @@ private:
 		itsDeferments.emplace_back(std::move(deferment));
 	}
 
-	//! Empty class specialization
-	template <class As, class T>
-			requires (!access::is_output_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && Empty<T>)
-	inline void processImpl(As& as, const T& var) {
-		(void) as;
-		(void) var;
-	}
-
 	//! Generic serialization case
 	template <class As, class T>
 			requires access::is_output_serializable<As, T>
@@ -955,14 +936,6 @@ private:
 		(void) as;
 		std::function<void()> deferment([this, d]() { process_self(d.value); });
 		itsDeferments.emplace_back(std::move(deferment));
-	}
-
-	//! Empty class specialization
-	template <class As, class T>
-			requires (!access::is_input_serializable<As, T> && (Flags & AllowEmptyClassElision) != 0 && Empty<T>)
-	inline void processImpl(As& as, const T& var) {
-		(void) as;
-		(void) var;
 	}
 
 	//! Generic serialization case

@@ -80,7 +80,7 @@ inline void swap_bytes(std::uint8_t* data) {
 
   \ingroup Archives */
 class PortableBinaryOutputArchive :
-		public OutputArchive<PortableBinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
+		public OutputArchive<PortableBinaryOutputArchive, IgnoreNVP | BinaryArchive> {
 
 private:
 	std::ostream& itsStream;
@@ -217,7 +217,7 @@ public:
 			 <a href="www.github.com/USCiLab/cereal">the project github</a>.
 
   \ingroup Archives */
-class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
+class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, IgnoreNVP | BinaryArchive> {
 private:
 	std::istream::pos_type end;
 	std::istream& itsStream;

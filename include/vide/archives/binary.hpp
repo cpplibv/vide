@@ -25,7 +25,7 @@ namespace vide {
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
+class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, IgnoreNVP | BinaryArchive> {
 private:
 	std::ostream& itsStream;
 
@@ -94,7 +94,7 @@ public:
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryInputArchive : public InputArchive<BinaryInputArchive, AllowEmptyClassElision | IgnoreNVP | BinaryArchive> {
+class BinaryInputArchive : public InputArchive<BinaryInputArchive, IgnoreNVP | BinaryArchive> {
 private:
 	std::istream::pos_type end;
 	std::istream& itsStream;

@@ -252,6 +252,38 @@ struct ProxyTestGroup : ProxyStorage<Ar>, UserProxyArchive<Ar> {
 
 // -------------------------------------------------------------------------------------------------
 
+template<typename IArchive, typename OArchive>
+struct SaveLoadTester {
+	template <typename T>
+	bool operator()(const T& varOutput, const auto&... validators) {
+		{ // Output with validators
+			std::ostringstream os; {
+				OArchive oar(os);
+				oar(varOutput, validators...);
+			}
+
+			// if constexpr (IArchive::is_text_archive)
+			// 	std::cout << os.str() << std::endl;
+		}
+		{ // Output without validators
+			std::ostringstream os; {
+				OArchive oar(os);
+				oar(varOutput); // No validation on output so we can write out the invalid, so we can test the input validation
+			}
+
+			T varInput{};
+			std::istringstream is(os.str()); {
+				IArchive iar(is);
+				iar(varInput, validators...);
+			}
+
+			return varOutput == varInput;
+		}
+	}
+};
+
+// -------------------------------------------------------------------------------------------------
+
 #define CREATE_TEST_CASES_FOR_BINARY_ARCHIVE(Name, Function)                                                            \
     TEST_CASE("binary_" Name) {                                                                                         \
         Function<vide::BinaryInputArchive, vide::BinaryOutputArchive>();                                                \

@@ -23,12 +23,12 @@ inline void implementation_set_load(Archive& ar, SetT& set) {
 
 	set.clear();
 
-	auto hint = set.begin();
 	for (typename Archive::size_type i = 0; i < size; ++i) {
 		typename SetT::key_type key;
 
 		ar(key);
-		hint = set.emplace_hint(hint, std::move(key));
+		// Hint at the end is mandatory to preserve the insertion order for multiset
+		set.emplace_hint(set.end(), std::move(key));
 	}
 
 	if (set.size() != size)

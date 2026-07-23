@@ -94,9 +94,48 @@ void test_multiset() {
 	}
 }
 
+// -------------------------------------------------------------------------------------------------
+
+struct OrderChecker {
+	int order;
+	int value;
+
+	template<class Archive>
+	void serialize(Archive& ar) {
+		ar.nvp("order", order);
+		ar.nvp("value", value);
+	}
+
+	friend bool operator<(const OrderChecker& lhs, const OrderChecker& rhs) {
+		return lhs.order < rhs.order;
+	}
+
+	friend bool operator==(const OrderChecker& lhs1, const OrderChecker& rhs1) = default;
+};
+
+template <class IArchive, class OArchive>
+void test_multiset_preserve_order() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
+	SaveLoadTester<IArchive, OArchive> test{};
+
+	std::multiset<OrderChecker> set;
+	set.emplace(10, 1);
+	set.emplace(10, 2);
+	set.emplace(10, 3);
+	set.emplace(10, 4);
+	set.emplace(10, 5);
+	set.emplace(10, 6);
+	set.emplace(10, 7);
+	set.emplace(10, 8);
+	set.emplace(10, 9);
+	CHECK(test(set));
+}
 
 TEST_SUITE_BEGIN("multiset");
 
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multiset", test_multiset)
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multiset_preserve_order", test_multiset_preserve_order)
 
 TEST_SUITE_END();

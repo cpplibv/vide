@@ -32,13 +32,13 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, Map& map) {
 		// std::unordered_map / std::unordered_multimap has reserve
 		map.reserve(reservable);
 
-	auto hint = map.begin();
 	for (size_t i = 0; i < size; ++i) {
 		typename Map::key_type key;
 		typename Map::mapped_type value;
 
 		ar(make_map_item(key, value));
-		hint = map.emplace_hint(hint, std::move(key), std::move(value));
+		// Hint at the end is mandatory to preserve the insertion order for multiset
+		map.emplace_hint(map.end(), std::move(key), std::move(value));
 	}
 
 	if (map.size() != size)

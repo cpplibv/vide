@@ -94,9 +94,31 @@ void test_multimap() {
 	}
 }
 
+// -------------------------------------------------------------------------------------------------
+
+template <class IArchive, class OArchive>
+void test_multimap_preserve_order() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
+	SaveLoadTester<IArchive, OArchive> test{};
+
+	std::multimap<int, int> map;
+	map.emplace(10, 1);
+	map.emplace(10, 2);
+	map.emplace(10, 3);
+	map.emplace(10, 4);
+	map.emplace(10, 5);
+	map.emplace(10, 6);
+	map.emplace(10, 7);
+	map.emplace(10, 8);
+	map.emplace(10, 9);
+	CHECK(test(map));
+}
 
 TEST_SUITE_BEGIN("multimap");
 
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multimap", test_multimap)
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multimap_preserve_order", test_multimap_preserve_order)
 
 TEST_SUITE_END();

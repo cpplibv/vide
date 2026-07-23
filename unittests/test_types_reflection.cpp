@@ -8,36 +8,6 @@
 TEST_SUITE_BEGIN("types_reflection");
 
 
-template<typename IArchive, typename OArchive>
-struct Tester {
-	template <typename T>
-	bool operator()(const T& varOutput, const auto&... validators) {
-		{ // Output with validators
-			std::ostringstream os; {
-				OArchive oar(os);
-				oar(varOutput, validators...);
-			}
-
-			// if constexpr (IArchive::is_text_archive)
-			// 	std::cout << os.str() << std::endl;
-		}
-		{ // Output without validators
-			std::ostringstream os; {
-				OArchive oar(os);
-				oar(varOutput); // No validation on output so we can write out the invalid, so we can test the input validation
-			}
-
-			T varInput{};
-			std::istringstream is(os.str()); {
-				IArchive iar(is);
-				iar(varInput, validators...);
-			}
-
-			return varOutput == varInput;
-		}
-	}
-};
-
 // -------------------------------------------------------------------------------------------------
 
 struct is_odd {
@@ -110,7 +80,7 @@ struct TestType6_validator_with_unrelated {
 
 template <typename IArchive, typename OArchive>
 void test_types_reflection() {
-	Tester<IArchive, OArchive> test{};
+	SaveLoadTester<IArchive, OArchive> test{};
 
 	CHECK(test(TestType0_empty{}));
 	CHECK(test(TestType1{}));

@@ -91,6 +91,7 @@ if (PROJECT_IS_TOP_LEVEL) # ----------------------------------------------------
 
 	add_compile_options(-m64)
 
+	add_compile_options(-freflection)
 	add_compile_options(-ftemplate-backtrace-limit=50)
 
 endif () # ----------------------------------------------------------------------------------------
@@ -120,7 +121,7 @@ endif ()
 
 list(APPEND VIDE_THREAD_LIBS vide::vide)
 
-target_compile_features(vide INTERFACE cxx_std_23)
+target_compile_features(vide INTERFACE cxx_std_26)
 
 if (VIDE_INSTALL)
 	include(CMakePackageConfigHelpers)

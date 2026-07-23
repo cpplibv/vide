@@ -19,9 +19,9 @@ struct NonValidatingProxy : vide::ProxyArchive<NonValidatingProxy<Ar>, Ar> {
 
 struct is_odd {
 	template <typename T>
-	inline void operator()(const T& var) const {
+	static inline void operator()(const T& var) {
 		if (var % 2 == 0)
-			throw vide::Exception("Non-empty validation failed during serialization: object is empty.");
+			throw vide::Exception("Is-odd validation failed during serialization: object is even.");
 	}
 };
 

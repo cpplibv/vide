@@ -149,9 +149,32 @@ void test_validation() {
 	CHECK_NOTHROW(active.test_in_(std::optional<int>(42), vide::indirect(vide::notnull)));
 
 	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place}, vide::indirect(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::optional<std::vector<int>>{std::in_place}, vide::indirect(vide::maxsize(2))));
 	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0}}, vide::indirect(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0}}, vide::indirect(vide::maxsize(2))));
 	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1}}, vide::indirect(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1}}, vide::indirect(vide::maxsize(2))));
 	CHECK_THROWS_AS(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1, 2}}, vide::indirect(vide::maxsize(2))), vide::Exception);
+	CHECK_THROWS_AS(active.test_out(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1, 2}}, vide::indirect(vide::maxsize(2))), vide::Exception);
+
+	// Test ranged
+	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0}}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0}}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0}, std::vector<int>{1}, std::vector<int>{2}}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0}, std::vector<int>{1}, std::vector<int>{2}}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::maxsize(2))));
+	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{1, 1}}, vide::ranged(vide::notnull)));
+	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{1, 1}}, vide::ranged(vide::notnull)));
+
+	CHECK_THROWS_AS(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0, 1, 2}}, vide::ranged(vide::maxsize(2))), vide::Exception);
+	CHECK_THROWS_AS(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0, 1, 2}}, vide::ranged(vide::maxsize(2))), vide::Exception);
+	CHECK_THROWS_AS(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{1, 0}}, vide::ranged(vide::notnull)), vide::Exception);
+	CHECK_THROWS_AS(active.test_out(std::vector<std::vector<int>>{std::vector<int>{1, 0}}, vide::ranged(vide::notnull)), vide::Exception);
+	CHECK_THROWS_AS(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::notnull)), vide::Exception);
+	CHECK_THROWS_AS(active.test_out(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::notnull)), vide::Exception);
 
 	// --- Inactive
 	Tester<NonValidatingProxy<IArchive>, NonValidatingProxy<OArchive>> inactive{};

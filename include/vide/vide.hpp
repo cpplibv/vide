@@ -448,6 +448,8 @@ public:
 	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
 	/// If this is the first time this class has been serialized, it will record its
 	/// serialize_class_version static member and serialize that regardless if the serializer function uses it or not.
+	///
+	/// @tparam T The type of the class being serialized
 	template <class T>
 	inline void registerClassVersionUnused() {
 		if constexpr (access::has_static_member_class_version<T>) {
@@ -460,11 +462,11 @@ public:
 		}
 	}
 
-	//! Registers a class version with the archive and serializes it if necessary
-	/*! If this is the first time this class has been serialized, we will record its
-		version number and serialize that.
-
-		@tparam T The type of the class being serialized */
+	/// Registers a class version with the archive and serializes it if necessary.
+	/// If this is the first time this class has been serialized, we will record and
+	/// serialize its version number.
+	///
+	/// @tparam T The type of the class being serialized
 	template <class T>
 	inline std::uint32_t registerClassVersion() {
 		static const auto hash = std::type_index(typeid(T)).hash_code();

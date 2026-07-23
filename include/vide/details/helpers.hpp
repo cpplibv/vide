@@ -145,6 +145,10 @@ public:
 	[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
 		return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
 	}
+	template <typename Base>
+	[[nodiscard]] constexpr inline auto ranged(Base&& baseValidator) {
+		return ranged_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+	}
 	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
 		return indirect_t<maxsize_t>{limit};
 	}

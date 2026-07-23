@@ -65,6 +65,20 @@ struct indirect_t : private Base {
 	}
 };
 
+template <typename Base>
+struct ranged_t : private Base {
+	template <typename... Args>
+	explicit constexpr inline ranged_t(Args&&... args) :
+		Base(std::forward<Args>(args)...) {
+	}
+
+	template <typename T>
+	inline void operator()(const T& var) const {
+		for (const auto& item : var)
+			Base::operator()(item);
+	}
+};
+
 // ---------------------------------------------------------------------------------------------------------------------
 
 constexpr inline notnull_t notnull;
@@ -78,6 +92,11 @@ constexpr inline notempty_t notempty;
 template <typename Base>
 [[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
 	return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+}
+
+template <typename Base>
+[[nodiscard]] constexpr inline auto ranged(Base&& baseValidator) {
+	return ranged_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
 }
 
 [[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {

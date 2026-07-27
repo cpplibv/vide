@@ -7,32 +7,28 @@
 
 namespace vide { // --------------------------------------------------------------------------------
 
-//! Saving std::chrono::duration
-template <class Archive, class R, class P>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::chrono::duration<R, P> const& dur) {
-	ar.nvp("count", dur.count());
+// --- std::chrono::duration ---
+
+template <typename Archive, typename Rep, typename Period>
+inline Rep VIDE_FUNCTION_NAME_SAVE_MINIMAL(Archive&, const std::chrono::duration<Rep, Period>& duration) {
+	return duration.count();
 }
 
-//! Loading std::chrono::duration
-template <class Archive, class R, class P>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::chrono::duration<R, P>& dur) {
-	R count;
-	ar.nvp("count", count);
-	dur = std::chrono::duration<R, P>{count};
+template <typename Archive, typename Rep, typename Period>
+inline void VIDE_FUNCTION_NAME_LOAD_MINIMAL(Archive&, std::chrono::duration<Rep, Period>& duration, Rep count) {
+	duration = std::chrono::duration<Rep, Period>{count};
 }
 
-//! Saving std::chrono::time_point
-template <class Archive, class C, class D>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, std::chrono::time_point<C, D> const& dur) {
-	ar.nvp("time_since_epoch", dur.time_since_epoch());
+// --- std::chrono::time_point ---
+
+template <typename Archive, typename Clock, typename Duration>
+inline typename Duration::rep VIDE_FUNCTION_NAME_SAVE_MINIMAL(Archive&, const std::chrono::time_point<Clock, Duration>& time_point) {
+	return time_point.time_since_epoch().count();
 }
 
-//! Loading std::chrono::time_point
-template <class Archive, class C, class D>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::chrono::time_point<C, D>& dur) {
-	D elapsed;
-	ar.nvp("time_since_epoch", elapsed);
-	dur = std::chrono::time_point<C, D>{elapsed};
+template <typename Archive, typename Clock, typename Duration>
+inline void VIDE_FUNCTION_NAME_LOAD_MINIMAL(Archive&, std::chrono::time_point<Clock, Duration>& time_point, typename Duration::rep count) {
+	time_point = std::chrono::time_point<Clock, Duration>{Duration{count}};
 }
 
 } // namespace vide --------------------------------------------------------------------------------

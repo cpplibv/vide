@@ -47,7 +47,17 @@ struct maxsize_t {
 	template <typename T>
 	inline void operator()(const T& var) const {
 		if (var.size() > limit)
-			throw vide::Exception("Max size validation failed during serialization: object size exceeds the limit.");
+			throw vide::Exception("Max size validation failed during serialization: object size exceeds the maximum limit.");
+	}
+};
+
+struct minsize_t {
+	std::size_t limit = 0;
+
+	template <typename T>
+	inline void operator()(const T& var) const {
+		if (var.size() < limit)
+			throw vide::Exception("Min size validation failed during serialization: object size does not reach the minimum limit.");
 	}
 };
 
@@ -87,6 +97,10 @@ constexpr inline notempty_t notempty;
 
 [[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
 	return maxsize_t{limit};
+}
+
+[[nodiscard]] constexpr inline minsize_t minsize(std::size_t limit) {
+	return minsize_t{limit};
 }
 
 template <typename Base>

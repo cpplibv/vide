@@ -119,6 +119,12 @@ void test_validation() {
 	CHECK_NOTHROW(active.test_in_(std::vector<int>{0, 1}, vide::maxsize(2)));
 	CHECK_THROWS_AS(active.test_in_(std::vector<int>{0, 1, 2}, vide::maxsize(2)), vide::Exception);
 
+	// Min size
+	CHECK_THROWS_AS(active.test_in_(std::vector<int>{}, vide::minsize(2)), vide::Exception);
+	CHECK_THROWS_AS(active.test_in_(std::vector<int>{0}, vide::minsize(2)), vide::Exception);
+	CHECK_NOTHROW(active.test_in_(std::vector<int>{0, 1}, vide::minsize(2)));
+	CHECK_NOTHROW(active.test_in_(std::vector<int>{0, 1, 2}, vide::minsize(2)));
+
 	// Not null + custom is odd
 	CHECK_NOTHROW(active.test_out(41, vide::notnull, is_odd{}));
 	CHECK_NOTHROW(active.test_in_(41, vide::notnull, is_odd{}));

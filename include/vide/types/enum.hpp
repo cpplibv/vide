@@ -53,8 +53,7 @@ struct enum_value_set {
 	};
 
 	template <typename T>
-	static constexpr bool has_verify_free_function = requires
-	{
+	static constexpr bool has_verify_free_function = requires {
 		{ serialize_enum_verify(std::declval<T>()) } -> std::convertible_to<bool>;
 	};
 

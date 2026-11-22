@@ -2,6 +2,20 @@ option(VIDE_BUILD_PORTABILITY_TEST "Build the 32 bit test variants and the 32/64
 
 find_package(Threads REQUIRED)
 
+# doctest's runner and main
+function(vide_add_doctest_main suffix)
+	add_library(vide_doctest_main${suffix} STATIC common/doctest_main.cpp)
+	target_compile_features(vide_doctest_main${suffix} PRIVATE cxx_std_26)
+	if (suffix STREQUAL "_32")
+		target_compile_options(vide_doctest_main${suffix} PRIVATE -m32)
+	endif ()
+endfunction()
+
+vide_add_doctest_main("")
+if (VIDE_BUILD_PORTABILITY_TEST)
+	vide_add_doctest_main("_32")
+endif ()
+
 # vide_add_test(<source> [libraries...]): "pod.cpp" -> executable and test "test_pod"
 function(vide_add_test source)
 	cmake_path(GET source STEM name)
@@ -20,7 +34,11 @@ function(vide_add_test source)
 		if (target MATCHES "_32$")
 			target_compile_options(${target} PRIVATE -m32)
 			target_link_options(${target} PRIVATE -m32)
+			set(suffix _32)
+		else ()
+			set(suffix "")
 		endif ()
+		target_link_libraries(${target} PRIVATE vide_doctest_main${suffix})
 		add_test(NAME ${target} COMMAND ${target})
 	endforeach ()
 endfunction()

@@ -1,7 +1,5 @@
 //
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-
 #include <source_location>
 
 #include "common.hpp"

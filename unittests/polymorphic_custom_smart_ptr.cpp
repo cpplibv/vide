@@ -1,7 +1,5 @@
 //
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-
 #include "common.hpp"
 #include "common/my_intrusive_ptr_polymorphic.hpp"
 

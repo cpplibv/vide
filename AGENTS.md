@@ -48,7 +48,7 @@ ctest --test-dir build/dev -j 8 --output-on-failure
 
 Target style for new and touched code; older parts don't follow it yet, so don't copy their look.
 
-- Modern, portable C++26; `constexpr` wherever it compiles
+- Modern, portable C++26; `constexpr` when able
 - Fields at the top of the class, before functions
 - 1TBS, braces omitted around single-statement bodies
 - Tab indentation; statement continuation lines get two extra tabs, constructor initializer lists only one

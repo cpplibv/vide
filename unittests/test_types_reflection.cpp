@@ -1,5 +1,4 @@
 //
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 
 #include "common.hpp"
 #include <vide/types/reflection.hpp>

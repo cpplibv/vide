@@ -1,26 +1,27 @@
 #pragma once
 
-#include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
+#include <cstdint>
 #include <complex>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-//! Serializing (save) for std::complex
-template <class Archive, class T>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::complex<T>& comp) {
-	ar.nvp("real", comp.real());
-	ar.nvp("imag", comp.imag());
-}
-
-//! Serializing (load) for std::complex
-template <class Archive, class T>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::complex<T>& bits) {
-	T real, imag;
-	ar.nvp("real", real);
-	ar.nvp("imag", imag);
-	bits = {real, imag};
-}
+template <class T>
+struct serializer<std::complex<T>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::complex<T>& comp, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar.nvp("real", comp.real());
+			ar.nvp("imag", comp.imag());
+		} else {
+			T real, imag;
+			ar.nvp("real", real);
+			ar.nvp("imag", imag);
+			comp = {real, imag};
+		}
+	}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

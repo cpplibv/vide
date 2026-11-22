@@ -47,6 +47,21 @@ public:
 	}
 };
 
+// Types that cannot be changed are serialized by specializing vide::serializer
+struct Point {
+	int x;
+	int y;
+};
+
+template <>
+struct vide::serializer<Point> {
+	template <class Archive>
+	static void serialize(Archive& ar, Point& point, std::uint32_t /*version*/) {
+		ar.nvp("x", point.x);
+		ar.nvp("y", point.y);
+	}
+};
+
 int main() {
 	std::ofstream os("out.bin", std::ios::binary | std::ios::out);
 
@@ -293,6 +308,14 @@ Additional nice to have extras may arrive in the future.
   - `vide.hpp` and the archive headers no longer include `types/polymorphic.hpp`; polymorphic pointers or use of `VIDE_REGISTER_TYPE` now requires that include explicitly
   - Faster compilation of polymorphic type registration and serialization
   - Fix possible hash collision between registered class versions
+  - Breaking: `vide::serializer<T>` is the only serialization entry point; free `serialize`, `save`, `load` and `*_minimal`
+    functions are no longer used, specialize `vide::serializer<T>` with a static `serialize(Archive&, T&, std::uint32_t version)` instead.
+    Member serialization functions work as before
+  - A `vide::serializer<T>` specialization declares minimal serialization with `static constexpr bool minimal = true`
+  - Breaking: Remove `VIDE_CLASS_VERSION`; `serialize_class_version` on the type or on its `vide::serializer<T>` is the only
+    class version. Versioned serializers without it no longer store a version, which changes their serialized data
+  - Breaking: Map serialization covers the std and boost map types only, not every type with a `mapped_type`
+  - Faster compilation of the serializer lookup
 
 
 -------------------------------------------------------------------------------------------------

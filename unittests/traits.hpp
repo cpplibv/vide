@@ -5,7 +5,6 @@
 
 // -------------------------------------------------------------------------------------------------
 
-// --- TestSerializeMember
 struct TestSerializeMember {
 	int x;
 
@@ -15,176 +14,143 @@ struct TestSerializeMember {
 	}
 };
 
-// --- TestSerializeGlobal
-struct TestSerializeGlobal {
-	int x;
-};
-
-template <class Archive>
-void serialize(Archive& ar, TestSerializeGlobal& var) {
-	ar(var.x);
-}
-
-// --- TestSplitMember
-struct TestSplitMember {
-	int x;
-
-	template <class Archive>
-	void save(Archive& ar) const {
-		ar(x);
-	}
-
-	template <class Archive>
-	void load(Archive& ar) {
-		ar(x);
-	}
-};
-
-// --- TestSplitGlobal
-struct TestSplitGlobal {
-	int x;
-};
-
-template <class Archive>
-void save(Archive& ar, const TestSplitGlobal& var) {
-	ar(var.x);
-}
-
-template <class Archive>
-void load(Archive& ar, TestSplitGlobal& var) {
-	ar(var.x);
-}
-
-// --- TestMinimalMember
-struct TestMinimalMember {
-	int x;
-
-	template <class Archive>
-	int save_minimal(const Archive& ar) const {
-		(void) ar;
-		return x;
-	}
-
-	template <class Archive>
-	void load_minimal(const Archive& ar, const int& value) {
-		(void) ar;
-		x = value;
-	}
-};
-
-// --- TestMinimalGlobal
-struct TestMinimalGlobal {
-	int x;
-};
-
-template <class Archive>
-int save_minimal(const Archive& ar, const TestMinimalGlobal& var) {
-	(void) ar;
-	return var.x;
-}
-
-template <class Archive>
-void load_minimal(const Archive& ar, TestMinimalGlobal& var, const int& value) {
-	(void) ar;
-	var.x = value;
-}
-
-// --- TestSerializeMemberVersioned
 struct TestSerializeMemberVersioned {
 	int x;
 
 	template <class Archive>
 	void serialize(Archive& ar, std::uint32_t version) {
+		ar(x);
 		(void) version;
+	}
+};
+
+struct TestSerializeMemberClassVersion {
+	static constexpr std::uint32_t serialize_class_version = 3;
+
+	int x;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
 		ar(x);
 	}
 };
 
-// --- TestSerializeGlobalVersioned
-struct TestSerializeGlobalVersioned {
+struct TestSplitMember {
 	int x;
+
+	template <class Archive>
+	void save(Archive& ar) const { ar(x); }
+
+	template <class Archive>
+	void load(Archive& ar) { ar(x); }
 };
 
-template <class Archive>
-void serialize(Archive& ar, TestSerializeGlobalVersioned& var, std::uint32_t version) {
-	(void) version;
-	ar(var.x);
-}
-
-// --- TestSplitMemberVersioned
 struct TestSplitMemberVersioned {
 	int x;
 
 	template <class Archive>
-	void save(Archive& ar, std::uint32_t version) const {
-		(void) version;
-		ar(x);
-	}
+	void save(Archive& ar, std::uint32_t) const { ar(x); }
 
 	template <class Archive>
-	void load(Archive& ar, std::uint32_t version) {
-		(void) version;
-		ar(x);
-	}
+	void load(Archive& ar, std::uint32_t) { ar(x); }
 };
 
-// --- TestSplitGlobalVersioned
-struct TestSplitGlobalVersioned {
+struct TestMinimalMember {
 	int x;
+
+	template <class Archive>
+	int save_minimal(const Archive&) const { return x; }
+
+	template <class Archive>
+	void load_minimal(const Archive&, const int& value) { x = value; }
 };
 
-template <class Archive>
-void save(Archive& ar, const TestSplitGlobalVersioned& var, std::uint32_t version) {
-	(void) version;
-	ar(var.x);
-}
-
-template <class Archive>
-void load(Archive& ar, TestSplitGlobalVersioned& var, std::uint32_t version) {
-	(void) version;
-	ar(var.x);
-}
-
-// --- TestMinimalMemberVersioned
 struct TestMinimalMemberVersioned {
 	int x;
 
 	template <class Archive>
-	int save_minimal(const Archive& ar, std::uint32_t version) const {
-		(void) ar;
-		(void) version;
-		return x;
-	}
+	int save_minimal(const Archive&, std::uint32_t) const { return x; }
 
 	template <class Archive>
-	void load_minimal(const Archive& ar, const int& value, std::uint32_t version) {
-		(void) ar;
-		(void) version;
-		x = value;
-	}
+	void load_minimal(const Archive&, const int& value, std::uint32_t) { x = value; }
 };
 
-// --- TestMinimalGlobalVersioned
-struct TestMinimalGlobalVersioned {
+struct TestSerializeMinimalMember {
+	int x;
+
+	template <class Archive>
+	int& serialize_minimal(Archive&) { return x; }
+};
+
+struct TestSerializeMinimalMemberVersioned {
+	int x;
+
+	template <class Archive>
+	int& serialize_minimal(Archive&, std::uint32_t) { return x; }
+};
+
+struct TestAmbiguousMember {
+	int x;
+
+	template <class Archive>
+	void serialize(Archive& ar) { ar(x); }
+
+	template <class Archive>
+	void save(Archive& ar) const { ar(x); }
+};
+
+struct TestSerializeSpecialized {
 	int x;
 };
 
-template <class Archive>
-int save_minimal(const Archive& ar, const TestMinimalGlobalVersioned& var, std::uint32_t version) {
-	(void) ar;
-	(void) version;
-	return var.x;
-}
+template <>
+struct vide::serializer<TestSerializeSpecialized> {
+	template <class Archive>
+	static void serialize(Archive& ar, TestSerializeSpecialized& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
 
-template <class Archive>
-void load_minimal(const Archive& ar, TestMinimalGlobalVersioned& var, const int& value, std::uint32_t version) {
-	(void) ar;
-	(void) version;
-	var.x = value;
-}
+struct TestSerializeSpecializedVersioned {
+	int x;
+};
+
+template <>
+struct vide::serializer<TestSerializeSpecializedVersioned> {
+	static constexpr std::uint32_t serialize_class_version = 5;
+
+	template <class Archive>
+	static void serialize(Archive& ar, TestSerializeSpecializedVersioned& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
+
+struct TestMinimalSpecialized {
+	int x;
+};
+
+template <>
+struct vide::serializer<TestMinimalSpecialized> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, TestMinimalSpecialized& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
+
+struct TestUnserializable {
+	int x;
+};
 
 // =================================================================================================
 
+template <class Archive, class T>
+inline void check_member_shape(bool minimal) {
+	CHECK_EQ(vide::access::count_member_shapes<Archive, T>, 1);
+	CHECK(vide::serializable_with<Archive, T>);
+	CHECK_EQ(vide::minimal_with<Archive, T>, minimal);
+}
 
 template <class IArchive, class OArchive>
 inline void test_traits() {
@@ -193,100 +159,100 @@ inline void test_traits() {
 
 		CHECK(vide::access::has_member_serialize<IArchive, T>);
 		CHECK(vide::access::has_member_serialize<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
-	} {
-		using T = TestSerializeGlobal;
-
-		CHECK(vide::access::has_global_serialize<IArchive, T>);
-		CHECK(vide::access::has_global_serialize<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
-	} {
-		using T = TestSplitMember;
-
-		CHECK(vide::access::has_member_save<IArchive, T>);
-		CHECK(vide::access::has_member_load<IArchive, T>);
-		CHECK(vide::access::has_member_save<OArchive, T>);
-		CHECK(vide::access::has_member_load<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
-	} {
-		using T = TestSplitGlobal;
-
-		CHECK(vide::access::has_global_save<IArchive, T>);
-		CHECK(vide::access::has_global_load<IArchive, T>);
-		CHECK(vide::access::has_global_save<OArchive, T>);
-		CHECK(vide::access::has_global_load<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
-	} {
-		using T = TestMinimalMember;
-
-		CHECK(vide::access::has_member_save_minimal<IArchive, T>);
-		CHECK(vide::access::has_member_load_minimal<IArchive, T>);
-		CHECK(vide::access::has_member_save_minimal<OArchive, T>);
-		CHECK(vide::access::has_member_load_minimal<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
-	} {
-		using T = TestMinimalGlobal;
-
-		CHECK(vide::access::has_global_save_minimal<IArchive, T>);
-		CHECK(vide::access::has_global_load_minimal<IArchive, T>);
-		CHECK(vide::access::has_global_save_minimal<OArchive, T>);
-		CHECK(vide::access::has_global_load_minimal<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		CHECK(not vide::access::has_member_serialize_versioned<OArchive, T>);
+		check_member_shape<IArchive, T>(false);
+		check_member_shape<OArchive, T>(false);
+		CHECK(not vide::is_versioned_class<T>);
 	} {
 		using T = TestSerializeMemberVersioned;
 
 		CHECK(vide::access::has_member_serialize_versioned<IArchive, T>);
 		CHECK(vide::access::has_member_serialize_versioned<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		check_member_shape<IArchive, T>(false);
+		check_member_shape<OArchive, T>(false);
+		CHECK(not vide::is_versioned_class<T>);
 	} {
-		using T = TestSerializeGlobalVersioned;
+		using T = TestSplitMember;
 
-		CHECK(vide::access::has_global_serialize_versioned<IArchive, T>);
-		CHECK(vide::access::has_global_serialize_versioned<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		CHECK(vide::access::has_member_save<OArchive, T>);
+		CHECK(vide::access::has_member_load<IArchive, T>);
+		check_member_shape<IArchive, T>(false);
+		check_member_shape<OArchive, T>(false);
 	} {
 		using T = TestSplitMemberVersioned;
 
-		CHECK(vide::access::has_member_save_versioned<IArchive, T>);
-		CHECK(vide::access::has_member_load_versioned<IArchive, T>);
 		CHECK(vide::access::has_member_save_versioned<OArchive, T>);
-		CHECK(vide::access::has_member_load_versioned<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		CHECK(vide::access::has_member_load_versioned<IArchive, T>);
+		check_member_shape<IArchive, T>(false);
+		check_member_shape<OArchive, T>(false);
 	} {
-		using T = TestSplitGlobalVersioned;
+		using T = TestMinimalMember;
 
-		CHECK(vide::access::has_global_save_versioned<IArchive, T>);
-		CHECK(vide::access::has_global_load_versioned<IArchive, T>);
-		CHECK(vide::access::has_global_save_versioned<OArchive, T>);
-		CHECK(vide::access::has_global_load_versioned<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		CHECK(vide::access::has_member_save_minimal<OArchive, T>);
+		CHECK(vide::access::has_member_load_minimal<IArchive, T>);
+		check_member_shape<IArchive, T>(true);
+		check_member_shape<OArchive, T>(true);
 	} {
 		using T = TestMinimalMemberVersioned;
 
-		CHECK(vide::access::has_member_save_minimal_versioned<IArchive, T>);
-		CHECK(vide::access::has_member_load_minimal_versioned<IArchive, T>);
 		CHECK(vide::access::has_member_save_minimal_versioned<OArchive, T>);
-		CHECK(vide::access::has_member_load_minimal_versioned<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		CHECK(vide::access::has_member_load_minimal_versioned<IArchive, T>);
+		check_member_shape<IArchive, T>(true);
+		check_member_shape<OArchive, T>(true);
 	} {
-		using T = TestMinimalGlobalVersioned;
+		using T = TestSerializeMinimalMember;
 
-		CHECK(vide::access::has_global_save_minimal_versioned<IArchive, T>);
-		CHECK(vide::access::has_global_load_minimal_versioned<IArchive, T>);
-		CHECK(vide::access::has_global_save_minimal_versioned<OArchive, T>);
-		CHECK(vide::access::has_global_load_minimal_versioned<OArchive, T>);
-		CHECK(vide::access::is_input_serializable<IArchive, T>);
-		CHECK(vide::access::is_output_serializable<OArchive, T>);
+		CHECK(vide::access::has_member_serialize_minimal<OArchive, T>);
+		check_member_shape<IArchive, T>(true);
+		check_member_shape<OArchive, T>(true);
+	} {
+		using T = TestSerializeMinimalMemberVersioned;
+
+		CHECK(vide::access::has_member_serialize_minimal_versioned<OArchive, T>);
+		check_member_shape<IArchive, T>(true);
+		check_member_shape<OArchive, T>(true);
+	} {
+		using T = TestAmbiguousMember;
+
+		CHECK_EQ(vide::access::count_member_shapes<OArchive, T>, 2);
+		CHECK_EQ(vide::access::count_member_shapes<IArchive, T>, 1);
+	} {
+		using T = TestSerializeMemberClassVersion;
+
+		CHECK(vide::serializable_with<IArchive, T>);
+		CHECK(vide::serializable_with<OArchive, T>);
+		CHECK(vide::is_versioned_class<T>);
+		CHECK_EQ(vide::serializer<T>::serialize_class_version, 3u);
+	} {
+		using T = TestSerializeSpecialized;
+
+		CHECK_EQ(vide::access::count_member_shapes<OArchive, T>, 0);
+		CHECK(vide::serializable_with<IArchive, T>);
+		CHECK(vide::serializable_with<OArchive, T>);
+		CHECK(not vide::is_versioned_class<T>);
+		CHECK(not vide::minimal_with<OArchive, T>);
+	} {
+		using T = TestSerializeSpecializedVersioned;
+
+		CHECK(vide::serializable_with<IArchive, T>);
+		CHECK(vide::serializable_with<OArchive, T>);
+		CHECK(vide::is_versioned_class<T>);
+		CHECK_EQ(vide::serializer<T>::serialize_class_version, 5u);
+	} {
+		using T = TestMinimalSpecialized;
+
+		CHECK(vide::serializable_with<IArchive, T>);
+		CHECK(vide::serializable_with<OArchive, T>);
+		CHECK(vide::minimal_with<IArchive, T>);
+		CHECK(vide::minimal_with<OArchive, T>);
+	} {
+		using T = TestUnserializable;
+
+		CHECK(not vide::serializable_with<IArchive, T>);
+		CHECK(not vide::serializable_with<OArchive, T>);
+	} {
+		CHECK(vide::minimal_with<OArchive, std::chrono::seconds>);
+		CHECK(vide::minimal_with<OArchive, std::atomic<int>>);
+		CHECK(not vide::minimal_with<OArchive, std::vector<int>>);
 	}
 }

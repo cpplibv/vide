@@ -91,37 +91,6 @@ namespace detail {
 template <class Archive, class T> struct polymorphic_serialization_support;
 struct adl_tag;
 
-//! Tag for Version, which due to its anonymous namespace, becomes a different
-//! type in each translation unit
-/*! This allows VIDE_CLASS_VERSION to be safely called in a header file */
-namespace { struct version_binding_tag {}; }
-
-// ######################################################################
-//! Version information class
-/*! This is the base case for classes that have not been explicitly
-	registered */
-template <class T, class BindingTag = version_binding_tag> struct Version {
-	static const std::uint32_t version = 0;
-	// we don't need to explicitly register these types since they
-	// always get a version number of 0
-};
-
-/// Versions registered by VIDE_CLASS_VERSION
-struct Versions {
-	std::unordered_map<std::type_index, std::uint32_t> mapping;
-
-	static Versions& instance() {
-		static Versions versions;
-		return versions;
-	}
-
-	/// Registered version of type, or version when it has none
-	std::uint32_t find(std::type_index type, std::uint32_t version) const {
-		// Read-only on purpose: called mid serialization, possibly from many threads at once
-		const auto it = mapping.find(type);
-		return it != mapping.end() ? it->second : version;
-	}
-}; // struct Versions
 
 } // namespace detail
 } // namespace vide

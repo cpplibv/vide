@@ -88,10 +88,13 @@ struct Test3 {
 	int a;
 };
 
-template <class Archive>
-void serialize(Archive& ar, Test3& t) {
-	ar(VIDE_NVP(t.a));
-}
+template <>
+struct vide::serializer<Test3> {
+	template <class Archive>
+	static void serialize(Archive& ar, Test3& t, std::uint32_t) {
+		ar(VIDE_NVP(t.a));
+	}
+};
 
 namespace test4 {
 // ###################################
@@ -99,16 +102,15 @@ struct Test4 {
 	int a;
 };
 
-template <class Archive>
-void save(Archive& ar, Test4 const& t) {
-	ar(VIDE_NVP(t.a));
 }
 
-template <class Archive>
-void load(Archive& ar, Test4& t) {
-	ar(VIDE_NVP(t.a));
-}
-}
+template <>
+struct vide::serializer<test4::Test4> {
+	template <class Archive>
+	static void serialize(Archive& ar, test4::Test4& t, std::uint32_t) {
+		ar(VIDE_NVP(t.a));
+	}
+};
 
 class Private {
 public:

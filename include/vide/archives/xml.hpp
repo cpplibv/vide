@@ -400,8 +400,8 @@ public:
 		// Use prologue/epilogue for all non-minimal types for XML archives
 		// Minimal types do not start or end nodes
 		static constexpr bool useNode =
-				!access::has_minimal_output_serialization<As, T> &&
-				!access::has_minimal_output_serialization<As, detail::get_base_class_t<T>>;
+				!minimal_with<As, T> &&
+				!detail::is_minimal_base_class<As, T>;
 
 		if constexpr (useNode) {
 			// Starts a new node, named either automatically or by some NVP,
@@ -825,8 +825,8 @@ public:
 		// Use prologue/epilogue for all non-minimal types for XML archives
 		// Minimal types do not start or end nodes
 		static constexpr bool useNode =
-				!access::has_minimal_input_serialization<As, T> &&
-				!access::has_minimal_input_serialization<As, detail::get_base_class_t<T>>;
+				!minimal_with<As, T> &&
+				!detail::is_minimal_base_class<As, T>;
 
 		if constexpr (useNode)
 			startNode();

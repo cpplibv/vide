@@ -44,6 +44,7 @@
 //VIDE_FORCE_LINK_SHARED_LIBRARY(Sandbox)
 
 struct Archive {
+	static constexpr bool is_output = true;
 };
 
 struct Test {
@@ -77,21 +78,6 @@ struct Test {
 	template <class Archive>
 	void load_minimal(const Archive&, const int&) {}
 };
-
-template <class Archive>
-void serialize(Archive&, Test&) {}
-
-template <class Archive>
-void load(Archive&, Test&) {}
-
-template <class Archive>
-void save(Archive&, const Test&) {}
-
-template <class Archive>
-int save_minimal(const Archive&, const Test&) { return 0; }
-
-template <class Archive>
-int save_minimal(const Archive&, const Test&, const std::uint32_t) { return 0; }
 
 struct A {
 	virtual void foo() = 0;
@@ -139,67 +125,22 @@ int main() {
 	typedef Test T;
 	std::cout << std::boolalpha;
 
-	// serialize
 	std::cout << "\tserialize" << std::endl;
 	std::cout << vide::access::has_member_serialize<Archive, T> << std::endl;
-	std::cout << vide::access::has_global_serialize<Archive, T> << std::endl;
+	std::cout << vide::access::has_member_serialize_versioned<Archive, T> << std::endl;
 
-	// load
-	std::cout << "\tload" << std::endl;
-	std::cout << vide::access::has_member_load<Archive, T> << std::endl;
-	std::cout << vide::access::has_global_load<Archive, T> << std::endl;
+	std::cout << "\tserializable" << std::endl;
+	std::cout << vide::serializable_with<Archive, T> << std::endl;
 
-	// load minimal
-	std::cout << "\tload minimal" << std::endl;
-	std::cout << vide::access::has_member_load<Archive, T> << std::endl;
+	std::cout << "\tmember shapes" << std::endl;
+	std::cout << vide::access::count_member_shapes<Archive, T> << std::endl;
 
-	// save
-	std::cout << "\tsave" << std::endl;
-	std::cout << vide::access::has_member_save<Archive, T> << std::endl;
-	std::cout << vide::access::has_global_save<Archive, T> << std::endl;
+	std::cout << "\tversioned / minimal" << std::endl;
+	std::cout << vide::is_versioned_class<T> << std::endl;
+	std::cout << vide::access::has_member_minimal<Archive, MemberMinimal> << std::endl;
 
-	// save_minimal
-	std::cout << "\tsave_minimal" << std::endl;
-	std::cout << vide::access::has_member_save_minimal<Archive, T> << std::endl;
-	std::cout << vide::access::has_global_save_minimal<Archive, T> << std::endl;
-
-	// save_minimal_versioned
-	std::cout << "\tsave_minimal versioned" << std::endl;
-	std::cout << vide::access::has_member_save_minimal_versioned<Archive, T> << std::endl;
-	std::cout << vide::access::has_global_save_minimal_versioned<Archive, T> << std::endl;
-
-	// splittable
-	std::cout << "\t splittable" << std::endl;
-	// std::cout << vide::access::has_member_split<Archive, T, Archive> << std::endl;
-	// std::cout << vide::access::has_global_split<Archive, T, Archive> << std::endl;
-
-	// serialiable
-	std::cout << "\toutput serializable" << std::endl;
-	std::cout << vide::access::is_output_serializable<Archive, T> << std::endl;
-	std::cout << vide::access::is_input_serializable<Archive, T> << std::endl;
-
-//	// specialized
-//	std::cout << "\tspecialized" << std::endl;
-//	std::cout << vide::access::is_specialized_member_serialize<Archive, T> << std::endl;
-//	std::cout << vide::access::is_specialized_member_load_save<Archive, T> << std::endl;
-//	std::cout << vide::access::is_specialized_non_member_serialize<Archive, T> << std::endl;
-//	std::cout << vide::access::is_specialized_non_member_load_save<Archive, T> << std::endl;
-//	std::cout << vide::access::count_specializations<Archive, T> << std::endl;
-//	std::cout << vide::access::is_specialized<Archive, T> << std::endl;
-
-	// counts
-	std::cout << "\tcounts" << std::endl;
-	std::cout << vide::access::count_output_serializers<Archive, T> << std::endl;
-	std::cout << vide::access::count_input_serializers<Archive, T> << std::endl;
-
-	// array size
 	std::cout << "\tarray size" << std::endl;
 	std::cout << typeid(A).name() << std::endl;
-
-	// extra testing
-	std::cout << "\textra" << std::endl;
-	std::cout << vide::access::has_member_save_minimal<MemberMinimal, Archive> << std::endl;
-	std::cout << vide::access::has_member_load_minimal<MemberMinimal, Archive> << std::endl;
 
 	// DLL testing
 	std::cout << "------DLL TESTING------" << std::endl;

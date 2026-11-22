@@ -165,10 +165,13 @@ struct Test3 {
 	int a;
 };
 
-template<class Archive>
-void serialize(Archive& ar, Test3& t) {
-	ar(VIDE_NVP(t.a));
-}
+template <>
+struct vide::serializer<Test3> {
+	template<class Archive>
+	static void serialize(Archive& ar, Test3& t, std::uint32_t) {
+		ar(VIDE_NVP(t.a));
+	}
+};
 
 namespace test4 {
 // ###################################
@@ -176,16 +179,15 @@ struct Test4 {
 	int a;
 };
 
-template<class Archive>
-void save(Archive& ar, Test4 const& t) {
-	ar(VIDE_NVP(t.a));
 }
 
-template<class Archive>
-void load(Archive& ar, Test4& t) {
-	ar(VIDE_NVP(t.a));
-}
-}
+template <>
+struct vide::serializer<test4::Test4> {
+	template<class Archive>
+	static void serialize(Archive& ar, test4::Test4& t, std::uint32_t) {
+		ar(VIDE_NVP(t.a));
+	}
+};
 
 class Private {
 public:
@@ -381,6 +383,7 @@ public:
 
 private:
 	friend class vide::access;
+	static constexpr std::uint32_t serialize_class_version = 1;
 	int x;
 
 	template<class Archive>
@@ -400,6 +403,7 @@ public:
 
 private:
 	friend class vide::access;
+	static constexpr std::uint32_t serialize_class_version = 2;
 	int x;
 
 	template<class Archive>
@@ -420,11 +424,16 @@ public:
 	int x;
 };
 
-template<class Archive>
-void serialize(Archive& ar, BoostTransitionNMS& bnms, const std::uint32_t version) {
-	ar(bnms.x);
-	std::cout << "NMS version: " << version << std::endl;
-}
+template <>
+struct vide::serializer<BoostTransitionNMS> {
+	static constexpr std::uint32_t serialize_class_version = 3;
+
+	template<class Archive>
+	static void serialize(Archive& ar, BoostTransitionNMS& bnms, const std::uint32_t version) {
+		ar(bnms.x);
+		std::cout << "NMS version: " << version << std::endl;
+	}
+};
 
 struct BoostTransitionNMSplit {
 public:
@@ -437,17 +446,18 @@ public:
 	int x;
 };
 
-template<class Archive>
-void save(Archive& ar, BoostTransitionNMSplit const& bnsplit, const std::uint32_t version) {
-	ar(bnsplit.x);
-	std::cout << "NMsave version: " << version << std::endl;
-}
-
-template<class Archive>
-void load(Archive& ar, BoostTransitionNMSplit& bnsplit, const std::uint32_t version) {
-	ar(bnsplit.x);
-	std::cout << "NMload version: " << version << std::endl;
-}
+// Unversioned on purpose: version is always 0
+template <>
+struct vide::serializer<BoostTransitionNMSplit> {
+	template<class Archive>
+	static void serialize(Archive& ar, BoostTransitionNMSplit& bnsplit, const std::uint32_t version) {
+		ar(bnsplit.x);
+		if constexpr (Archive::is_output)
+			std::cout << "NMsave version: " << version << std::endl;
+		else
+			std::cout << "NMload version: " << version << std::endl;
+	}
+};
 
 // ######################################################################
 int main() {
@@ -760,11 +770,3 @@ int main() {
 
 	return 0;
 }
-
-VIDE_CLASS_VERSION(BoostTransitionMS, 1)
-
-VIDE_CLASS_VERSION(BoostTransitionSplit, 2)
-
-VIDE_CLASS_VERSION(BoostTransitionNMS, 3)
-
-// keep the other at default version (0)

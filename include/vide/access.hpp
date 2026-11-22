@@ -29,27 +29,6 @@ namespace vide { // ------------------------------------------------------------
 	@endcode
 	@ingroup Access */
 struct access {
-
-	// --- Traits --------------------------------------------------------------------------------------
-
-	template <typename Archive, typename T>
-	using get_member_save_minimal_t = std::remove_cvref_t<decltype(
-			std::declval<const T&>().VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>()))>;
-
-	template <typename Archive, typename T>
-	using get_global_save_minimal_t = std::remove_cvref_t<decltype(
-			VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>(), std::declval<const T&>()))>;
-
-	template <typename Archive, typename T>
-	using get_member_save_minimal_versioned_t = std::remove_cvref_t<decltype(
-			std::declval<const T&>().VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>(), 0))>;
-
-	template <typename Archive, typename T>
-	using get_global_save_minimal_versioned_t = std::remove_cvref_t<decltype(
-			VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>(), std::declval<const T&>(), 0))>;
-
-	// Class Version Tag
-
 	template <class T>
 	static constexpr bool has_static_member_class_version = requires {
 		{ T::serialize_class_version } -> std::convertible_to<std::uint32_t>;
@@ -60,7 +39,15 @@ struct access {
 		return T::serialize_class_version;
 	}
 
-	// Standard serializer functions
+	template <typename Archive, typename T>
+	using get_member_save_minimal_t = std::remove_cvref_t<decltype(
+			std::declval<const T&>().VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>()))>;
+
+	template <typename Archive, typename T>
+	using get_member_save_minimal_versioned_t = std::remove_cvref_t<decltype(
+			std::declval<const T&>().VIDE_FUNCTION_NAME_SAVE_MINIMAL(std::declval<Archive&>(), std::uint32_t{0}))>;
+
+	// --- Member shapes, see serializer<T> ------------------------------------------------------------
 
 	template <class Archive, class T>
 	static constexpr bool has_member_serialize = requires (Archive& ar, T& var) {
@@ -68,18 +55,8 @@ struct access {
 	};
 
 	template <class Archive, class T>
-	static constexpr bool has_member_serialize_minimal = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar) } -> LValueReference;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_serialize = requires (Archive& ar, T& var) {
-		{ VIDE_FUNCTION_NAME_SERIALIZE(ar, var) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_serialize_minimal = requires (Archive& ar, T& var) {
-		{ VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, var) } -> LValueReference;
+	static constexpr bool has_member_serialize_versioned = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_SERIALIZE(ar, std::uint32_t{0}) } -> Void;
 	};
 
 	template <class Archive, class T>
@@ -88,18 +65,18 @@ struct access {
 	};
 
 	template <class Archive, class T>
+	static constexpr bool has_member_save_versioned = requires (Archive& ar, const T& var) {
+		{ var.VIDE_FUNCTION_NAME_SAVE(ar, std::uint32_t{0}) } -> Void;
+	};
+
+	template <class Archive, class T>
 	static constexpr bool has_member_load = requires (Archive& ar, T& var) {
 		{ var.VIDE_FUNCTION_NAME_LOAD(ar) } -> Void;
 	};
 
 	template <class Archive, class T>
-	static constexpr bool has_global_save = requires (Archive& ar, const T& var) {
-		{ VIDE_FUNCTION_NAME_SAVE(ar, var) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_load = requires (Archive& ar, T& var) {
-		{ VIDE_FUNCTION_NAME_LOAD(ar, var) } -> Void;
+	static constexpr bool has_member_load_versioned = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_LOAD(ar, std::uint32_t{0}) } -> Void;
 	};
 
 	template <class Archive, class T>
@@ -108,169 +85,51 @@ struct access {
 	};
 
 	template <class Archive, class T>
-	static constexpr bool has_member_load_minimal = requires (Archive& ar, T& var, get_member_save_minimal_t<Archive, T> mvalue) {
-		{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::move(mvalue)) } -> Void;
+	static constexpr bool has_member_save_minimal_versioned = requires (Archive& ar, const T& var) {
+		{ var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, std::uint32_t{0}) } -> NotVoid;
+	};
+
+	// The loaded type is deduced from save_minimal, called with the input archive (unevaluated)
+	template <class Archive, class T>
+	static constexpr bool has_member_load_minimal = requires (Archive& ar, T& var, get_member_save_minimal_t<Archive, T> value) {
+		{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::move(value)) } -> Void;
 	};
 
 	template <class Archive, class T>
-	static constexpr bool has_global_save_minimal = requires (Archive& ar, const T& var) {
-		{ VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, var) } -> NotVoid;
+	static constexpr bool has_member_load_minimal_versioned = requires (Archive& ar, T& var, get_member_save_minimal_versioned_t<Archive, T> value) {
+		{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::move(value), std::uint32_t{0}) } -> Void;
 	};
 
 	template <class Archive, class T>
-	static constexpr bool has_global_load_minimal = requires (Archive& ar, T& var, get_global_save_minimal_t<Archive, T> mvalue) {
-		{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, std::move(mvalue)) } -> Void;
-	};
-
-	// Versioned serializer functions
-
-	template <class Archive, class T>
-	static constexpr bool has_member_serialize_versioned = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SERIALIZE(ar, 0) } -> Void;
+	static constexpr bool has_member_serialize_minimal = requires (Archive& ar, T& var) {
+		{ var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar) } -> LValueReference;
 	};
 
 	template <class Archive, class T>
 	static constexpr bool has_member_serialize_minimal_versioned = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, 0) } -> LValueReference;
+		{ var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, std::uint32_t{0}) } -> LValueReference;
 	};
 
+	/// Number of member shapes T provides for the direction of Archive, 1 when well-formed
 	template <class Archive, class T>
-	static constexpr bool has_global_serialize_versioned = requires (Archive& ar, T& var) {
-		{ VIDE_FUNCTION_NAME_SERIALIZE(ar, var, 0) } -> Void;
-	};
+	static constexpr int count_member_shapes = Archive::is_output ?
+			has_member_serialize<Archive, T> + has_member_serialize_versioned<Archive, T> +
+			has_member_save<Archive, T> + has_member_save_versioned<Archive, T> +
+			has_member_save_minimal<Archive, T> + has_member_save_minimal_versioned<Archive, T> +
+			has_member_serialize_minimal<Archive, T> + has_member_serialize_minimal_versioned<Archive, T> :
+			has_member_serialize<Archive, T> + has_member_serialize_versioned<Archive, T> +
+			has_member_load<Archive, T> + has_member_load_versioned<Archive, T> +
+			has_member_load_minimal<Archive, T> + has_member_load_minimal_versioned<Archive, T> +
+			has_member_serialize_minimal<Archive, T> + has_member_serialize_minimal_versioned<Archive, T>;
 
 	template <class Archive, class T>
-	static constexpr bool has_global_serialize_minimal_versioned = requires (Archive& ar, T& var) {
-		{ VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, var, 0) } -> LValueReference;
-	};
+	static constexpr bool has_member_minimal = Archive::is_output ?
+			has_member_save_minimal<Archive, T> || has_member_save_minimal_versioned<Archive, T> ||
+			has_member_serialize_minimal<Archive, T> || has_member_serialize_minimal_versioned<Archive, T> :
+			has_member_load_minimal<Archive, T> || has_member_load_minimal_versioned<Archive, T> ||
+			has_member_serialize_minimal<Archive, T> || has_member_serialize_minimal_versioned<Archive, T>;
 
-	template <class Archive, class T>
-	static constexpr bool has_member_save_versioned = requires (Archive& ar, const T& var) {
-		{ var.VIDE_FUNCTION_NAME_SAVE(ar, 0) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_member_load_versioned = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_LOAD(ar, 0) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_save_versioned = requires (Archive& ar, const T& var) {
-		{ VIDE_FUNCTION_NAME_SAVE(ar, var, 0) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_load_versioned = requires (Archive& ar, T& var) {
-		{ VIDE_FUNCTION_NAME_LOAD(ar, var, 0) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_member_save_minimal_versioned = requires (Archive& ar, const T& var) {
-		{ var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, 0) } -> NotVoid;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_member_load_minimal_versioned = requires (Archive& ar, T& var, get_member_save_minimal_versioned_t<Archive, T> mvalue) {
-		{ var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::move(mvalue), 0) } -> Void;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_save_minimal_versioned = requires (Archive& ar, const T& var) {
-		{ VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, var, 0) } -> NotVoid;
-	};
-
-	template <class Archive, class T>
-	static constexpr bool has_global_load_minimal_versioned = requires (Archive& ar, T& var, get_global_save_minimal_versioned_t<Archive, T> mvalue) {
-		{ VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, var, std::move(mvalue), 0) } -> Void;
-	};
-
-	// --- Error Detection -----------------------------------------------------------------------------
-
-	template <class Archive, class T>
-	static constexpr bool error_has_member_save_non_const = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SAVE(ar) } -> Void;
-	};
-	template <class Archive, class T>
-	static constexpr bool error_has_member_save_minimal_non_const = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SAVE(ar) } -> NotVoid;
-	};
-	template <class Archive, class T>
-	static constexpr bool error_has_member_save_versioned_non_const = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SAVE(ar, std::uint32_t{0}) } -> Void;
-	};
-	template <class Archive, class T>
-	static constexpr bool error_has_member_save_minimal_versioned_non_const = requires (Archive& ar, T& var) {
-		{ var.VIDE_FUNCTION_NAME_SAVE(ar, std::uint32_t{0}) } -> NotVoid;
-	};
-
-	// --- Conclusions ---------------------------------------------------------------------------------
-
-	template <class Archive, class T>
-	static constexpr int has_minimal_input_serialization =
-			has_member_load_minimal<Archive, T> +
-			has_global_load_minimal<Archive, T> +
-			has_member_load_minimal_versioned<Archive, T> +
-			has_global_load_minimal_versioned<Archive, T> +
-			has_member_serialize_minimal<Archive, T> +
-			has_global_serialize_minimal<Archive, T> +
-			has_member_serialize_minimal_versioned<Archive, T> +
-			has_global_serialize_minimal_versioned<Archive, T>;
-
-	template <class Archive, class T>
-	static constexpr int has_minimal_output_serialization =
-			has_member_save_minimal<Archive, T> +
-			has_global_save_minimal<Archive, T> +
-			has_member_save_minimal_versioned<Archive, T> +
-			has_global_save_minimal_versioned<Archive, T> +
-			has_member_serialize_minimal<Archive, T> +
-			has_global_serialize_minimal<Archive, T> +
-			has_member_serialize_minimal_versioned<Archive, T> +
-			has_global_serialize_minimal_versioned<Archive, T>;
-
-	template <class Archive, class T>
-	static constexpr int count_output_serializers =
-			has_member_serialize<Archive, T> +
-			has_member_serialize_minimal<Archive, T> +
-			has_global_serialize<Archive, T> +
-			has_global_serialize_minimal<Archive, T> +
-			has_member_save<Archive, T> +
-			has_global_save<Archive, T> +
-			has_member_save_minimal<Archive, T> +
-			has_global_save_minimal<Archive, T> +
-			has_member_serialize_versioned<Archive, T> +
-			has_member_serialize_minimal_versioned<Archive, T> +
-			has_global_serialize_versioned<Archive, T> +
-			has_global_serialize_minimal_versioned<Archive, T> +
-			has_member_save_versioned<Archive, T> +
-			has_global_save_versioned<Archive, T> +
-			has_member_save_minimal_versioned<Archive, T> +
-			has_global_save_minimal_versioned<Archive, T>;
-
-	template <class Archive, class T>
-	static constexpr int count_input_serializers =
-			has_member_serialize<Archive, T> +
-			has_member_serialize_minimal<Archive, T> +
-			has_global_serialize<Archive, T> +
-			has_global_serialize_minimal<Archive, T> +
-			has_member_load<Archive, T> +
-			has_global_load<Archive, T> +
-			has_member_load_minimal<Archive, T> +
-			has_global_load_minimal<Archive, T> +
-			has_member_serialize_versioned<Archive, T> +
-			has_member_serialize_minimal_versioned<Archive, T> +
-			has_global_serialize_versioned<Archive, T> +
-			has_global_serialize_minimal_versioned<Archive, T> +
-			has_member_load_versioned<Archive, T> +
-			has_global_load_versioned<Archive, T> +
-			has_member_load_minimal_versioned<Archive, T> +
-			has_global_load_minimal_versioned<Archive, T>;
-
-	template <class Archive, class T>
-	static constexpr bool is_input_serializable = count_input_serializers<Archive, T> == 1;
-	template <class Archive, class T>
-	static constexpr bool is_output_serializable = count_output_serializers<Archive, T> == 1;
-
-	// --- Standard serialization access ---------------------------------------------------------------
+	// --- Member access -------------------------------------------------------------------------------
 
 	template <class Archive, class T>
 	static constexpr inline void member_serialize(Archive& ar, T& var) {
@@ -278,8 +137,8 @@ struct access {
 	}
 
 	template <class Archive, class T>
-	static constexpr inline auto& member_serialize_minimal(Archive& ar, T& var) {
-		return var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar);
+	static constexpr inline void member_serialize(Archive& ar, T& var, const std::uint32_t version) {
+		var.VIDE_FUNCTION_NAME_SERIALIZE(ar, version);
 	}
 
 	template <class Archive, class T>
@@ -288,35 +147,13 @@ struct access {
 	}
 
 	template <class Archive, class T>
-	static constexpr inline void member_load(Archive& ar, T& var) {
-		var.VIDE_FUNCTION_NAME_LOAD(ar);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var) {
-		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar);
-	}
-
-	template <class Archive, class T, class U>
-	static constexpr inline decltype(auto) member_load_minimal(Archive& ar, T& var, U&& value) {
-		return var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value));
-	}
-
-	// --- Versioned serialization access --------------------------------------------------------------
-
-	template <class Archive, class T>
-	static constexpr inline void member_serialize(Archive& ar, T& var, const std::uint32_t version) {
-		var.VIDE_FUNCTION_NAME_SERIALIZE(ar, version);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline auto& member_serialize_minimal(Archive& ar, T& var, const std::uint32_t version) {
-		return var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, version);
-	}
-
-	template <class Archive, class T>
 	static constexpr inline void member_save(Archive& ar, const T& var, const std::uint32_t version) {
 		var.VIDE_FUNCTION_NAME_SAVE(ar, version);
+	}
+
+	template <class Archive, class T>
+	static constexpr inline void member_load(Archive& ar, T& var) {
+		var.VIDE_FUNCTION_NAME_LOAD(ar);
 	}
 
 	template <class Archive, class T>
@@ -325,28 +162,34 @@ struct access {
 	}
 
 	template <class Archive, class T>
+	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var) {
+		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar);
+	}
+
+	template <class Archive, class T>
 	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var, const std::uint32_t version) {
 		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version);
 	}
 
 	template <class Archive, class T, class U>
-	static constexpr inline decltype(auto) member_load_minimal(Archive& ar, T& var, U&& value, const std::uint32_t version) {
-		return var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value), version);
+	static constexpr inline void member_load_minimal(Archive& ar, T& var, U&& value) {
+		var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value));
 	}
 
-	// --- Auxiliary functions -------------------------------------------------------------------------
-
-	template <class Archive, class T>
-	static constexpr inline void global_load(Archive& ar, T& var) {
-		VIDE_FUNCTION_NAME_LOAD(ar, var);
+	template <class Archive, class T, class U>
+	static constexpr inline void member_load_minimal(Archive& ar, T& var, U&& value, const std::uint32_t version) {
+		var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value), version);
 	}
 
 	template <class Archive, class T>
-	static constexpr inline void global_load(Archive& ar, T& var, const std::uint32_t version) {
-		VIDE_FUNCTION_NAME_LOAD(ar, var, version);
+	static constexpr inline auto& member_serialize_minimal(Archive& ar, T& var) {
+		return var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar);
 	}
 
-	// --- Other Functionality -------------------------------------------------------------------------
+	template <class Archive, class T>
+	static constexpr inline auto& member_serialize_minimal(Archive& ar, T& var, const std::uint32_t version) {
+		return var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, version);
+	}
 
 	// Used for placement new
 	template <class T, class... Args>

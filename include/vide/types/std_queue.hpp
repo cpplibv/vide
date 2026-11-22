@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vide/macros.hpp>
 #include <vide/types/functional.hpp> // The default comparator for queue is less
 #include <vide/types/std_deque.hpp> // The default container for queue is deque, so let's include that too
 
+#include <cstdint>
 #include <queue>
 
 
@@ -51,37 +51,37 @@ inline const Comp& comparator(const std::priority_queue<T, C, Comp>& priority_qu
 
 } // namespace queue_detail ------------------------------------------------------------------------
 
-//! Saving for std::queue
-template <class Archive, class T, class C>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::queue<T, C>& queue) {
-	ar.nvp("container", queue_detail::container(queue));
-}
+template <class T, class C>
+struct serializer<std::queue<T, C>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::queue<T, C>& queue, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar.nvp("container", queue_detail::container(queue));
+		} else {
+			C container;
+			ar.nvp("container", container);
+			queue = std::queue<T, C>(std::move(container));
+		}
+	}
+};
 
-//! Loading for std::queue
-template <class Archive, class T, class C>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::queue<T, C>& queue) {
-	C container;
-	ar.nvp("container", container);
-	queue = std::queue<T, C>(std::move(container));
-}
+template <class T, class C, class Comp>
+struct serializer<std::priority_queue<T, C, Comp>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::priority_queue<T, C, Comp>& priority_queue, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar.nvp("comparator", queue_detail::comparator(priority_queue));
+			ar.nvp("container", queue_detail::container(priority_queue));
+		} else {
+			Comp comparator;
+			ar.nvp("comparator", comparator);
 
-//! Saving for std::priority_queue
-template <class Archive, class T, class C, class Comp>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::priority_queue<T, C, Comp>& priority_queue) {
-	ar.nvp("comparator", queue_detail::comparator(priority_queue));
-	ar.nvp("container", queue_detail::container(priority_queue));
-}
+			C container;
+			ar.nvp("container", container);
 
-//! Loading for std::priority_queue
-template <class Archive, class T, class C, class Comp>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::priority_queue<T, C, Comp>& priority_queue) {
-	Comp comparator;
-	ar.nvp("comparator", comparator);
-
-	C container;
-	ar.nvp("container", container);
-
-	priority_queue = std::priority_queue<T, C, Comp>(std::move(comparator), std::move(container));
-}
+			priority_queue = std::priority_queue<T, C, Comp>(std::move(comparator), std::move(container));
+		}
+	}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

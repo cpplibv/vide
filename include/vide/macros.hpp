@@ -1,9 +1,9 @@
 /*! \file macros.hpp
     \brief Preprocessor macros that can customise the vide library
 
-    By default, vide looks for serialization functions with very
+    By default, vide looks for member serialization functions with very
     specific names, that is: serialize, load, save, load_minimal,
-    or save_minimal.
+    save_minimal or serialize_minimal.
 
     This file allows an advanced user to change these names to conform
     to some other style or preference.  This is implemented using

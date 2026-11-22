@@ -14,6 +14,7 @@
 #include <vide/details/util.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 #include <vide/traits/underlying_archive.hpp>
 
 #include <limits>
@@ -61,8 +62,8 @@ namespace detail {
 	the registrations below depend on that, a function static would wait for its first call.
 
 	Registrars living here are the only writers of the registries (PolymorphicCasters,
-	Input/OutputBindingMap, Versions via VIDE_CLASS_VERSION). Afterwards those are
-	read-only, hence no locking: no library may be loaded while other threads serialize.
+	Input/OutputBindingMap). Afterwards those are read-only, hence no locking: no library
+	may be loaded while other threads serialize.
 
 	The registries carry no visibility attribute on purpose: they follow -fvisibility like these
 	registrars do, so a module that shares a registry also exports its registrars, which keeps
@@ -644,11 +645,11 @@ VIDE_DLL_EXPORT void polymorphic_serialization_support<Archive, T>::instantiate(
 	if constexpr (Archive::is_output)
 		create_bindings<Archive, T>::save(std::integral_constant<bool,
 				std::is_base_of_v<detail::OutputArchiveBase, Archive> &&
-						access::is_output_serializable<Archive, T>>{});
+						serializable_with<Archive, T>>{});
 	if constexpr (Archive::is_input)
 		create_bindings<Archive, T>::load(std::integral_constant<bool,
 				std::is_base_of_v<detail::InputArchiveBase, Archive> &&
-						access::is_output_serializable<Archive, T>>{});
+						serializable_with<Archive, T>>{});
 }
 
 //! Begins the binding process of a type to all registered archives

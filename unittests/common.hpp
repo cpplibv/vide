@@ -195,25 +195,33 @@ struct StructExternalSerialize : StructBase {
 	StructExternalSerialize(int x_, int y_) : StructBase{x_, y_} {}
 };
 
-template <class Archive>
-void serialize(Archive& ar, StructExternalSerialize& s) {
-	ar(s.x)(s.y);
-}
+template <>
+struct vide::serializer<StructExternalSerialize> {
+	template <class Archive>
+	static void serialize(Archive& ar, StructExternalSerialize& s, std::uint32_t) {
+		ar(s.x)(s.y);
+	}
+};
 
 struct StructExternalSplit : StructBase {
 	StructExternalSplit() : StructBase{0, 0} {}
 	StructExternalSplit(int x_, int y_) : StructBase{x_, y_} {}
 };
 
-template <class Archive> inline
-void save(Archive& ar, StructExternalSplit const& s) {
-	ar(s.x)(s.y);
-}
-
-template <class Archive> inline
-void load(Archive& ar, StructExternalSplit& s) {
-	ar(s.x)(s.y);
-}
+template <>
+struct vide::serializer<StructExternalSplit> {
+	template <class Archive>
+	static void serialize(Archive& ar, StructExternalSplit& s, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(s.x)(s.y);
+		} else {
+			int loadedX, loadedY;
+			ar(loadedX)(loadedY);
+			s.x = loadedX;
+			s.y = loadedY;
+		}
+	}
+};
 
 template <class T>
 struct StructHash {

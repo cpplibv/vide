@@ -3,8 +3,10 @@
 #include <vide/details/util.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
 #include <concepts>
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 
@@ -138,20 +140,25 @@ struct enum_value_set {
 
 // -------------------------------------------------------------------------------------------------
 
-/// Saving for enum types
-template <typename Archive, typename T>
+template <typename T>
 	requires std::is_enum_v<T>
-inline std::underlying_type_t<T> VIDE_FUNCTION_NAME_SAVE_MINIMAL(const Archive&, const T& var) {
-	enum_value_set::verify(var);
-	return std::to_underlying(var);
-}
+struct serializer<T> {
+	static constexpr bool minimal = true;
 
-/// Loading for enum types
-template <typename Archive, typename T>
-inline void VIDE_FUNCTION_NAME_LOAD_MINIMAL(const Archive&, T& var, std::underlying_type_t<T> value) {
-	var = T{value};
-	enum_value_set::verify(var);
-}
+	template <typename Archive>
+	static void serialize(Archive& ar, T& var, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			enum_value_set::verify(var);
+			ar(std::to_underlying(var));
+		} else {
+			std::underlying_type_t<T> value;
+			ar(value);
+			var = T{value};
+			enum_value_set::verify(var);
+		}
+	}
+};
+
 } // namespace vide --------------------------------------------------------------------------------
 
 

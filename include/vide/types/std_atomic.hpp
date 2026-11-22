@@ -1,33 +1,27 @@
 #pragma once
 
-#include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
 #include <atomic>
+#include <cstdint>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-// std::atomic has implicit conversion operator for the underlying type which can find undesired
-// serialization functions which leads to ambiguity.
-// Provide better overloads than any with implicit conversion and delete it.
+template <class T>
+struct serializer<std::atomic<T>> {
+	static constexpr bool minimal = true;
 
-template <class Archive, class T>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::atomic<T>& a) = delete;
-template <class Archive, class T>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::atomic<T>& a) = delete;
-template <class Archive, class T>
-inline void VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar, std::atomic<T>& a) = delete;
-
-// Serializing (save) for std::atomic
-template <class Archive, class T>
-inline T VIDE_FUNCTION_NAME_SAVE_MINIMAL(const Archive&, const std::atomic<T>& var) {
-	return var.load();
-}
-
-//! Serializing (load) for std::atomic
-template <class Archive, class T>
-inline void VIDE_FUNCTION_NAME_LOAD_MINIMAL(const Archive&, std::atomic<T>& var, T value) {
-	var.store(value);
-}
+	template <class Archive>
+	static void serialize(Archive& ar, std::atomic<T>& var, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(var.load());
+		} else {
+			T value;
+			ar(value);
+			var.store(value);
+		}
+	}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

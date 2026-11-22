@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
+#include <cstdint>
 #include <meta>
 
 
@@ -29,28 +31,31 @@ consteval std::array<int, N> make_index_array() {
 
 // -------------------------------------------------------------------------------------------------
 
-template <class Archive, class T>
+template <class T>
 	requires requires { typename T::serialize_enable_reflection; }
-inline void VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar, T& var) {
-	static constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
-	template for (constexpr std::meta::info member : members) {
-		static constexpr auto annotations = define_static_array(annotations_of(member));
-		static constexpr auto validators = define_static_array([] {
-			std::vector<std::meta::info> result;
-			template for (constexpr std::meta::info annotation : annotations) {
-				if constexpr (requires (const T& v) { { [:constant_of(annotation):](v) }; } ) {
-					result.emplace_back(annotation);
+struct serializer<T> : detail::class_version_of<T> {
+	template <class Archive>
+	static void serialize(Archive& ar, T& var, std::uint32_t) {
+		static constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
+		template for (constexpr std::meta::info member : members) {
+			static constexpr auto annotations = define_static_array(annotations_of(member));
+			static constexpr auto validators = define_static_array([] {
+				std::vector<std::meta::info> result;
+				template for (constexpr std::meta::info annotation : annotations) {
+					if constexpr (requires (const T& v) { { [:constant_of(annotation):](v) }; } ) {
+						result.emplace_back(annotation);
+					}
 				}
-			}
-			return result;
-		}());
-		[[maybe_unused]] // maybe_unused as GCC 16.1 has a false positive warning for unused pack with splice
-		static constexpr auto [...validatorsIndices] = detail::make_index_array<validators.size()>();
+				return result;
+			}());
+			[[maybe_unused]] // maybe_unused as GCC 16.1 has a false positive warning for unused pack with splice
+			static constexpr auto [...validatorsIndices] = detail::make_index_array<validators.size()>();
 
-		ar.nvp(identifier_of(member).data(), var.[:member:], [:constant_of(validators[validatorsIndices]):]...);
-		// ar.nvp(identifier_of(member).data(), var.[:member:], [:constant_of(validators):]...);
+			ar.nvp(identifier_of(member).data(), var.[:member:], [:constant_of(validators[validatorsIndices]):]...);
+			// ar.nvp(identifier_of(member).data(), var.[:member:], [:constant_of(validators):]...);
+		}
 	}
-}
+};
 
 } // namespace vide --------------------------------------------------------------------------------
 

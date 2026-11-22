@@ -18,6 +18,8 @@ int doit();
 class VersionTest
 {
   public:
+    static constexpr std::uint32_t serialize_class_version = 1;
+
     int x;
     template <class Archive>
     void serialize( Archive & ar, const std::uint32_t /* version */ )
@@ -39,5 +41,3 @@ extern template DECLSPECIFIER void Base::serialize<vide::XMLInputArchive>
 
 extern template DECLSPECIFIER void Base::serialize<vide::XMLOutputArchive>
 ( vide::XMLOutputArchive & ar, const std::uint32_t version );
-
-VIDE_CLASS_VERSION(VersionTest, 1)

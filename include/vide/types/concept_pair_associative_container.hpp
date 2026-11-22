@@ -3,26 +3,22 @@
 #pragma once
 
 #include <vide/exception.hpp>
-#include <vide/macros.hpp>
 #include <vide/map_item.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-/// Saving for std-like pair associative containers, concept is on typename Map::mapped_type
+/// Shared implementation of the std-like pair associative container serializers
 template <typename Archive, typename Map>
-	requires requires { typename Map::mapped_type; }
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const Map& map) {
+inline void implementation_map_save(Archive& ar, const Map& map) {
 	ar.size_tag(map.size());
 
 	for (const auto& i : map)
 		ar(make_map_item(i.first, i.second));
 }
 
-/// Loading for std-like pair associative containers, concept is on typename Map::mapped_type
 template <typename Archive, typename Map>
-	requires requires { typename Map::mapped_type; }
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, Map& map) {
+inline void implementation_map_load(Archive& ar, Map& map) {
 	const auto size = ar.size_tag();
 	const auto reservable = ar.template safe_to_reserve<typename Map::value_type>(size);
 

@@ -32,14 +32,14 @@
 
 namespace Nested {
 struct NestedClass {
+	static constexpr std::uint32_t serialize_class_version = 1;
+
 	int x;
 
 	template<class Archive>
 	void serialize(Archive& ar) { ar(x); }
 };
 }
-
-VIDE_CLASS_VERSION(Nested::NestedClass, 1)
 
 class VersionStructMS {
 public:
@@ -57,6 +57,8 @@ private:
 };
 
 struct VersionStructMSP {
+	static constexpr std::uint32_t serialize_class_version = 33;
+
 	uint8_t x;
 	std::uint32_t v;
 
@@ -77,31 +79,36 @@ struct VersionStructNMS {
 	std::uint32_t v;
 };
 
-template<class Archive>
-void serialize(Archive& ar, VersionStructNMS& vnms, const std::uint32_t version) {
-	ar(vnms.x);
-	vnms.v = version;
-}
+template <>
+struct vide::serializer<VersionStructNMS> {
+	static constexpr std::uint32_t serialize_class_version = 66;
+
+	template<class Archive>
+	static void serialize(Archive& ar, VersionStructNMS& vnms, const std::uint32_t version) {
+		ar(vnms.x);
+		vnms.v = version;
+	}
+};
 
 struct VersionStructNMSP {
 	double x;
 	std::uint32_t v;
 };
 
-template<class Archive>
-void save(Archive& ar, VersionStructNMSP const& vnms, const std::uint32_t /*version*/) {
-	ar(vnms.x);
-}
+template <>
+struct vide::serializer<VersionStructNMSP> {
+	static constexpr std::uint32_t serialize_class_version = 99;
 
-template<class Archive>
-void load(Archive& ar, VersionStructNMSP& vnms, const std::uint32_t version) {
-	ar(vnms.x);
-	vnms.v = version;
-}
-
-VIDE_CLASS_VERSION(VersionStructMSP, 33)
-VIDE_CLASS_VERSION(VersionStructNMS, 66)
-VIDE_CLASS_VERSION(VersionStructNMSP, 99)
+	template<class Archive>
+	static void serialize(Archive& ar, VersionStructNMSP& vnms, const std::uint32_t version) {
+		if constexpr (Archive::is_output) {
+			ar(vnms.x);
+		} else {
+			ar(vnms.x);
+			vnms.v = version;
+		}
+	}
+};
 
 class StructStaticMemberClassVersionPub {
 public:
@@ -136,14 +143,12 @@ private:
 template<class IArchive, class OArchive>
 inline void test_versioning() {
 
-	CHECK(not vide::access::has_static_member_class_version<VersionStructMS>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructMSP>);
+	CHECK(not vide::is_versioned_class<VersionStructMS>);
+	CHECK(vide::is_versioned_class<VersionStructMSP>);
+	CHECK(vide::is_versioned_class<VersionStructNMS>);
+	CHECK(vide::is_versioned_class<VersionStructNMSP>);
+	CHECK(vide::is_versioned_class<Nested::NestedClass>);
 	CHECK(not vide::access::has_static_member_class_version<VersionStructNMS>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructNMSP>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructMS>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructMSP>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructNMS>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructNMSP>);
 	CHECK(vide::access::has_static_member_class_version<StructStaticMemberClassVersionPub>);
 	CHECK_EQ(vide::access::static_member_class_version<StructStaticMemberClassVersionPub>(), 133u);
 	CHECK(vide::access::has_static_member_class_version<StructStaticMemberClassVersionPriv>);

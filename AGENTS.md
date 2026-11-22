@@ -8,7 +8,10 @@ serialized output are breaking changes.
 ## Layout
 
 - `include/vide/` - the library; everything is a header
-  - `vide.hpp` - core: `InputArchive` / `OutputArchive`, dispatch to the serialization customization points
+  - `vide.hpp` - core: `InputArchive` / `OutputArchive`, dispatch to `vide::serializer<T>`
+  - `serializer.hpp` - `vide::serializer<T>`, the only serialization entry point: specializations for non-intrusive
+    types, the primary template forwards to the member shapes (`serialize`, `save`/`load`, `*_minimal`, each optionally
+    versioned). No free-function serializers, no ADL lookup
   - `archives/` - `binary`, `portable_binary`, `json`, `xml`, `proxy_archive`
   - `types/` - serializers for std (`std_*.hpp`), boost flat containers, smart pointers (`memory.hpp`), polymorphism,
     enums, `reflection.hpp`
@@ -26,11 +29,12 @@ Requires GCC 16+ (`-freflection` is always on), CMake 3.24+, Ninja. Build types:
 (`-O3` without static linking; the usual one for development).
 
 ```sh
-cmake -S . -B build/dev -G Ninja -DCMAKE_BUILD_TYPE=DEV -DVIDE_ALTERNATIVE_LINKER=lld
+cmake -S . -B build/dev -G Ninja -DCMAKE_BUILD_TYPE=DEV -DCMAKE_LINKER_TYPE=LLD
 ninja -C build/dev -j 4
 ctest --test-dir build/dev -j 8 --output-on-failure
 ```
 
+- Always link with LLD (`-DCMAKE_LINKER_TYPE=LLD`)
 - One compile peaks around 1.5 GB of RAM; size `-j` to the machine, not the core count. A full build is ~110 targets
 - Every public header is compiled standalone (`VERIFY_INTERFACE_HEADER_SETS`), so each header must include what it uses
 - Strict warning set (see `CMakeLists.txt`); new code should build warning free

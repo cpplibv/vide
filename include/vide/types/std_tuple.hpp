@@ -1,8 +1,9 @@
 #pragma once
 
-#include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <tuple>
 
 
@@ -78,10 +79,12 @@ struct serialize<0> {
 
 } // namespace tuple_detail ------------------------------------------------------------------------
 
-//! Serializing for std::tuple
-template <class Archive, class... Types>
-inline void VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar, std::tuple<Types...>& tuple) {
-	tuple_detail::serialize<std::tuple_size<std::tuple<Types...>>::value>::apply(ar, tuple);
-}
+template <class... Types>
+struct serializer<std::tuple<Types...>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::tuple<Types...>& tuple, std::uint32_t) {
+		tuple_detail::serialize<sizeof...(Types)>::apply(ar, tuple);
+	}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

@@ -32,9 +32,10 @@
 
 #include <vide/binary_data.hpp>
 #include <vide/exception.hpp>
-#include <vide/macros.hpp>
 #include <vide/types/std_string.hpp>
+#include <vide/serializer.hpp>
 
+#include <cstdint>
 #include <bitset>
 
 
@@ -54,108 +55,108 @@ enum class type : uint8_t {
 
 } // namespace bitset_detail -----------------------------------------------------------------------
 
-//! Serializing (save) for std::bitset
-template <class Archive, size_t N>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::bitset<N>& bits) {
-	if constexpr (Archive::template supports_binary<std::uint32_t>) {
-		// when BinaryData optimization supported
-		ar.nvp("type", bitset_detail::type::bits);
+template <size_t N>
+struct serializer<std::bitset<N>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::bitset<N>& bits, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			if constexpr (Archive::template supports_binary<std::uint32_t>) {
+				// when BinaryData optimization supported
+				ar.nvp("type", bitset_detail::type::bits);
 
-		// Serialize 8 bit chunks
-		std::uint8_t chunk = 0;
-		std::uint8_t mask = 0x80;
+				// Serialize 8 bit chunks
+				std::uint8_t chunk = 0;
+				std::uint8_t mask = 0x80;
 
-		// Set each chunk using a rotating mask for the current bit
-		for (std::size_t i = 0; i < N; ++i) {
-			if (bits[i])
-				chunk |= mask;
+				// Set each chunk using a rotating mask for the current bit
+				for (std::size_t i = 0; i < N; ++i) {
+					if (bits[i])
+						chunk |= mask;
 
-			mask = static_cast<std::uint8_t>(mask >> 1);
+					mask = static_cast<std::uint8_t>(mask >> 1);
 
-			// output current chunk when mask is empty (8 bits)
-			if (mask == 0) {
-				ar(chunk);
-				chunk = 0;
-				mask = 0x80;
+					// output current chunk when mask is empty (8 bits)
+					if (mask == 0) {
+						ar(chunk);
+						chunk = 0;
+						mask = 0x80;
+					}
+				}
+
+				// serialize remainder, if it exists
+				if (mask != 0x80)
+					ar(chunk);
+			} else {
+				// when BinaryData is not supported
+				try {
+					auto const b = bits.to_ulong();
+					ar.nvp("type", bitset_detail::type::ulong);
+					ar.nvp("data", b);
+				} catch (const std::overflow_error&) {
+					try {
+						auto const b = bits.to_ullong();
+						ar.nvp("type", bitset_detail::type::ullong);
+						ar.nvp("data", b);
+					} catch (const std::overflow_error&) {
+						ar.nvp("type", bitset_detail::type::string);
+						ar.nvp("data", bits.to_string());
+					}
+				}
 			}
-		}
+		} else {
+			bitset_detail::type t;
+			ar.nvp("type", t);
 
-		// serialize remainder, if it exists
-		if (mask != 0x80)
-			ar(chunk);
-	} else {
-		// when BinaryData is not supported
-		try {
-			auto const b = bits.to_ulong();
-			ar.nvp("type", bitset_detail::type::ulong);
-			ar.nvp("data", b);
-		} catch (const std::overflow_error&) {
-			try {
-				auto const b = bits.to_ullong();
-				ar.nvp("type", bitset_detail::type::ullong);
+			switch (t) {
+			case bitset_detail::type::ulong: {
+				unsigned long b;
 				ar.nvp("data", b);
-			} catch (const std::overflow_error&) {
-				ar.nvp("type", bitset_detail::type::string);
-				ar.nvp("data", bits.to_string());
+				bits = std::bitset<N>(b);
+				break;
+			}
+			case bitset_detail::type::ullong: {
+				unsigned long long b;
+				ar.nvp("data", b);
+				bits = std::bitset<N>(b);
+				break;
+			}
+			case bitset_detail::type::string: {
+				std::string b;
+				ar.nvp("data", b);
+				try {
+					bits = std::bitset<N>(b);
+				} catch (const std::invalid_argument&) {
+					throw Exception("Invalid bitset data string");
+				}
+				break;
+			}
+			case bitset_detail::type::bits: {
+				// Normally we would use BinaryData to route this at compile time,
+				// but doing this at runtime doesn't break any old serialization
+				std::uint8_t chunk = 0;
+				std::uint8_t mask = 0;
+
+				bits.reset();
+
+				// Load one chunk at a time, rotating through the chunk
+				// to set bits in the bitset
+				for (std::size_t i = 0; i < N; ++i) {
+					if (mask == 0) {
+						ar(chunk);
+						mask = 0x80;
+					}
+
+					if (chunk & mask)
+						bits[i] = 1;
+
+					mask = static_cast<std::uint8_t>(mask >> 1);
+				}
+				break;
+			// default: branch is not needed, serialize_end_value takes care of it
+			}
 			}
 		}
 	}
-}
-
-//! Serializing (load) for std::bitset
-template <class Archive, size_t N>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::bitset<N>& bits) {
-	bitset_detail::type t;
-	ar.nvp("type", t);
-
-	switch (t) {
-	case bitset_detail::type::ulong: {
-		unsigned long b;
-		ar.nvp("data", b);
-		bits = std::bitset<N>(b);
-		break;
-	}
-	case bitset_detail::type::ullong: {
-		unsigned long long b;
-		ar.nvp("data", b);
-		bits = std::bitset<N>(b);
-		break;
-	}
-	case bitset_detail::type::string: {
-		std::string b;
-		ar.nvp("data", b);
-		try {
-			bits = std::bitset<N>(b);
-		} catch (const std::invalid_argument&) {
-			throw Exception("Invalid bitset data string");
-		}
-		break;
-	}
-	case bitset_detail::type::bits: {
-		// Normally we would use BinaryData to route this at compile time,
-		// but doing this at runtime doesn't break any old serialization
-		std::uint8_t chunk = 0;
-		std::uint8_t mask = 0;
-
-		bits.reset();
-
-		// Load one chunk at a time, rotating through the chunk
-		// to set bits in the bitset
-		for (std::size_t i = 0; i < N; ++i) {
-			if (mask == 0) {
-				ar(chunk);
-				mask = 0x80;
-			}
-
-			if (chunk & mask)
-				bits[i] = 1;
-
-			mask = static_cast<std::uint8_t>(mask >> 1);
-		}
-		break;
-	// default: branch is not needed, serialize_end_value takes care of it
-	}
-	}
-}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

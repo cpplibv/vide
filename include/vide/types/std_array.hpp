@@ -1,21 +1,26 @@
 #pragma once
 
 #include <vide/binary_data.hpp>
-#include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-template <class Archive, class T, std::size_t N>
-inline void VIDE_FUNCTION_NAME_SERIALIZE(Archive& ar, std::array<T, N>& array) {
-	if constexpr (Archive::template supports_binary<T>) {
-		ar(binary_data(array.data(), N*sizeof(T)));
-	} else {
-		for (auto& i : array)
-			ar(i);
+template <class T, std::size_t N>
+struct serializer<std::array<T, N>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::array<T, N>& array, std::uint32_t) {
+		if constexpr (Archive::template supports_binary<T>) {
+			ar(binary_data(array.data(), N * sizeof(T)));
+		} else {
+			for (auto& i : array)
+				ar(i);
+		}
 	}
-}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

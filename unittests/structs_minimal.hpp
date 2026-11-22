@@ -178,57 +178,70 @@ struct GlobalMinimal {
 	std::uint32_t x = 42;
 };
 
-template <class Archive> inline
-std::uint32_t save_minimal(const Archive&, const GlobalMinimal& nmm) {
-	return nmm.x;
-}
+template <>
+struct vide::serializer<GlobalMinimal> {
+	static constexpr bool minimal = true;
 
-template <class Archive> inline
-void load_minimal(const Archive&, GlobalMinimal& nmm, const std::uint32_t& data) {
-	nmm.x = data;
-}
+	template <class Archive>
+	static void serialize(Archive& ar, GlobalMinimal& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
 
 struct GlobalMinimalVersioned {
 	bool x;
 };
 
-template <class Archive> inline
-bool save_minimal(const Archive&, const GlobalMinimalVersioned& nmm, const std::uint32_t) {
-	return nmm.x;
-}
+template <>
+struct vide::serializer<GlobalMinimalVersioned> {
+	static constexpr bool minimal = true;
 
-template <class Archive> inline
-void load_minimal(const Archive&, GlobalMinimalVersioned& nmm, const bool& data, const std::uint32_t) {
-	nmm.x = data;
-}
+	template <class Archive>
+	static void serialize(Archive& ar, GlobalMinimalVersioned& var, std::uint32_t version) {
+		ar(var.x);
+		(void) version;
+	}
+};
 
 struct GlobalMinimalContRefOutAndMoveRefIn {
 	std::string x;
 };
 
-template <class Archive>
-const std::string& save_minimal(const Archive&, const GlobalMinimalContRefOutAndMoveRefIn& var) {
-	return var.x;
-}
+template <>
+struct vide::serializer<GlobalMinimalContRefOutAndMoveRefIn> {
+	static constexpr bool minimal = true;
 
-template <class Archive>
-void load_minimal(const Archive&, GlobalMinimalContRefOutAndMoveRefIn& var, std::string&& str) {
-	var.x = std::move(str);
-}
+	template <class Archive>
+	static void serialize(Archive& ar, GlobalMinimalContRefOutAndMoveRefIn& var, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(var.x);
+		} else {
+			std::string str;
+			ar(str);
+			var.x = std::move(str);
+		}
+	}
+};
 
 struct GlobalMinimalContRefOutAndMoveRefInVersioned {
 	std::string x;
 };
 
-template <class Archive>
-const std::string& save_minimal(const Archive&, const GlobalMinimalContRefOutAndMoveRefInVersioned& var, const std::uint32_t) {
-	return var.x;
-}
+template <>
+struct vide::serializer<GlobalMinimalContRefOutAndMoveRefInVersioned> {
+	static constexpr bool minimal = true;
 
-template <class Archive>
-void load_minimal(const Archive&, GlobalMinimalContRefOutAndMoveRefInVersioned& var, std::string&& str, const std::uint32_t) {
-	var.x = std::move(str);
-}
+	template <class Archive>
+	static void serialize(Archive& ar, GlobalMinimalContRefOutAndMoveRefInVersioned& var, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(var.x);
+		} else {
+			std::string str;
+			ar(str);
+			var.x = std::move(str);
+		}
+	}
+};
 
 // gmtgsplbv
 
@@ -236,11 +249,13 @@ struct TrivialGSPL {
 	int x = 4;
 };
 
-template <class Archive>
-void load(Archive& ar, TrivialGSPL& t) { ar(t.x); }
-
-template <class Archive>
-void save(Archive& ar, const TrivialGSPL& t) { ar(t.x); }
+template <>
+struct vide::serializer<TrivialGSPL> {
+	template <class Archive>
+	static void serialize(Archive& ar, TrivialGSPL& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
 
 class GlobalMinimalTrivialGSPLByValue {
 public:
@@ -250,15 +265,15 @@ protected:
 	friend class vide::access;
 };
 
-template <class Archive>
-TrivialGSPL save_minimal(const Archive&, const GlobalMinimalTrivialGSPLByValue& var) {
-	return var.x;
-}
+template <>
+struct vide::serializer<GlobalMinimalTrivialGSPLByValue> {
+	static constexpr bool minimal = true;
 
-template <class Archive>
-void load_minimal(const Archive&, GlobalMinimalTrivialGSPLByValue& var, TrivialGSPL v) {
-	var.x = std::move(v);
-}
+	template <class Archive>
+	static void serialize(Archive& ar, GlobalMinimalTrivialGSPLByValue& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
 
 // -------------------------------------------------------------------------------------------------
 
@@ -317,25 +332,26 @@ struct Issue79Struct {
 	std::int32_t x;
 };
 
-template <class Archive> requires Archive::is_text_archive
-inline std::string save_minimal(const Archive&, Issue79Struct const& val) {
-	return std::to_string(val.x);
-}
+// Representation depends on the archive: decimal string in text archives, raw int otherwise
+template <>
+struct vide::serializer<Issue79Struct> {
+	static constexpr bool minimal = true;
 
-template <class Archive> requires Archive::is_text_archive
-inline void load_minimal(const Archive&, Issue79Struct& val, const std::string& str) {
-	val.x = std::stoi(str);
-}
-
-template <class Archive> requires (not Archive::is_text_archive)
-inline std::int32_t save_minimal(const Archive&, const Issue79Struct& val) {
-	return val.x;
-}
-
-template <class Archive> requires (not Archive::is_text_archive)
-inline void load_minimal(const Archive&, Issue79Struct& val, std::int32_t const& xx) {
-	val.x = xx;
-}
+	template <class Archive>
+	static void serialize(Archive& ar, Issue79Struct& var, std::uint32_t) {
+		if constexpr (Archive::is_text_archive) {
+			if constexpr (Archive::is_output) {
+				ar(std::to_string(var.x));
+			} else {
+				std::string str;
+				ar(str);
+				var.x = std::stoi(str);
+			}
+		} else {
+			ar(var.x);
+		}
+	}
+};
 
 struct Issue79StructInternal {
 	std::int32_t x;
@@ -376,9 +392,15 @@ struct StructGlobalSerializeMinimal {
 	std::int32_t x;
 };
 
-template <typename Archive> std::int32_t& serialize_minimal(Archive&, StructGlobalSerializeMinimal& var) {
-	return var.x;
-}
+template <>
+struct vide::serializer<StructGlobalSerializeMinimal> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, StructGlobalSerializeMinimal& var, std::uint32_t) {
+		ar(var.x);
+	}
+};
 
 struct StructMemberSerializeMinimalVersioned {
 	std::int32_t x;
@@ -393,10 +415,16 @@ struct StructGlobalSerializeMinimalVersioned {
 	std::int32_t x;
 };
 
-template <typename Archive> std::int32_t& serialize_minimal(Archive&, StructGlobalSerializeMinimalVersioned& var, std::uint32_t version) {
-	(void) version;
-	return var.x;
-}
+template <>
+struct vide::serializer<StructGlobalSerializeMinimalVersioned> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, StructGlobalSerializeMinimalVersioned& var, std::uint32_t version) {
+		ar(var.x);
+		(void) version;
+	}
+};
 
 // -------------------------------------------------------------------------------------------------
 

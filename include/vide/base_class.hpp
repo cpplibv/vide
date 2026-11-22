@@ -31,6 +31,7 @@
 #pragma once
 
 #include <vide/details/polymorphic_impl.hpp> // Polymorphic bases register their casters even when serialized by value
+#include <vide/serializer.hpp>
 
 #include <type_traits>
 
@@ -187,23 +188,15 @@ struct virtual_base_class {
 
 namespace detail { // ------------------------------------------------------------------------------
 
-template <typename>
-struct get_base_class {
-	using type = void;
-};
+/// True when T wraps a base class that is minimal with Archive, see minimal_with
+template <typename Archive, typename T>
+inline constexpr bool is_minimal_base_class = false;
 
-template <typename T>
-struct get_base_class<base_class<T>> {
-	using type = T;
-};
+template <typename Archive, typename T>
+inline constexpr bool is_minimal_base_class<Archive, base_class<T>> = minimal_with<Archive, T>;
 
-template <typename T>
-struct get_base_class<virtual_base_class<T>> {
-	using type = T;
-};
-
-template <typename T>
-using get_base_class_t = typename get_base_class<T>::type;
+template <typename Archive, typename T>
+inline constexpr bool is_minimal_base_class<Archive, virtual_base_class<T>> = minimal_with<Archive, T>;
 
 } // namespace detail
 } // namespace vide --------------------------------------------------------------------------------

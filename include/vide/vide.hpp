@@ -41,6 +41,7 @@
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
 #include <vide/nvp.hpp>
+#include <vide/serializer.hpp>
 #include <vide/size_tag.hpp>
 #include <vide/types/common.hpp>
 #include <vide/types/enum.hpp>
@@ -138,82 +139,6 @@ enum Flags {
   typename polymorphic_serialization_support<Archive, T>::type          \
   instantiate_polymorphic_binding( T*, Archive*, BindingTag, adl_tag ); \
   } } /* end namespaces */
-
-//! Helper macro to omit unused warning
-#if defined(__GNUC__)
-// GCC / clang don't want the function
-	#define VIDE_UNUSED_FUNCTION
-#else
-	#define VIDE_UNUSED_FUNCTION static void unused() { (void)version; }
-#endif
-
-// ######################################################################
-//! Defines a class version for some type
-/*! Versioning information is optional and adds some small amount of
-	overhead to serialization.  This overhead will occur both in terms of
-	space in the archive (the version information for each class will be
-	stored exactly once) as well as runtime (versioned serialization functions
-	must check to see if they need to load or store version information).
-
-	Versioning is useful if you plan on fundamentally changing the way some
-	type is serialized in the future.  Versioned serialization functions
-	cannot be used to load non-versioned data.
-
-	By default, all types have an assumed version value of zero.  By
-	using this macro, you may change the version number associated with
-	some type.  vide will then use this value as a second parameter
-	to your serialization functions.
-
-	The interface for the serialization functions is nearly identical
-	to non-versioned serialization with the addition of a second parameter,
-	const std::uint32_t version, which will be supplied with the correct
-	version number.  Serializing the version number on a save happens
-	automatically.
-
-	Versioning cannot be mixed with non-versioned serialization functions.
-	Having both types will result result in a compile time error.  Data
-	serialized without versioning cannot be loaded by a serialization
-	function with added versioning support.
-
-	Example interface for versioning on a non-member serialize function:
-
-	@code{cpp}
-	VIDE_CLASS_VERSION( Mytype, 77 ); // register class version
-
-	template <class Archive>
-	void serialize( Archive & ar, Mytype & t, const std::uint32_t version )
-	{
-	  // When performing a load, the version associated with the class
-	  // is whatever it was when that data was originally serialized
-	  //
-	  // When we save, we'll use the version that is defined in the macro
-
-	  if( version >= some_number )
-		// do this
-	  else
-		// do that
-	}
-	@endcode
-
-	Interfaces for other forms of serialization functions is similar.  This
-	macro should be placed at global scope.
-	@ingroup Utility */
-
-//! The version member is inline, so a header with this macro can be included by many TUs
-#define VIDE_CLASS_VERSION(TYPE, VERSION_NUMBER)                               \
-  namespace vide { namespace detail {                                          \
-    template <> struct Version<TYPE>                                             \
-    {                                                                            \
-      static std::uint32_t registerVersion()                                     \
-      {                                                                          \
-        ::vide::detail::Versions::instance().mapping.emplace(                  \
-             std::type_index(typeid(TYPE)), VERSION_NUMBER );                    \
-        return VERSION_NUMBER;                                                   \
-      }                                                                          \
-      static inline const std::uint32_t version = registerVersion();             \
-      VIDE_UNUSED_FUNCTION                                                     \
-    }; /* end Version */                                                         \
-  } } // end namespaces
 
 // -------------------------------------------------------------------------------------------------
 // Base Class Support
@@ -339,42 +264,6 @@ public:
 				throw Exception("Validation failed during serialization: " + std::string(message));
 	}
 
-	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
-	/// If this is the first time this class has been serialized, it will record its
-	/// serialize_class_version static member and serialize that regardless if the serializer function uses it or not.
-	///
-	/// @tparam T The type of the class being serialized
-	template <class T>
-	inline void registerClassVersionUnused() {
-		if constexpr (access::has_static_member_class_version<T>) {
-			std::uint32_t version = access::static_member_class_version<T>();
-
-			if (registerVersionedType(typeid(T)))
-				process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
-		}
-	}
-
-	/// Registers a class version with the archive and serializes it if necessary.
-	/// If this is the first time this class has been serialized, we will record and
-	/// serialize its version number.
-	///
-	/// @tparam T The type of the class being serialized
-	template <class T>
-	inline std::uint32_t registerClassVersion() {
-		const auto isNew = registerVersionedType(typeid(T));
-		std::uint32_t version;
-		if constexpr (access::has_static_member_class_version<T>) {
-			version = access::static_member_class_version<T>();
-		} else {
-			version = detail::Versions::instance().find(typeid(T), detail::Version<T>::version);
-		}
-
-		if (isNew)
-			process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
-
-		return version;
-	}
-
 public:
 	//! Alternative process function to use a different wrapper type for hierarchy traversal
 	template <class As, class T>
@@ -411,104 +300,34 @@ private:
 		addDeferment(std::move(deferment));
 	}
 
-	//! Generic serialization case
 	template <class As, class T>
-			requires access::is_output_serializable<As, T>
+		requires serializable_with<As, T>
 	inline void processImpl(As& as, const T& var) {
-		if constexpr (access::has_member_serialize<As, T>) {
-			registerClassVersionUnused<T>();
-			access::member_serialize(as, const_cast<T&>(var));
-
-		} else if constexpr (access::has_member_serialize_minimal<As, T>) {
-			registerClassVersionUnused<T>();
-			self().process_as(as, access::member_serialize_minimal(as, const_cast<T&>(var)));
-
-		} else if constexpr (access::has_global_serialize<As, T>) {
-			registerClassVersionUnused<T>();
-			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var));
-
-		} else if constexpr (access::has_global_serialize_minimal<As, T>) {
-			registerClassVersionUnused<T>();
-			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, const_cast<T&>(var)));
-
-		} else if constexpr (access::has_member_save<As, T>) {
-			registerClassVersionUnused<T>();
-			access::member_save(as, var);
-
-		} else if constexpr (access::has_global_save<As, T>) {
-			registerClassVersionUnused<T>();
-			VIDE_FUNCTION_NAME_SAVE(as, var);
-
-		} else if constexpr (access::has_member_save_minimal<As, T>) {
-			registerClassVersionUnused<T>();
-			self().process_as(as, access::member_save_minimal(as, var));
-
-		} else if constexpr (access::has_global_save_minimal<As, T>) {
-			registerClassVersionUnused<T>();
-			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var));
-
-		} else if constexpr (access::has_member_serialize_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			access::member_serialize(as, const_cast<T&>(var), version);
-
-		} else if constexpr (access::has_member_serialize_minimal_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			self().process_as(as, access::member_serialize_minimal(as, const_cast<T&>(var), version));
-
-		} else if constexpr (access::has_global_serialize_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			VIDE_FUNCTION_NAME_SERIALIZE(as, const_cast<T&>(var), version);
-
-		} else if constexpr (access::has_global_serialize_minimal_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, const_cast<T&>(var), version));
-
-		} else if constexpr (access::has_member_save_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			access::member_save(as, var, version);
-
-		} else if constexpr (access::has_global_save_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			VIDE_FUNCTION_NAME_SAVE(as, var, version);
-
-		} else if constexpr (access::has_member_save_minimal_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			self().process_as(as, access::member_save_minimal(as, var, version));
-
-		} else if constexpr (access::has_global_save_minimal_versioned<As, T>) {
-			const auto version = registerClassVersion<T>();
-			self().process_as(as, VIDE_FUNCTION_NAME_SAVE_MINIMAL(as, var, version));
+		std::uint32_t version = 0;
+		if constexpr (is_versioned_class<T>) {
+			version = serializer<T>::serialize_class_version;
+			if (registerVersionedType(typeid(T)))
+				process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
 		}
+		serializer<T>::serialize(as, const_cast<T&>(var), version);
 	}
 
-	//! No matching serialization
-	/*! Invalid if we have invalid output versioning or
-		we are not output serializable, and either
-		don't allow empty class ellision or allow it but are not serializing an empty class */
+	// Only the declared return type is used to detect the failure (see process_as), the body
+	// is instantiated when the archive itself cannot serialize T either
 	template <class As, class T>
-		requires (!access::is_output_serializable<As, T>)
-	inline unserializable_type_tag processImpl(As& as, const T&) {
-		(void) as;
-
+		requires (!serializable_with<As, T>)
+	inline unserializable_type_tag processImpl(As&, const T&) {
 		static_assert(Complete<T>,
 				"Attempted to serialize an incomplete type T. Ensure the type is included and complete before serialization attempts.");
 
-		static_assert(access::count_output_serializers<ArchiveType, T> != 0, "\n"
-				"Vide could not find any output serialization functions for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Serialize functions generally have the following signature:\n\n"
-				"  template<class Archive>\n"
+		static_assert(serializable_with<ArchiveType, T>, "\n"
+				"Vide could not find a serializer for the provided type and archive combination.\n\n"
+				"Give the type a member serialize function or specialize vide::serializer<T>:\n\n"
+				"  template <class Archive>\n"
 				"  void serialize(Archive& ar) {\n"
-				"    ar(member1);\n"
-				"    ar(member2);\n"
+				"    ar.nvp(\"member1\", member1);\n"
+				"    ar.nvp(\"member2\", member2);\n"
 				"  }\n\n");
-
-		static_assert(access::count_output_serializers<ArchiveType, T> <= 1, "\n"
-				"Vide found more than one compatible output serialization function for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Use specialization (see access.hpp) if you need to disambiguate between serialize vs load/save functions. \n"
-				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
-				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
 
 		return unserializable_type_tag{};
 	}
@@ -663,15 +482,6 @@ public:
 			throw Exception("Read size validation of " + std::to_string(requestedBytes) + " bytes failed.");
 	}
 
-	/// Registers the serialize_class_version static member with the archive and serializes it if necessary.
-	/// If this is the first time this class has been serialized, it will record its
-	/// serialize_class_version static member and serialize that regardless if the serializer function uses it or not.
-	template <class T>
-	inline void loadClassVersionUnused() {
-		if constexpr (access::has_static_member_class_version<T>)
-			(void) loadClassVersion<T>();
-	}
-
 	//! Registers a class version with the archive and serializes it if necessary
 	/*! If this is the first time this class has been serialized, we will record its
 		version number and serialize that.
@@ -731,111 +541,31 @@ private:
 		addDeferment(std::move(deferment));
 	}
 
-	//! Generic serialization case
 	template <class As, class T>
-			requires access::is_input_serializable<As, T>
+		requires serializable_with<As, T>
 	inline void processImpl(As& as, T& var) {
-		if constexpr (access::has_member_serialize<As, T>) {
-			loadClassVersionUnused<T>();
-			access::member_serialize(as, var);
-
-		} else if constexpr (access::has_member_serialize_minimal<As, T>) {
-			loadClassVersionUnused<T>();
-			self().process_as(as, access::member_serialize_minimal(as, var));
-
-		} else if constexpr (access::has_global_serialize<As, T>) {
-			loadClassVersionUnused<T>();
-			VIDE_FUNCTION_NAME_SERIALIZE(as, var);
-
-		} else if constexpr (access::has_global_serialize_minimal<As, T>) {
-			loadClassVersionUnused<T>();
-			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, var));
-
-		} else if constexpr (access::has_member_load<As, T>) {
-			loadClassVersionUnused<T>();
-			access::member_load(as, var);
-
-		} else if constexpr (access::has_global_load<As, T>) {
-			loadClassVersionUnused<T>();
-			access::global_load(as, var); // Using access:: to escape the member shadow of 'load'
-
-		} else if constexpr (access::has_member_load_minimal<As, T>) {
-			loadClassVersionUnused<T>();
-			access::get_member_save_minimal_t<As, T> value;
-			self().process_as(as, value);
-			access::member_load_minimal(as, var, std::move(value));
-
-		} else if constexpr (access::has_global_load_minimal<As, T>) {
-			loadClassVersionUnused<T>();
-			access::get_global_save_minimal_t<As, T> value;
-			self().process_as(as, value);
-			VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, var, std::move(value));
-
-		} else if constexpr (access::has_member_serialize_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			access::member_serialize(as, var, version);
-
-		} else if constexpr (access::has_member_serialize_minimal_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			self().process_as(as, access::member_serialize_minimal(as, var, version));
-
-		} else if constexpr (access::has_global_serialize_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			VIDE_FUNCTION_NAME_SERIALIZE(as, var, version);
-
-		} else if constexpr (access::has_global_serialize_minimal_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			self().process_as(as, VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(as, var, version));
-
-		} else if constexpr (access::has_member_load_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			access::member_load(as, var, version);
-
-		} else if constexpr (access::has_global_load_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			access::global_load(as, var, version); // Using access:: to escape the member shadow of 'load'
-
-		} else if constexpr (access::has_member_load_minimal_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			access::get_member_save_minimal_versioned_t<As, T> value;
-			self().process_as(as, value);
-			access::member_load_minimal(as, var, std::move(value), version);
-
-		} else if constexpr (access::has_global_load_minimal_versioned<As, T>) {
-			const auto version = loadClassVersion<T>();
-			access::get_global_save_minimal_versioned_t<As, T> value;
-			self().process_as(as, value);
-			VIDE_FUNCTION_NAME_LOAD_MINIMAL(as, var, std::move(value), version);
-		}
+		std::uint32_t version = 0;
+		if constexpr (is_versioned_class<T>)
+			version = loadClassVersion<T>();
+		serializer<T>::serialize(as, var, version);
 	}
 
-	//! No matching serialization
-	/*! Invalid if we have invalid input versioning or
-		we are not input serializable, and either
-		don't allow empty class ellision or allow it but are not serializing an empty class */
+	// Only the declared return type is used to detect the failure (see process_as), the body
+	// is instantiated when the archive itself cannot serialize T either
 	template <class As, class T>
-		requires (!access::is_input_serializable<As, T>)
-	inline unserializable_type_tag processImpl(As& as, const T&) {
-		(void) as;
-
+		requires (!serializable_with<As, T>)
+	inline unserializable_type_tag processImpl(As&, const T&) {
 		static_assert(Complete<T>,
 				"Attempted to serialize an incomplete type T. Ensure the type is included and complete before serialization attempts.");
 
-		static_assert(access::count_input_serializers<ArchiveType, T> != 0, "\n"
-				"Vide could not find any input serialization functions for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Serialize functions generally have the following signature:\n\n"
+		static_assert(serializable_with<ArchiveType, T>, "\n"
+				"Vide could not find a serializer for the provided type and archive combination.\n\n"
+				"Give the type a member serialize function or specialize vide::serializer<T>:\n\n"
 				"  template <class Archive>\n"
 				"  void serialize(Archive& ar) {\n"
-				"    ar(member1);\n"
-				"    ar(member2);\n"
+				"    ar.nvp(\"member1\", member1);\n"
+				"    ar.nvp(\"member2\", member2);\n"
 				"  }\n\n");
-
-		static_assert(access::count_input_serializers<ArchiveType, T> <= 1, "\n"
-				"Vide found more than one compatible input serialization function for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, or load_minimal/save_minimal pair (you may not mix these).\n"
-				"Note that serialization functions can be inherited which may lead to the aforementioned ambiguities.\n"
-				"In addition, you may not mix versioned with non-versioned serialization functions.\n\n");
 
 		return unserializable_type_tag{};
 	}

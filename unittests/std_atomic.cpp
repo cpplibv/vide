@@ -37,8 +37,11 @@ struct TrivialESER {
 	int x;
 };
 
-template <class Archive>
-void serialize(Archive& ar, TrivialESER& t) { ar(t.x); }
+template <>
+struct vide::serializer<TrivialESER> {
+	template <class Archive>
+	static void serialize(Archive& ar, TrivialESER& t, std::uint32_t) { ar(t.x); }
+};
 
 MAKE_TEST_HELPER_FUNCS(TrivialESER)
 
@@ -46,11 +49,19 @@ struct TrivialESPL {
 	int x;
 };
 
-template <class Archive>
-void load(Archive& ar, TrivialESPL& t) { ar(t.x); }
-
-template <class Archive>
-void save(Archive& ar, const TrivialESPL& t) { ar(t.x); }
+template <>
+struct vide::serializer<TrivialESPL> {
+	template <class Archive>
+	static void serialize(Archive& ar, TrivialESPL& t, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(t.x);
+		} else {
+			int loaded;
+			ar(loaded);
+			t.x = loaded;
+		}
+	}
+};
 
 MAKE_TEST_HELPER_FUNCS(TrivialESPL)
 #undef MAKE_TEST_HELPER_FUNCS

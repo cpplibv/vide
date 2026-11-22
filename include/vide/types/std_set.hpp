@@ -1,35 +1,36 @@
 #pragma once
 
-#include <vide/macros.hpp>
 #include <vide/types/implementation_set.hpp>
+#include <vide/serializer.hpp>
 
+#include <cstdint>
 #include <set>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-/// Saving for std::set
-template <class Archive, class K, class C, class A>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::set<K, C, A>& set) {
-	implementation_set_save(ar, set);
-}
+template <class K, class C, class A>
+struct serializer<std::set<K, C, A>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::set<K, C, A>& set, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			::vide::implementation_set_save(ar, set);
+		} else {
+			::vide::implementation_set_load(ar, set);
+		}
+	}
+};
 
-/// Loading for std::set
-template <class Archive, class K, class C, class A>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::set<K, C, A>& set) {
-	implementation_set_load(ar, set);
-}
-
-/// Saving for std::multiset
-template <class Archive, class K, class C, class A>
-inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::multiset<K, C, A>& multiset) {
-	implementation_set_save(ar, multiset);
-}
-
-/// Loading for std::multiset
-template <class Archive, class K, class C, class A>
-inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::multiset<K, C, A>& multiset) {
-	implementation_set_load(ar, multiset);
-}
+template <class K, class C, class A>
+struct serializer<std::multiset<K, C, A>> {
+	template <class Archive>
+	static void serialize(Archive& ar, std::multiset<K, C, A>& multiset, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			::vide::implementation_set_save(ar, multiset);
+		} else {
+			::vide::implementation_set_load(ar, multiset);
+		}
+	}
+};
 
 } // namespace vide --------------------------------------------------------------------------------

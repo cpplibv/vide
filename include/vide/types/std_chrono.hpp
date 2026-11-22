@@ -1,35 +1,43 @@
 #pragma once
 
-#include <vide/macros.hpp>
+#include <vide/serializer.hpp>
 
 #include <chrono>
+#include <cstdint>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-// --- std::chrono::duration ---
+template <typename Rep, typename Period>
+struct serializer<std::chrono::duration<Rep, Period>> {
+	static constexpr bool minimal = true;
 
-template <typename Archive, typename Rep, typename Period>
-inline Rep VIDE_FUNCTION_NAME_SAVE_MINIMAL(Archive&, const std::chrono::duration<Rep, Period>& duration) {
-	return duration.count();
-}
+	template <typename Archive>
+	static void serialize(Archive& ar, std::chrono::duration<Rep, Period>& duration, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(duration.count());
+		} else {
+			Rep count;
+			ar(count);
+			duration = std::chrono::duration<Rep, Period>{count};
+		}
+	}
+};
 
-template <typename Archive, typename Rep, typename Period>
-inline void VIDE_FUNCTION_NAME_LOAD_MINIMAL(Archive&, std::chrono::duration<Rep, Period>& duration, Rep count) {
-	duration = std::chrono::duration<Rep, Period>{count};
-}
+template <typename Clock, typename Duration>
+struct serializer<std::chrono::time_point<Clock, Duration>> {
+	static constexpr bool minimal = true;
 
-// --- std::chrono::time_point ---
-
-template <typename Archive, typename Clock, typename Duration>
-inline typename Duration::rep VIDE_FUNCTION_NAME_SAVE_MINIMAL(Archive&, const std::chrono::time_point<Clock, Duration>& time_point) {
-	return time_point.time_since_epoch().count();
-}
-
-template <typename Archive, typename Clock, typename Duration>
-inline void VIDE_FUNCTION_NAME_LOAD_MINIMAL(Archive&, std::chrono::time_point<Clock, Duration>& time_point, typename Duration::rep count) {
-	time_point = std::chrono::time_point<Clock, Duration>{Duration{count}};
-}
+	template <typename Archive>
+	static void serialize(Archive& ar, std::chrono::time_point<Clock, Duration>& time_point, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar(time_point.time_since_epoch().count());
+		} else {
+			typename Duration::rep count;
+			ar(count);
+			time_point = std::chrono::time_point<Clock, Duration>{Duration{count}};
+		}
+	}
+};
 
 } // namespace vide --------------------------------------------------------------------------------
-

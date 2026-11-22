@@ -1,111 +1,56 @@
-file(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS *.cpp)
+option(VIDE_BUILD_PORTABILITY_TEST "Build the 32 bit test variants and the 32/64 bit portability test (needs -m32 support)" OFF)
 
-# A semi-colon separated list of test sources that should not be automatically built with doctest
-set(SPECIAL_TESTS "portability_test.cpp")
+# vide_add_test(<source> [libraries...]): "pod.cpp" -> executable and test "test_pod"
+function(vide_add_test source)
+	cmake_path(GET source STEM name)
+	set(variants test_${name})
+	if (VIDE_BUILD_PORTABILITY_TEST)
+		list(APPEND variants test_${name}_32)
+	endif ()
 
-if (CMAKE_VERSION VERSION_LESS 2.8)
-    # Portability test uses the `TARGET_FILE_DIR` generator expression which is available from CMake 2.8.
-    set(SKIP_PORTABILITY_TEST ON)
-endif ()
+	foreach (target IN LISTS variants)
+		add_executable(${target} ${source})
+		target_link_libraries(${target} PRIVATE vide::vide ${ARGN})
+		if (MINGW)
+			# Large tests (like polymorphic) with debug info exceed the 16 bit COFF section index limit of GNU as
+			target_compile_options(${target} PRIVATE -Wa,--mbig-obj)
+		endif ()
+		if (target MATCHES "_32$")
+			target_compile_options(${target} PRIVATE -m32)
+			target_link_options(${target} PRIVATE -m32)
+		endif ()
+		add_test(NAME ${target} COMMAND ${target})
+	endforeach ()
+endfunction()
 
-set(SKIP_PORTABILITY_TEST ON)
-
-if (NOT SKIP_PORTABILITY_TEST)
-    # Build the portability test only if we are on a 64-bit machine (void* is 8 bytes)
-    if ((${CMAKE_SIZEOF_VOID_P} EQUAL 8))
-        if (NOT MSVC)
-            add_executable(portability_test32 portability_test.cpp)
-            target_link_libraries(portability_test32 ${VIDE_THREAD_LIBS})
-            set_target_properties(portability_test32 PROPERTIES COMPILE_FLAGS "-m32")
-            set_target_properties(portability_test32 PROPERTIES LINK_FLAGS "-m32")
-        endif ()
-
-        add_executable(portability_test64 portability_test.cpp)
-        target_link_libraries(portability_test64 ${VIDE_THREAD_LIBS})
-
-        add_test(NAME portability_test
-                COMMAND ${CMAKE_COMMAND}
-                -DPORTABILITY_TEST_DIR=$<TARGET_FILE_DIR:portability_test64>
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/run_portability_test.cmake")
-
-    elseif (MSVC)
-        add_executable(portability_test32 portability_test.cpp)
-        target_link_libraries(portability_test32 vide::vide)
-    endif ()
-endif ()
-
-# Build all of the non-special tests
-foreach (TEST_SOURCE ${TESTS})
-
-    string(REPLACE ".cpp" "" TEST_TARGET "${TEST_SOURCE}")
-    set(TEST_TARGET "test_${TEST_TARGET}")
-
-    # Check to see if our target is listed in "SPECIAL_TESTS"
-    list(FIND SPECIAL_TESTS "${TEST_SOURCE}" IS_SPECIAL_TEST)
-
-    if (IS_SPECIAL_TEST EQUAL -1)
-
-        add_executable(${TEST_TARGET} ${TEST_SOURCE})
-        target_link_libraries(${TEST_TARGET} ${VIDE_THREAD_LIBS})
-        add_test(NAME "${TEST_TARGET}" COMMAND "${TEST_TARGET}")
-
-		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND WIN32)
-			# Large serialization unit tests (like polymorphic) generate an extreme number of COFF sections
-			# due to high test class count with debug info enabled. GNU as defaults to 16-bit section indices
-			# and fails with "too many sections". --mbig-obj enables extended indices
-			target_compile_options(${TEST_TARGET} PRIVATE -Wa,--mbig-obj)
-		endif()
-
-        # If we are on a 64-bit machine, create an extra 32-bit version of the test if portability testing is enabled
-        if ((NOT MSVC) AND (${CMAKE_SIZEOF_VOID_P} EQUAL 8) AND (NOT SKIP_PORTABILITY_TEST))
-            add_executable(${TEST_TARGET}_32 ${TEST_SOURCE})
-            set_target_properties(${TEST_TARGET}_32 PROPERTIES
-                    COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
-            target_link_libraries(${TEST_TARGET}_32 ${VIDE_THREAD_LIBS})
-            add_test(NAME "${TEST_TARGET}_32" COMMAND "${TEST_TARGET}_32")
-        endif ()
-
-    endif ()
-
+file(GLOB tests CONFIGURE_DEPENDS *.cpp)
+list(REMOVE_ITEM tests ${CMAKE_CURRENT_SOURCE_DIR}/portability_test.cpp)
+foreach (test IN LISTS tests)
+	vide_add_test(${test})
 endforeach ()
 
+if (VIDE_BUILD_PORTABILITY_TEST)
+	add_executable(portability_test32 portability_test.cpp)
+	target_link_libraries(portability_test32 PRIVATE vide::vide)
+	target_compile_options(portability_test32 PRIVATE -m32)
+	target_link_options(portability_test32 PRIVATE -m32)
+
+	add_executable(portability_test64 portability_test.cpp)
+	target_link_libraries(portability_test64 PRIVATE vide::vide)
+
+	add_test(NAME portability_test COMMAND ${CMAKE_COMMAND}
+			-DPORTABILITY_TEST_32=$<TARGET_FILE:portability_test32>
+			-DPORTABILITY_TEST_64=$<TARGET_FILE:portability_test64>
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/run_portability_test.cmake)
+endif ()
+
+if (VIDE_INSTALL)
+	add_test(NAME test_cmake_config_module COMMAND ${CMAKE_COMMAND}
+			-DVIDE_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+			-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/cmake_config_module
+			-DCMAKE_GENERATOR=${CMAKE_GENERATOR}
+			-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake-config-module.cmake)
+endif ()
+
 add_subdirectory(boost)
-
-## Add the valgrind target
-#if(NOT MSVC)
-#  add_custom_target(valgrind
-#    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run_valgrind.sh")
-#
-#  # Add the coverage target
-#  add_custom_target(coverage)
-#  add_custom_command(TARGET coverage
-#    COMMAND "${CMAKE_SOURCE_DIR}/scripts/updatecoverage.sh" ${CMAKE_SOURCE_DIR}
-#    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/coverage")
-#
-#  # add tests to coverage
-#  foreach(TEST_SOURCE ${TESTS})
-#    string(REPLACE ".cpp" "" COVERAGE_TARGET "${TEST_SOURCE}")
-#    set(COVERAGE_TARGET "coverage_${COVERAGE_TARGET}")
-#
-#    # Check to see if our target is listed in "SPECIAL_TESTS"
-#    list(FIND SPECIAL_TESTS "${TEST_SOURCE}" IS_SPECIAL_TEST)
-#
-#    if(IS_SPECIAL_TEST EQUAL -1)
-#      add_dependencies(coverage ${COVERAGE_TARGET})
-#
-#      add_executable(${COVERAGE_TARGET} EXCLUDE_FROM_ALL ${TEST_SOURCE})
-#      set_target_properties(${COVERAGE_TARGET} PROPERTIES COMPILE_FLAGS "-coverage")
-#      set_target_properties(${COVERAGE_TARGET} PROPERTIES LINK_FLAGS "-coverage")
-#      set_target_properties(${COVERAGE_TARGET} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/coverage")
-#      target_link_libraries(${COVERAGE_TARGET} ${VIDE_THREAD_LIBS})
-#    endif()
-#  endforeach()
-#endif()
-
-#if(Boost_FOUND)
-#  add_subdirectory(boost)
-#endif()
-
-#if(NOT CMAKE_VERSION VERSION_LESS 3.0)
-#  add_test(NAME test_cmake_config_module COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake-config-module.cmake)
-#endif()

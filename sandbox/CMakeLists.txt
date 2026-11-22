@@ -1,25 +1,21 @@
+option(VIDE_BUILD_PERFORMANCE_COMPARISON "Build the performance comparison against Boost.Serialization" OFF)
+
 add_subdirectory(sandbox_shared_lib)
 
-add_executable(sandbox sandbox.cpp)
-target_link_libraries(sandbox ${VIDE_THREAD_LIBS})
-
-add_executable(sandbox_json sandbox_json.cpp)
-target_link_libraries(sandbox_json ${VIDE_THREAD_LIBS})
-
-add_executable(sandbox_as sandbox_as.cpp)
-target_link_libraries(sandbox_as ${VIDE_THREAD_LIBS})
-
-add_executable(sandbox_rtti sandbox_rtti.cpp)
-target_link_libraries(sandbox_rtti ${VIDE_THREAD_LIBS})
+foreach (name IN ITEMS sandbox sandbox_json sandbox_as sandbox_rtti)
+	add_executable(${name} ${name}.cpp)
+	target_link_libraries(${name} PRIVATE vide::vide)
+endforeach ()
 
 add_executable(sandbox_vs sandbox_vs.cpp)
-target_link_libraries(sandbox_vs sandbox_vs_dll)
+target_link_libraries(sandbox_vs PRIVATE sandbox_vs_dll)
+if (NOT WIN32)
+	# Drops the Release -static: a static executable cannot load a shared library (MinGW links the DLL through its import library)
+	set_property(TARGET sandbox_vs PROPERTY LINK_OPTIONS "")
+endif ()
 
-if (Boost_FOUND AND NOT VIDE_SKIP_PERFORMANCE_COMPARISON)
-    add_executable(performance performance.cpp)
-    if (MSVC)
-        set_target_properties(performance PROPERTIES COMPILE_DEFINITIONS "BOOST_SERIALIZATION_DYN_LINK")
-    endif ()
-    target_include_directories(performance PUBLIC ${Boost_INCLUDE_DIRS})
-    target_link_libraries(performance ${VIDE_THREAD_LIBS} ${Boost_LIBRARIES})
+if (VIDE_BUILD_PERFORMANCE_COMPARISON)
+	find_package(Boost CONFIG REQUIRED COMPONENTS serialization)
+	add_executable(performance performance.cpp)
+	target_link_libraries(performance PRIVATE vide::vide Boost::serialization)
 endif ()

@@ -259,7 +259,15 @@ Additional nice to have extras may arrive in the future.
   - Remove pkgconfig file generation
   - Remove AllowEmptyClassElision
   - Change duration and time_point serialization to be minimal
-  - Improve the CMake scripts
+  - Rework and modernize the CMake scripts
+    - Replace `VIDE_FORCE_COLORED_OUTPUT` with the built-in `CMAKE_COLOR_DIAGNOSTICS`
+    - Replace `VIDE_ALTERNATIVE_LINKER` with the built-in `CMAKE_LINKER_TYPE` (uppercase, e.g. `-DCMAKE_LINKER_TYPE=LLD`)
+    - Rename `THREAD_SAFE` to `VIDE_THREAD_SAFE`; the define and the `Threads::Threads` dependency now propagate through `vide::vide` (installed package included)
+    - Replace `VIDE_SKIP_PERFORMANCE_COMPARISON` with the opt-in `VIDE_BUILD_PERFORMANCE_COMPARISON`
+    - Add opt-in `VIDE_BUILD_PORTABILITY_TEST` for the 32 bit test variants and the 32/64 bit portability test
+    - Install the CMake package files to `share/cmake/vide` (header-only, arch independent)
+    - Release builds link executables statically
+    - The default build type is only set when vide is the top level project
   - Enable and cleanup additional warnings and VERIFY_INTERFACE_HEADER_SETS
   - Add `vide::indirect(base_validator)` or `ar.indirect(base_validator)` as a validator for `!var || base_validator(*var)` testing.
   - Add `vide::indirect_maxsize(limit)` or `ar.indirect_maxsize(limit)` as a validator for `!var || var->size() <= limit` testing.

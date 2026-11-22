@@ -1,125 +1,61 @@
-if (CMAKE_VERSION LESS 3.0)
-    message(FATAL_ERROR "Vide can't be installed with CMake < 3.0")
-endif ()
+# Installs vide into WORK_DIR, then builds and runs a consumer through find_package(vide)
+# Usage: cmake -DVIDE_SOURCE_DIR=<dir> -DWORK_DIR=<dir> -DCMAKE_GENERATOR=<gen> -DCMAKE_CXX_COMPILER=<cxx> -P cmake-config-module.cmake
 
-get_filename_component(BINARY_DIR ${CMAKE_BINARY_DIR}/build ABSOLUTE)
-get_filename_component(INSTALL_DIR ${CMAKE_BINARY_DIR}/out ABSOLUTE)
+set(install_dir ${WORK_DIR}/install)
+set(consumer_source_dir ${WORK_DIR}/consumer_source)
+set(generator_and_compiler -G ${CMAKE_GENERATOR} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
 
-# cmake configure step for vide
-file(MAKE_DIRECTORY ${BINARY_DIR}/vide)
-execute_process(
-        COMMAND ${CMAKE_COMMAND}
-        -DVIDE_JUST_INSTALL=1
-        -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
-        ${CMAKE_CURRENT_LIST_DIR}/..
-        WORKING_DIRECTORY ${BINARY_DIR}/vide
-        RESULT_VARIABLE result
-)
-if (result)
-    message(FATAL_ERROR "Vide cmake configure-step failed")
-endif ()
+file(REMOVE_RECURSE ${WORK_DIR})
 
-# cmake install vide
-execute_process(
-        COMMAND ${CMAKE_COMMAND}
-        --build ${BINARY_DIR}/vide
-        --target install
-        RESULT_VARIABLE result
-)
-if (result)
-    message(FATAL_ERROR "Vide cmake install-step failed")
-endif ()
+function(run_checked)
+	execute_process(COMMAND ${ARGN} COMMAND_ERROR_IS_FATAL ANY)
+endfunction()
 
-# create test project sources
-file(WRITE ${BINARY_DIR}/test_source/CMakeLists.txt "
-  cmake_minimum_required(VERSION ${CMAKE_VERSION})
-  project(vide-test-config-module)
-  if(NOT MSVC)
-      if(CMAKE_VERSION VERSION_LESS 3.1)
-          set(CMAKE_CXX_FLAGS \"-std=c++11 \${CMAKE_CXX_FLAGS}\")
-      else()
-          set(CMAKE_CXX_STANDARD 11)
-          set(CMAKE_CXX_STANDARD_REQUIRED ON)
-      endif()
-  endif()
-  find_package(vide REQUIRED)
-  add_executable(vide-test-config-module main.cpp)
-  target_link_libraries(vide-test-config-module vide::vide)
-  enable_testing()
-  add_test(NAME test-cereal-test-config-module COMMAND cereal-test-config-module)
-")
+run_checked(${CMAKE_COMMAND} -S ${VIDE_SOURCE_DIR} -B ${WORK_DIR}/vide ${generator_and_compiler}
+		-DVIDE_JUST_INSTALL=ON
+		-DCMAKE_INSTALL_PREFIX=${install_dir})
+run_checked(${CMAKE_COMMAND} --install ${WORK_DIR}/vide)
 
-file(WRITE ${BINARY_DIR}/test_source/main.cpp "
-  #include <vide/archives/binary.hpp>
-  #include <sstream>
-  #include <cstdlib>
-  struct MyData
-  {
-    int x = 0, y = 0, z = 0;
-    void set() { x = 1; y = 2; z = 3; }
-    bool is_set() const { return x == 1 && y == 2 && z == 3; }
+file(WRITE ${consumer_source_dir}/CMakeLists.txt [=[
+cmake_minimum_required(VERSION 3.24)
+project(vide_config_module_consumer LANGUAGES CXX)
+find_package(vide 3 REQUIRED)
+add_executable(consumer main.cpp)
+target_link_libraries(consumer PRIVATE vide::vide)
+]=])
 
-    // This method lets vide know which data members to serialize
-    template<class Archive>
-    void serialize(Archive & archive)
-    {
-      archive( x, y, z ); // serialize things by passing them to the archive
-    }
-  };
-  int main()
-  {
-    std::stringstream ss; // any stream can be used
+file(WRITE ${consumer_source_dir}/main.cpp [=[
+#include <vide/archives/binary.hpp>
+#include <cstdlib>
+#include <sstream>
 
-    {
-      vide::BinaryOutputArchive oarchive(ss); // Create an output archive
+struct MyData {
+	int x = 0, y = 0, z = 0;
 
-      MyData m1, m2, m3;
-      m1.set();
-      m2.set();
-      m3.set();
-      oarchive(m1, m2, m3); // Write the data to the archive
-    }
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(x);
+		ar(y);
+		ar(z);
+	}
+};
 
-    {
-      vide::BinaryInputArchive iarchive(ss); // Create an input archive
+int main() {
+	std::stringstream ss;
+	{
+		vide::BinaryOutputArchive ar(ss);
+		ar(MyData{1, 2, 3});
+	}
+	MyData data;
+	{
+		vide::BinaryInputArchive ar(ss);
+		ar(data);
+	}
+	return data.x == 1 && data.y == 2 && data.z == 3 ? EXIT_SUCCESS : EXIT_FAILURE;
+}
+]=])
 
-      MyData m1, m2, m3;
-      iarchive(m1, m2, m3); // Read the data from the archive
-
-      return (m1.is_set() && m2.is_set() && m3.is_set())
-      ? EXIT_SUCCESS : EXIT_FAILURE;
-    }
-  }"
-        )
-
-file(MAKE_DIRECTORY ${BINARY_DIR}/test)
-execute_process(
-        COMMAND ${CMAKE_COMMAND}
-        -DCMAKE_PREFIX_PATH=${INSTALL_DIR}
-        ${BINARY_DIR}/test_source
-        WORKING_DIRECTORY ${BINARY_DIR}/test
-        RESULT_VARIABLE result
-)
-if (result)
-    message(FATAL_ERROR "Test cmake configure-step failed")
-endif ()
-
-# cmake install cereal
-execute_process(
-        COMMAND ${CMAKE_COMMAND}
-        --build ${BINARY_DIR}/test
-        RESULT_VARIABLE result
-)
-if (result)
-    message(FATAL_ERROR "Test cmake build-step failed")
-endif ()
-
-execute_process(
-        COMMAND ${CMAKE_CTEST_COMMAND}
-        WORKING_DIRECTORY ${BINARY_DIR}/test
-        RESULT_VARIABLE result
-)
-
-if (result)
-    message(FATAL_ERROR "Test run failed")
-endif ()
+run_checked(${CMAKE_COMMAND} -S ${consumer_source_dir} -B ${WORK_DIR}/consumer ${generator_and_compiler}
+		-DCMAKE_PREFIX_PATH=${install_dir})
+run_checked(${CMAKE_COMMAND} --build ${WORK_DIR}/consumer)
+run_checked(${WORK_DIR}/consumer/consumer)

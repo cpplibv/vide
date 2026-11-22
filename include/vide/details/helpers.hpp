@@ -35,9 +35,8 @@
 #include <utility>
 #include <unordered_map>
 
-// #include <vide/details/static_object.hpp>
 #include <vide/details/validation.hpp>
-// #include <vide/macros.hpp>
+#include <vide/macros.hpp>
 // #include <vide/map_item.hpp>
 
 
@@ -182,6 +181,11 @@ template <class T, class BindingTag = version_binding_tag> struct Version {
 //! Holds all registered version information
 struct Versions {
 	std::unordered_map<std::size_t, std::uint32_t> mapping;
+
+	static Versions& instance() {
+		static Versions versions;
+		return versions;
+	}
 
 	//! The registered version of hash, or version when it was never registered
 	std::uint32_t find(std::size_t hash, std::uint32_t version) const {

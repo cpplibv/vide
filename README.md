@@ -259,6 +259,7 @@ Additional nice to have extras may arrive in the future.
   - Remove pkgconfig file generation
   - Remove AllowEmptyClassElision
   - Remove the `THREAD_SAFE` option and the mutexes (Threading was not needed)
+  - Replace the internal `StaticObject` with function static registries and `StartupInstance` for registrations
   - Change duration and time_point serialization to be minimal
   - Rework and modernize the CMake scripts
     - Replace `VIDE_FORCE_COLORED_OUTPUT` with the built-in `CMAKE_COLOR_DIAGNOSTICS`

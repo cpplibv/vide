@@ -11,9 +11,9 @@
 #include <vide/details/function_ref.hpp>
 #include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/polymorphic_impl_fwd.hpp>
-#include <vide/details/static_object.hpp>
 #include <vide/details/util.hpp>
 #include <vide/exception.hpp>
+#include <vide/macros.hpp>
 #include <vide/traits/underlying_archive.hpp>
 
 #include <limits>
@@ -46,14 +46,34 @@
     template<>                                                           \
     struct init_binding<__VA_ARGS__> {                                   \
         static inline const bind_to_archives<__VA_ARGS__>& b =           \
-        ::vide::detail::StaticObject<                                    \
+        ::vide::detail::StartupInstance<                                 \
             bind_to_archives<__VA_ARGS__>                                \
-        >::getInstance().bind();                                         \
+        >::instance.bind();                                              \
         VIDE_BIND_TO_ARCHIVES_UNUSED_FUNCTION                            \
     };                                                                   \
     }} /* end namespaces */
 
 namespace vide {
+namespace detail {
+
+//! Holds one T, constructed at startup (or when its shared library loads)
+/*! Odr-using instance from instantiated code is enough, even from code that never runs;
+	the registrations below depend on that, a function static would wait for its first call.
+
+	Registrars living here are the only writers of the registries (PolymorphicCasters,
+	Input/OutputBindingMap, Versions via VIDE_CLASS_VERSION). Afterwards those are
+	read-only, hence no locking: no library may be loaded while other threads serialize.
+
+	The registries carry no visibility attribute on purpose: they follow -fvisibility like these
+	registrars do, so a module that shares a registry also exports its registrars, which keeps
+	glibc from unloading it. A shared registry with hidden registrars dangles after dlclose. */
+template <class T>
+struct VIDE_DLL_EXPORT StartupInstance {
+	static inline const T instance{};
+};
+
+} // namespace detail
+
 /* Polymorphic casting support */
 namespace detail {
 
@@ -67,7 +87,7 @@ namespace detail {
 	vide will attempt to find the shortest path by using registered relationships to
 	perform the cast.
 
-	This class will be allocated as a StaticObject and only referenced by pointer,
+	This class will be allocated as a StartupInstance and only referenced by pointer,
 	allowing a templated derived version of it to define strongly typed functions
 	that cast between registered base and derived types. */
 struct PolymorphicCaster {
@@ -90,8 +110,7 @@ struct PolymorphicCaster {
 };
 
 //! Holds registered mappings between base and derived types for casting
-/*! This will be allocated as a StaticObject and holds a map containing
-	all registered mappings between base and derived types. */
+/*! Holds a map containing all registered mappings between base and derived types. */
 struct PolymorphicCasters {
 	//! Maps from a derived type index to a set of chainable casters
 	using DerivedCasterMap = std::unordered_map<std::type_index, std::vector<const PolymorphicCaster*>>;
@@ -99,6 +118,11 @@ struct PolymorphicCasters {
 	std::unordered_map<std::type_index, DerivedCasterMap> map;
 
 	std::multimap<std::type_index, std::type_index> reverseMap;
+
+	static PolymorphicCasters& instance() {
+		static PolymorphicCasters casters;
+		return casters;
+	}
 
 	//! Error message used for unregistered polymorphic casts
 #define UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(LoadSave)                                                                                                                \
@@ -114,7 +138,7 @@ struct PolymorphicCasters {
 	static std::pair<bool, std::vector<PolymorphicCaster const*> const&>
 	lookup_if_exists(std::type_index const& baseIndex, std::type_index const& derivedIndex) {
 		// First phase of lookup - match base type index
-		const auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
+		const auto& baseMap = PolymorphicCasters::instance().map;
 		auto baseIter = baseMap.find(baseIndex);
 		if (baseIter == baseMap.end())
 			return {false, {}};
@@ -136,7 +160,7 @@ struct PolymorphicCasters {
 	template <class F>
 	static inline const std::vector<const PolymorphicCaster*>& lookup(const std::type_index& baseIndex, const std::type_index& derivedIndex, F&& exceptionFunc) {
 		// First phase of lookup - match base type index
-		const auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
+		const auto& baseMap = PolymorphicCasters::instance().map;
 		auto baseIter = baseMap.find(baseIndex);
 		if (baseIter == baseMap.end())
 			exceptionFunc();
@@ -198,7 +222,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 		const auto derivedKey = std::type_index(typeid(Derived));
 
 		// First insert the relation Base->Derived
-		auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
+		auto& baseMap = PolymorphicCasters::instance().map;
 
 		{
 			auto& derivedMap = baseMap.insert({baseKey, PolymorphicCasters::DerivedCasterMap{}}).first->second;
@@ -207,7 +231,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 		}
 
 		// Insert reverse relation Derived->Base
-		auto& reverseMap = StaticObject<PolymorphicCasters>::getInstance().reverseMap;
+		auto& reverseMap = PolymorphicCasters::instance().reverseMap;
 		reverseMap.emplace(derivedKey, baseKey);
 
 		// Find all chainable unregistered relations
@@ -351,7 +375,7 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 template <class Base, class Derived>
 struct RegisterPolymorphicCaster {
 	static PolymorphicCaster const* bind(std::true_type /* is_polymorphic<Base> */) {
-		return &StaticObject<PolymorphicVirtualCaster<Base, Derived>>::getInstance();
+		return &StartupInstance<PolymorphicVirtualCaster<Base, Derived>>::instance;
 	}
 
 	static PolymorphicCaster const* bind(std::false_type /* is_polymorphic<Base> */) { return nullptr; }
@@ -402,6 +426,11 @@ struct OutputBindingMap {
 	//! Obtain serializers map for given archive
 	template <typename Archive>
 	Serializers_map& map() { return archives_map[typeid(Archive)]; }
+
+	static OutputBindingMap& instance() {
+		static OutputBindingMap bindings;
+		return bindings;
+	}
 };
 
 //! An empty noop deleter
@@ -422,16 +451,21 @@ struct InputBindingMap {
 	//! Obtain serializers map for given archive
 	template <typename Archive>
 	Serializers_map& map() { return archives_map[typeid(Archive)]; }
+
+	static InputBindingMap& instance() {
+		static InputBindingMap bindings;
+		return bindings;
+	}
 };
 
 template <typename Archive>
 auto& getBindingMapOutput() {
-	return detail::StaticObject<detail::OutputBindingMap>::getInstance().map<underlying_archive_t<Archive>>();
+	return detail::OutputBindingMap::instance().map<underlying_archive_t<Archive>>();
 }
 
 template <typename Archive>
 auto& getBindingMapInput() {
-	return detail::StaticObject<detail::InputBindingMap>::getInstance().map<underlying_archive_t<Archive>>();
+	return detail::InputBindingMap::instance().map<underlying_archive_t<Archive>>();
 }
 
 // forward decls for archives from vide.hpp
@@ -447,7 +481,7 @@ template <class Archive, class T>
 struct InputBindingCreator {
 	//! Initialize the binding
 	InputBindingCreator() {
-		auto& map = StaticObject<InputBindingMap>::getInstance().map<Archive>();
+		auto& map = InputBindingMap::instance().map<Archive>();
 		auto key = std::string(binding_name<T>::name());
 		auto lb = map.lower_bound(key);
 
@@ -502,7 +536,7 @@ struct OutputBindingCreator {
 
 	//! Initialize the binding
 	OutputBindingCreator() {
-		auto& map = StaticObject<OutputBindingMap>::getInstance().map<Archive>();
+		auto& map = OutputBindingMap::instance().map<Archive>();
 		auto key = std::type_index(typeid(T));
 		auto lb = map.lower_bound(key);
 
@@ -531,7 +565,7 @@ struct OutputBindingCreator {
 struct adl_tag {};
 
 //! Tag for init_binding, bind_to_archives and instantiate_polymorphic_binding.
-//! For C++14 and below, we must instantiate a unique StaticObject per TU that is
+//! For C++14 and below, we must instantiate a unique static object per TU that is
 //! otherwise identical -- otherwise we get multiple definition problems (ODR violations).
 //! To achieve this, put a tag in an anonymous namespace and use it as a template argument.
 //!
@@ -548,11 +582,11 @@ struct polymorphic_binding_tag {};
 template <class Archive, class T>
 struct create_bindings {
 	static const InputBindingCreator<Archive, T>& load(std::true_type) {
-		return vide::detail::StaticObject<InputBindingCreator<Archive, T>>::getInstance();
+		return StartupInstance<InputBindingCreator<Archive, T>>::instance;
 	}
 
 	static const OutputBindingCreator<Archive, T>& save(std::true_type) {
-		return vide::detail::StaticObject<OutputBindingCreator<Archive, T>>::getInstance();
+		return StartupInstance<OutputBindingCreator<Archive, T>>::instance;
 	}
 
 	inline static void load(std::false_type) {}

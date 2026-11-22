@@ -34,7 +34,6 @@
 #include <vide/binary_serializable_type.hpp>
 #include <vide/details/helpers.hpp>
 #include <vide/details/polymorphic_helper.hpp>
-#include <vide/details/static_object.hpp>
 #include <vide/details/stored_smart_ptr.hpp>
 #include <vide/details/value_if_nvp.hpp>
 #include <vide/details/vide_types.hpp>
@@ -200,16 +199,14 @@ enum Flags {
 	macro should be placed at global scope.
 	@ingroup Utility */
 
-//! On C++17, define the StaticObject as inline to merge the definitions across TUs
-//! This prevents multiple definition errors when this macro appears in a header file
-//! included in multiple TUs.
+//! The version member is inline, so a header with this macro can be included by many TUs
 #define VIDE_CLASS_VERSION(TYPE, VERSION_NUMBER)                               \
   namespace vide { namespace detail {                                          \
     template <> struct Version<TYPE>                                             \
     {                                                                            \
       static std::uint32_t registerVersion()                                     \
       {                                                                          \
-        ::vide::detail::StaticObject<Versions>::getInstance().mapping.emplace( \
+        ::vide::detail::Versions::instance().mapping.emplace(                  \
              std::type_index(typeid(TYPE)).hash_code(), VERSION_NUMBER );        \
         return VERSION_NUMBER;                                                   \
       }                                                                          \
@@ -475,7 +472,7 @@ public:
 		if constexpr (access::has_static_member_class_version<T>) {
 			version = access::static_member_class_version<T>();
 		} else {
-			version = detail::StaticObject<detail::Versions>::getInstance().find(hash, detail::Version<T>::version);
+			version = detail::Versions::instance().find(hash, detail::Version<T>::version);
 		}
 
 		if (insertResult.second) // insertion took place, serialize the version number

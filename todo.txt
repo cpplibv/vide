@@ -22,6 +22,8 @@ Improve compile times:
 Element validation
 	Container serializer functions must accept another
 			validation function (TYPE ERASED! To not permutate)
+	the element validation solution
+		OR element substitute serializer
 
 Implementation*
 	implementation_set_save
@@ -30,8 +32,6 @@ Implementation*
 	should use qualified lookup to stop ADL overload set
 	to become ambiguous
 
-Implementation skip validation support
-	the element validation solution
 
 
 
@@ -44,9 +44,6 @@ Implementation skip validation support
 
 
 
-replace static_object with function static pattern
-	(the only place it should have been used is polymorphic type registration)
-	which is startup or dll load time
 
 
 

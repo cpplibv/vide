@@ -46,6 +46,19 @@
 #include <cstdint>
 
 
+//! Prevent link optimization from removing non-referenced static objects
+/*! Especially for polymorphic support, we create static objects which
+    may not ever be explicitly referenced.  Most linkers will detect this
+    and remove the code causing various unpleasant runtime errors.  These
+    macros, adopted from Boost (see force_include.hpp) prevent this */
+#if defined(_MSC_VER) && !defined(__clang__)
+#   define VIDE_DLL_EXPORT __declspec(dllexport)
+#   define VIDE_USED
+#else // clang or gcc
+#   define VIDE_DLL_EXPORT __attribute__ ((visibility("default")))
+#   define VIDE_USED __attribute__ ((__used__))
+#endif
+
 #ifndef VIDE_SIZE_TYPE
 //! Determines the data type used for size_type
 /*! vide uses size_type to ensure that the serialized size of

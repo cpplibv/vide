@@ -30,8 +30,25 @@
 #ifndef VIDE_DETAILS_UTIL_HPP_
 #define VIDE_DETAILS_UTIL_HPP_
 
+#include <cstddef>
+#include <functional>
 #include <typeinfo>
 #include <string>
+
+namespace vide {
+namespace util {
+
+/// Mixes the hash of value into seed. Order matters: plain ^ maps (a, b) and (b, a), or any
+/// (a, a), to the same hash
+template <class T>
+[[nodiscard]] inline std::size_t hash_combine(std::size_t seed, const T& value) noexcept {
+	// Fractional bits of the golden ratio: spreads the bits of a small or zero hash
+	constexpr auto golden_ratio_bits = static_cast<std::size_t>(0x9e3779b97f4a7c15ull);
+	return seed ^ (std::hash<T>{}(value) + golden_ratio_bits + (seed << 6) + (seed >> 2));
+}
+
+} // namespace util
+} // namespace vide
 
 
 #ifdef _MSC_VER

@@ -5,6 +5,7 @@
 #include <vide/details/helpers.hpp>
 #include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/polymorphic_impl.hpp>
+#include <vide/details/stored_smart_ptr.hpp>
 #include <vide/details/traits.hpp>
 #include <vide/details/util.hpp>
 #include <vide/details/vide_types.hpp>
@@ -12,9 +13,13 @@
 #include <vide/macros.hpp>
 #include <vide/types/memory.hpp>
 #include <vide/types/std_string.hpp>
+#include <vide/traits/underlying_archive.hpp>
 
 #include <cassert>
+#include <memory>
 #include <string>
+#include <typeindex>
+#include <typeinfo>
 
 
 //! Registers a derived polymorphic type with vide
@@ -152,31 +157,96 @@
 
 namespace vide::polymorphic_detail { // ------------------------------------------------------------
 
-//! Error message used for unregistered polymorphic types
-/*! @internal */
-#define UNREGISTERED_POLYMORPHIC_EXCEPTION(LoadSave, Name, ArName)                                                                              \
-      throw vide::Exception("Trying to " LoadSave " an unregistered polymorphic type: " + Name + " with " + ArName + ".\n"                      \
-                              "Make sure your type is registered with VIDE_REGISTER_TYPE and that the archive "                                 \
-                              "you are using was included (and registered with VIDE_REGISTER_ARCHIVE) prior to calling VIDE_REGISTER_TYPE.\n"   \
-                              "If your type is already registered and you still see this error, you may need to use VIDE_REGISTER_DYNAMIC_INIT.");
+/// Throws for a type not registered with VIDE_REGISTER_TYPE for the archive
+// Template and VIDE_NOINLINE solely for compile time
+template <class = void>
+[[noreturn]] VIDE_NOINLINE void throwUnregisteredPolymorphicType(const char* loadSave, const std::string& typeName, const std::type_info& archiveType) {
+	throw vide::Exception(std::string("Trying to ") + loadSave + " an unregistered polymorphic type: " + typeName + " with " + util::demangle(archiveType.name()) + ".\n"
+			"Make sure your type is registered with VIDE_REGISTER_TYPE and that the archive "
+			"you are using was included (and registered with VIDE_REGISTER_ARCHIVE) prior to calling VIDE_REGISTER_TYPE.\n"
+			"If your type is already registered and you still see this error, you may need to use VIDE_REGISTER_DYNAMIC_INIT.");
+}
 
-//! Get an input binding from the given archive by deserializing the type metadata
-/*! @internal */
-template <class Archive>
-inline ::vide::polymorphic_detail::InputSerializers aux_getPolymorphicInputSerializer(Archive& ar, const std::string& polymorphic_name) {
-	const auto& bindingMap = detail::getBindingMapInput<Archive>();
+/// Input binding registered under polymorphic_name for archive
+// Template and VIDE_NOINLINE solely for compile time
+template <class = void>
+VIDE_NOINLINE InputSerializers getPolymorphicInputSerializer(std::type_index archive, const std::type_info& archiveType, const std::string& polymorphic_name) {
+	const auto& bindingMap = detail::InputBindingMap::instance().map(archive);
 	auto it = bindingMap.find(polymorphic_name);
 	if (it == bindingMap.end())
-		UNREGISTERED_POLYMORPHIC_EXCEPTION("load", polymorphic_name, vide::util::demangle(typeid(ar).name()))
+		throwUnregisteredPolymorphicType("load", polymorphic_name, archiveType);
 	return it->second;
 }
 
+/// Input binding registered under polymorphic_name for the archive of ar
 template <class Archive>
-inline ::vide::polymorphic_detail::InputSerializers getPolymorphicInputSerializer(Archive& ar, const std::string& polymorphic_name) {
-	if constexpr (Archive::is_proxy)
-		return aux_getPolymorphicInputSerializer(ar.underlying(), polymorphic_name);
-	else
-		return aux_getPolymorphicInputSerializer(ar, polymorphic_name);
+inline InputSerializers getPolymorphicInputSerializer(Archive& ar, const std::string& polymorphic_name) {
+	using Underlying = underlying_archive_t<Archive>;
+	return getPolymorphicInputSerializer(typeid(Underlying), typeid(to_underlying_ar(ar)), polymorphic_name);
+}
+
+/// Output binding registered for objectType with archive
+// Template and VIDE_NOINLINE solely for compile time
+template <class = void>
+VIDE_NOINLINE const detail::OutputBindingMap::Serializers& getPolymorphicOutputSerializers(
+		std::type_index archive, const std::type_info& archiveType, const std::type_info& objectType, bool isAbstract) {
+	const auto& bindingMap = detail::OutputBindingMap::instance().map(archive);
+	auto binding = bindingMap.find(std::type_index(objectType));
+	if (binding == bindingMap.end())
+		throwUnregisteredPolymorphicType(isAbstract ? "save [polymorphic abstract]" : "save [polymorphic not abstract]", util::demangle(objectType.name()), archiveType);
+	return binding->second;
+}
+
+/// Saves var through the binding of its dynamic type, objectType. var points to its savingType
+/// (static type) subobject. T independent on purpose: one instance per archive
+template <class Archive>
+void saveDerivedSharedPtr(Archive& ar, std::shared_ptr<const void> var, const std::type_info& objectType, const std::type_info& savingType, bool isAbstract) {
+	const auto& serializers = getPolymorphicOutputSerializers(typeid(underlying_archive_t<Archive>), typeid(ar), objectType, isAbstract);
+	const auto objectAddress = serializers.downcast(var.get(), savingType);
+	const auto [stored, ref, new_] = ar.registerSmartPointer(objectAddress);
+
+	ar.nvp("ref", ref);
+	if (!new_)
+		return;
+
+	stored.assign(std::move(var));
+	serializers.generic_ptr(&to_underlying_ar(ar), objectAddress);
+}
+
+/// Serializers of the type behind polymorphic_id; its name is read at the id's first occurrence
+template <class Archive>
+InputSerializers loadPolymorphicSerializers(Archive& ar, polymorphic_id_t polymorphic_id) {
+	auto [serializer, newType] = ar.registerPolymorphicType(polymorphic_id);
+	if (newType) {
+		std::string polymorphic_name;
+		ar.nvp("polymorphic_name", polymorphic_name);
+		serializer = getPolymorphicInputSerializer(ar, polymorphic_name);
+	}
+	return serializer;
+}
+
+/// shared_ptr loaded earlier under ref, pointing to its loadingType subobject
+// Template and VIDE_NOINLINE solely for compile time
+template <class = void>
+VIDE_NOINLINE std::shared_ptr<void> getLoadedSharedPtr(detail::StoredInputPointer& stored, std::uint32_t ref, const std::type_info& loadingType) {
+	if (stored.pointerType != &type_tag_std_shared_ptr)
+		throw Exception(
+				"Type mismatch. Polymorphic pointer type '" + std::string(type_tag_std_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as a different '" +
+				std::string(stored.pointerType->name) + "' pointer type.");
+
+	std::shared_ptr<void> tmp;
+	if (stored.objectType == loadingType) {
+		stored.copyTo(&tmp);
+		return tmp;
+	}
+
+	if (stored.upcast == nullptr)
+		throw Exception(
+				"Type mismatch. Polymorphic '" + std::string(type_tag_std_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as non-polymorphic type '" +
+				util::demangle(stored.objectType.name()) + "', but now it is requested as polymorphic type '" + util::demangle(loadingType.name()) + "'.");
+
+	stored.copyTo(&tmp);
+	return std::shared_ptr<void>(tmp, stored.upcast(tmp.get(), loadingType)); // Aliasing constructor
 }
 
 } // namespace vide::polymorphic_detail ===========================================================
@@ -192,11 +262,10 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) 
 	}
 
 	const std::type_info& objectType = typeid(*var);
-	static const std::type_info& savingType = typeid(T);
 
 	// objectType can never match savingType if T is abstract (can't have an instance of an abstract class)
 	if constexpr (!std::is_abstract_v<T>) {
-		if (objectType == savingType) {
+		if (objectType == typeid(T)) {
 			// Matching type_info means this pointer does not need to be cast with our polymorphic machinery
 			// as the current T (static type) matched the variable real (dynamic) type. We indicate this with
 			// a zero as polymorphic_id.
@@ -213,24 +282,7 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::shared_ptr<T>& var) 
 		}
 	}
 
-	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
-	auto binding = bindingMap.find(std::type_index(objectType));
-	if (binding == bindingMap.end()) {
-		if constexpr (std::is_abstract_v<T>)
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(objectType.name()), vide::util::demangle(typeid(ar).name()))
-		else
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(objectType.name()), vide::util::demangle(typeid(ar).name()))
-	}
-
-	const auto objectAddress = binding->second.downcast(var.get(), savingType);
-	const auto [stored, ref, new_] = ar.registerSmartPointer(objectAddress);
-
-	ar.nvp("ref", ref);
-	if (!new_)
-		return;
-
-	stored.assign(var);
-	binding->second.generic_ptr(&to_underlying_ar(ar), objectAddress);
+	polymorphic_detail::saveDerivedSharedPtr(ar, var, objectType, typeid(T), std::is_abstract_v<T>);
 }
 
 /// Loading std::shared_ptr for polymorphic types
@@ -238,7 +290,6 @@ template <class Archive, class T>
 		requires std::is_polymorphic_v<T>
 inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 	using NonConstT = std::remove_const_t<T>;
-	static const std::type_info& loadingType = typeid(T);
 
 	std::uint32_t ref;
 	ar.nvp("ref", ref);
@@ -248,71 +299,47 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::shared_ptr<T>& var) {
 	}
 
 	const auto [stored, new_] = ar.registerSmartPointer(ref);
-	if (new_) {
-		polymorphic_id_t polymorphic_id;
-		ar.nvp("polymorphic_id", polymorphic_id);
+	if (!new_) {
+		var = std::static_pointer_cast<T>(polymorphic_detail::getLoadedSharedPtr(stored, ref, typeid(T)));
+		return;
+	}
 
-		if (polymorphic_id == 0) {
-			// Zero polymorphic_id means this pointer does not need to be cast with our polymorphic machinery
-			// as the current T (static type) matched the variable real (dynamic) type
+	polymorphic_id_t polymorphic_id;
+	ar.nvp("polymorphic_id", polymorphic_id);
 
-			if constexpr (std::is_abstract_v<T> || !traits::is_default_constructible<T>) {
-				// This case is for when we can't actually construct the shared pointer. Normally this would be caught
-				// as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
-				// the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
-				// this was a polymorphic type serialized by its proper pointer type
-				throw vide::Exception("Cannot load a polymorphic type '" + vide::util::demangle(loadingType.name()) + "' that is not default constructable");
-			} else {
-				std::shared_ptr<NonConstT> ptr(::vide::access::construct<NonConstT>());
-				NonConstT* objectAddress = ptr.get();
-				stored.assign(std::shared_ptr<void>(ptr), loadingType, &type_tag_std_shared_ptr,
-						+[](void* varPtr, const std::type_info& futureLoadingType) -> void* {
-							return detail::PolymorphicCasters::upcast<NonConstT>(static_cast<NonConstT*>(varPtr), futureLoadingType);
-						});
-				var = std::move(ptr);
-				ar.nvp("data", *objectAddress);
-				return;
-			}
+	if (polymorphic_id == 0) {
+		// Zero polymorphic_id means this pointer does not need to be cast with our polymorphic machinery
+		// as the current T (static type) matched the variable real (dynamic) type
+
+		if constexpr (std::is_abstract_v<T> || !traits::is_default_constructible<T>) {
+			// This case is for when we can't actually construct the shared pointer. Normally this would be caught
+			// as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
+			// the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
+			// this was a polymorphic type serialized by its proper pointer type
+			throw vide::Exception("Cannot load a polymorphic type '" + vide::util::demangle(typeid(T).name()) + "' that is not default constructable");
 		} else {
-			auto [serializer, newType] = ar.registerPolymorphicType(polymorphic_id);
-			if (newType) {
-				std::string polymorphic_name;
-				ar.nvp("polymorphic_name", polymorphic_name);
-				serializer = polymorphic_detail::getPolymorphicInputSerializer(ar, polymorphic_name);
-			}
-
-			serializer.generic_ptr(&to_underlying_ar(ar), loadingType, [&](void* objectAddress, void* varPtr, const std::type_index& objectType) {
-				// Info and upcast must be set before the actual serialization
-				// registerFn takes ownership of the loaded pointer
-				// We create the shared_ptr by pointing it to varPtr, but with aliasing constructor we store
-				// the real (most downcasted / dynamic type) ptr.
-				var = std::shared_ptr<NonConstT>(static_cast<NonConstT*>(varPtr));
-				auto aliasedPtr = std::shared_ptr<void>(var, objectAddress); // Aliasing constructor
-				stored.assign(std::move(aliasedPtr), objectType, &type_tag_std_shared_ptr, serializer.upcast);
-			});
+			std::shared_ptr<NonConstT> ptr(::vide::access::construct<NonConstT>());
+			NonConstT* objectAddress = ptr.get();
+			stored.assign(std::shared_ptr<void>(ptr), typeid(T), &type_tag_std_shared_ptr,
+					+[](void* varPtr, const std::type_info& futureLoadingType) -> void* {
+						return detail::PolymorphicCasters::upcast<NonConstT>(static_cast<NonConstT*>(varPtr), futureLoadingType);
+					});
+			var = std::move(ptr);
+			ar.nvp("data", *objectAddress);
 			return;
 		}
 	}
 
-	if (stored.pointerType != &type_tag_std_shared_ptr)
-		throw Exception(
-				"Type mismatch. Polymorphic pointer type '" + std::string(type_tag_std_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as a different '" +
-				std::string(stored.pointerType->name) + "' pointer type.");
-
-	if (stored.objectType == loadingType) {
-		std::shared_ptr<void> tmp;
-		stored.copyTo(&tmp);
-		var = std::static_pointer_cast<T>(tmp);
-	} else {
-		if (stored.upcast == nullptr)
-			throw Exception(
-					"Type mismatch. Polymorphic '" + std::string(type_tag_std_shared_ptr.name) + "' referenced with ref [" + std::to_string(ref) + "] was previously loaded as non-polymorphic type '" +
-					util::demangle(stored.objectType.name()) + "', but now it is requested as polymorphic type '" + util::demangledName<T>() + "'.");
-
-		std::shared_ptr<void> tmp;
-		stored.copyTo(&tmp);
-		var = std::shared_ptr<T>(tmp, static_cast<NonConstT*>(stored.upcast(tmp.get(), loadingType))); // Aliasing constructor
-	}
+	const auto serializer = polymorphic_detail::loadPolymorphicSerializers(ar, polymorphic_id);
+	serializer.generic_ptr(&to_underlying_ar(ar), typeid(T), [&](void* objectAddress, void* varPtr, const std::type_index& objectType) {
+		// Info and upcast must be set before the actual serialization
+		// registerFn takes ownership of the loaded pointer
+		// We create the shared_ptr by pointing it to varPtr, but with aliasing constructor we store
+		// the real (most downcasted / dynamic type) ptr.
+		var = std::shared_ptr<NonConstT>(static_cast<NonConstT*>(varPtr));
+		auto aliasedPtr = std::shared_ptr<void>(var, objectAddress); // Aliasing constructor
+		stored.assign(std::move(aliasedPtr), objectType, &type_tag_std_shared_ptr, serializer.upcast);
+	});
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -327,11 +354,10 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& va
 		return;
 
 	const std::type_info& objectType = typeid(*var);
-	static const std::type_info& savingType = typeid(T);
 
 	// objectType can never match savingType if T is abstract (can't have an instance of an abstract class)
 	if constexpr (!std::is_abstract_v<T>) {
-		if (objectType == savingType) {
+		if (objectType == typeid(T)) {
 			// Matching type_info means this pointer does not need to be cast with our polymorphic machinery
 			// as the current T (static type) matched the variable real (dynamic) type. We indicate this with
 			// a zero as polymorphic_id.
@@ -341,18 +367,9 @@ inline void VIDE_FUNCTION_NAME_SAVE(Archive& ar, const std::unique_ptr<T, D>& va
 		}
 	}
 
-	const auto& bindingMap = detail::getBindingMapOutput<Archive>();
-
-	auto binding = bindingMap.find(std::type_index(objectType));
-	if (binding == bindingMap.end()) {
-		if constexpr (std::is_abstract_v<T>)
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic abstract]", vide::util::demangle(objectType.name()), vide::util::demangle(typeid(ar).name()))
-		else
-			UNREGISTERED_POLYMORPHIC_EXCEPTION("save [polymorphic not abstract]", vide::util::demangle(objectType.name()), vide::util::demangle(typeid(ar).name()))
-	}
-
-	const auto objectAddress = binding->second.downcast(var.get(), savingType);
-	binding->second.generic_ptr(&to_underlying_ar(ar), objectAddress);
+	const auto& serializers = polymorphic_detail::getPolymorphicOutputSerializers(
+			typeid(underlying_archive_t<Archive>), typeid(ar), objectType, std::is_abstract_v<T>);
+	serializers.generic_ptr(&to_underlying_ar(ar), serializers.downcast(var.get(), typeid(T)));
 }
 
 /// Loading std::unique_ptr for polymorphic types
@@ -367,7 +384,6 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& var) {
 		return;
 	}
 
-	static const std::type_info& loadingType = typeid(T);
 	polymorphic_id_t polymorphic_id;
 	ar.nvp("polymorphic_id", polymorphic_id);
 
@@ -380,7 +396,7 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& var) {
 			// as the pointer itself is serialized, but since this is a polymorphic pointer, if we tried to serialize
 			// the pointer we'd end up back here recursively.  So we have to catch the error here as well, if
 			// this was a polymorphic type serialized by its proper pointer type
-			throw vide::Exception("Cannot load a polymorphic type '" + vide::util::demangle(loadingType.name()) + "' that is not default constructable");
+			throw vide::Exception("Cannot load a polymorphic type '" + vide::util::demangle(typeid(T).name()) + "' that is not default constructable");
 		} else {
 			using NonConstT = std::remove_const_t<T>;
 			std::unique_ptr<NonConstT, D> ptr(::vide::access::construct<NonConstT>());
@@ -388,23 +404,15 @@ inline void VIDE_FUNCTION_NAME_LOAD(Archive& ar, std::unique_ptr<T, D>& var) {
 			var = std::move(ptr);
 		}
 	} else {
-		auto [serializer, new_] = ar.registerPolymorphicType(polymorphic_id);
-		if (new_) {
-			std::string polymorphic_name;
-			ar.nvp("polymorphic_name", polymorphic_name);
-			serializer = polymorphic_detail::getPolymorphicInputSerializer(ar, polymorphic_name);
-		}
-
+		const auto serializer = polymorphic_detail::loadPolymorphicSerializers(ar, polymorphic_id);
 		const auto registerFn = [&var](void* objectAddress, void* varPtr, const std::type_index& objectType) {
 			// registerFn takes ownership of the loaded pointer
 			(void) objectAddress;
 			(void) objectType;
 			var = std::unique_ptr<T, D>(static_cast<T*>(varPtr));
 		};
-		serializer.generic_ptr(&to_underlying_ar(ar), loadingType, registerFn);
+		serializer.generic_ptr(&to_underlying_ar(ar), typeid(T), registerFn);
 	}
 }
 
 } // namespace vide --------------------------------------------------------------------------------
-
-#undef UNREGISTERED_POLYMORPHIC_EXCEPTION

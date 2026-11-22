@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include <vide/details/polymorphic_impl_fwd.hpp>
+#include <vide/details/polymorphic_impl.hpp> // Polymorphic bases register their casters even when serialized by value
 
 #include <type_traits>
 

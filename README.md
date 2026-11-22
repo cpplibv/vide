@@ -290,6 +290,9 @@ Additional nice to have extras may arrive in the future.
   - Fix Linux build
   - Fix `long long` and `unsigned long long` JSON deserialization on Linux
   - Sync, review and resolve upstream commits, PRs, and issues up to and including 2026.07.24 22a1b369
+  - `vide.hpp` and the archive headers no longer include `types/polymorphic.hpp`; polymorphic pointers or use of `VIDE_REGISTER_TYPE` now requires that include explicitly
+  - Faster compilation of polymorphic type registration and serialization
+  - Fix possible hash collision between registered class versions
 
 
 -------------------------------------------------------------------------------------------------

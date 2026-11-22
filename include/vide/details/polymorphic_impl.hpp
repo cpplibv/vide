@@ -127,7 +127,7 @@ struct PolymorphicCasters {
 	//! Error message used for unregistered polymorphic casts
 #define UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(LoadSave)                                                                                                                \
         throw vide::Exception("Trying to " #LoadSave " a registered polymorphic type with an unregistered polymorphic cast.\n"                                               \
-                                "Could not find a path to a base class '" + util::demangle(baseInfo.name()) + "' for type: '" + ::vide::util::demangledName<Derived>() + "'\n" \
+                                "Could not find a path to a base class '" + util::demangle(baseInfo.name()) + "' for type: '" + util::demangle(derivedInfo.name()) + "'\n"   \
                                 "Make sure you either serialize the base class at some point via vide::base_class or vide::virtual_base_class.\n"                          \
                                 "Alternatively, manually register the association with VIDE_REGISTER_POLYMORPHIC_RELATION.");
 
@@ -174,60 +174,62 @@ struct PolymorphicCasters {
 		return derivedIter->second;
 	}
 
-	//! Performs a downcast to the derived type using a registered mapping
-	template <class Derived>
-	static inline const Derived* downcast(const void* dptr, const std::type_info& baseInfo) {
+	/// Applies the registered casters from baseInfo down to derivedInfo
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE static const void* downcastPath(const void* dptr, const std::type_info& baseInfo, const std::type_info& derivedInfo) {
 		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(save) };
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"
-		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
+		const auto& mapping = lookup(baseInfo, derivedInfo, throwFn);
 #pragma GCC diagnostic pop
 
 		for (const auto* dmap : mapping)
 			dptr = dmap->downcast(dptr);
 
-		return static_cast<const Derived*>(dptr);
+		return dptr;
 	}
 
-	//! Performs an upcast to the registered base type using the given a derived type
-	/*! The return is untyped because the final casting to the base type must happen in the polymorphic
-		serialization function, where the type is known at compile time */
-	template <class Derived>
-	static inline void* upcast(Derived* const dptr, const std::type_info& baseInfo) {
+	/// Applies the registered casters from derivedInfo up to baseInfo
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE static void* upcastPath(void* uptr, const std::type_info& baseInfo, const std::type_info& derivedInfo) {
 		const auto throwFn = [&]() { UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(load) };
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdangling-reference"
-		const auto& mapping = lookup(baseInfo, typeid(Derived), throwFn);
+		const auto& mapping = lookup(baseInfo, derivedInfo, throwFn);
 #pragma GCC diagnostic pop
 
-		void* uptr = dptr;
 		for (auto mIter = mapping.rbegin(), mEnd = mapping.rend(); mIter != mEnd; ++mIter)
 			uptr = (*mIter)->upcast(uptr);
 
 		return uptr;
 	}
 
-#undef UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION
-};
+	/// Downcast through the registered casters
+	template <class Derived>
+	static inline const Derived* downcast(const void* dptr, const std::type_info& baseInfo) {
+		return static_cast<const Derived*>(downcastPath(dptr, baseInfo, typeid(Derived)));
+	}
 
-//! Strongly typed derivation of PolymorphicCaster
-template <class Base, class Derived>
-struct PolymorphicVirtualCaster : PolymorphicCaster {
-	//! Inserts an entry in the polymorphic casting map for this pairing
-	/*! Creates an explicit mapping between Base and Derived in both upwards and
-		downwards directions, allowing void pointers to either to be properly cast
-		assuming dynamic type information is available */
-	PolymorphicVirtualCaster() {
-		const auto baseKey = std::type_index(typeid(Base));
-		const auto derivedKey = std::type_index(typeid(Derived));
+	/// Upcast through the registered casters. Untyped on purpose: only the polymorphic
+	/// serialization function knows the base type at compile time
+	template <class Derived>
+	static inline void* upcast(Derived* const dptr, const std::type_info& baseInfo) {
+		return upcastPath(static_cast<void*>(dptr), baseInfo, typeid(Derived));
+	}
 
+	/// Inserts caster for baseKey -> derivedKey, plus every chain through it that is shorter than a known one
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE static void registerRelation(const std::type_index baseKey, const std::type_index derivedKey, const PolymorphicCaster* caster) {
 		// First insert the relation Base->Derived
 		auto& baseMap = PolymorphicCasters::instance().map;
 
 		{
 			auto& derivedMap = baseMap.insert({baseKey, PolymorphicCasters::DerivedCasterMap{}}).first->second;
 			auto& derivedVec = derivedMap.insert({derivedKey, {}}).first->second;
-			derivedVec.push_back(this);
+			derivedVec.push_back(caster);
 		}
 
 		// Insert reverse relation Derived->Base
@@ -347,7 +349,18 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 				}
 			} // end loop over parent stack
 		} // end chainable relations
-	} // end PolymorphicVirtualCaster()
+	}
+
+#undef UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION
+};
+
+//! Strongly typed derivation of PolymorphicCaster
+template <class Base, class Derived>
+struct PolymorphicVirtualCaster : PolymorphicCaster {
+	/// Registers the Base <-> Derived casts, both directions
+	PolymorphicVirtualCaster() {
+		PolymorphicCasters::registerRelation(typeid(Base), typeid(Derived), this);
+	}
 
 	//! Performs the proper downcast with the templated types
 	const void* downcast(const void* const ptr) const override {
@@ -423,9 +436,20 @@ struct OutputBindingMap {
 	using Archives_map = std::map<std::type_index, Serializers_map>;
 	Archives_map archives_map;
 
-	//! Obtain serializers map for given archive
+	/// Serializers registered for archive
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE Serializers_map& map(std::type_index archive) { return archives_map[archive]; }
+
 	template <typename Archive>
-	Serializers_map& map() { return archives_map[typeid(Archive)]; }
+	Serializers_map& map() { return map(typeid(Archive)); }
+
+	/// Adds the serializers of type for archive; an existing entry is kept
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE static void insert(std::type_index archive, std::type_index type, Serializers serializers) {
+		instance().map(archive).try_emplace(type, serializers);
+	}
 
 	static OutputBindingMap& instance() {
 		static OutputBindingMap bindings;
@@ -448,9 +472,20 @@ struct InputBindingMap {
 	using Archives_map = std::map<std::type_index, Serializers_map>;
 	Archives_map archives_map;
 
-	//! Obtain serializers map for given archive
+	/// Serializers registered for archive
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE Serializers_map& map(std::type_index archive) { return archives_map[archive]; }
+
 	template <typename Archive>
-	Serializers_map& map() { return archives_map[typeid(Archive)]; }
+	Serializers_map& map() { return map(typeid(Archive)); }
+
+	/// Adds the serializers of the type called name for archive; an existing entry is kept
+	// Template and VIDE_NOINLINE solely for compile time
+	template <class = void>
+	VIDE_NOINLINE static void insert(std::type_index archive, const char* name, polymorphic_detail::InputSerializers serializers) {
+		instance().map(archive).try_emplace(std::string(name), serializers);
+	}
 
 	static InputBindingMap& instance() {
 		static InputBindingMap bindings;
@@ -481,13 +516,6 @@ template <class Archive, class T>
 struct InputBindingCreator {
 	//! Initialize the binding
 	InputBindingCreator() {
-		auto& map = InputBindingMap::instance().map<Archive>();
-		auto key = std::string(binding_name<T>::name());
-		auto lb = map.lower_bound(key);
-
-		if (lb != map.end() && lb->first == key)
-			return;
-
 		polymorphic_detail::InputSerializers serializers;
 
 		serializers.upcast =
@@ -507,7 +535,7 @@ struct InputBindingCreator {
 					ar.nvp("data", *objectAddress);
 				};
 
-		map.insert(lb, {std::move(key), std::move(serializers)});
+		InputBindingMap::insert(typeid(Archive), binding_name<T>::name(), serializers);
 	}
 };
 
@@ -536,13 +564,6 @@ struct OutputBindingCreator {
 
 	//! Initialize the binding
 	OutputBindingCreator() {
-		auto& map = OutputBindingMap::instance().map<Archive>();
-		auto key = std::type_index(typeid(T));
-		auto lb = map.lower_bound(key);
-
-		if (lb != map.end() && lb->first == key)
-			return;
-
 		OutputBindingMap::Serializers serializers;
 
 		serializers.downcast =
@@ -556,7 +577,7 @@ struct OutputBindingCreator {
 					ar.nvp("data", *static_cast<const T*>(objectAddress));
 				};
 
-		map.insert({std::move(key), std::move(serializers)});
+		OutputBindingMap::insert(typeid(Archive), typeid(T), serializers);
 	}
 };
 

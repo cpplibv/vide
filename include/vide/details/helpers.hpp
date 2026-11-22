@@ -30,12 +30,12 @@
 #ifndef VIDE_DETAILS_HELPERS_HPP_
 #define VIDE_DETAILS_HELPERS_HPP_
 
-#include <type_traits>
 #include <cstdint>
-#include <utility>
+#include <type_traits>
+#include <typeindex>
 #include <unordered_map>
+#include <utility>
 
-#include <vide/details/validation.hpp>
 #include <vide/macros.hpp>
 // #include <vide/map_item.hpp>
 
@@ -87,78 +87,6 @@ public:
 
 namespace detail {
 
-// base classes for type checking
-/* The rtti virtual function only exists to enable an archive to
-   be used in a polymorphic fashion, if necessary.  See the
-   archive adapters for an example of this */
-class OutputArchiveBase {
-public:
-	OutputArchiveBase() = default;
-	OutputArchiveBase(OutputArchiveBase&&) noexcept {}
-	OutputArchiveBase& operator=(OutputArchiveBase&&) noexcept { return *this; }
-	virtual ~OutputArchiveBase() noexcept = default;
-
-private:
-	virtual void rtti() {}
-
-public:
-	// Dependent name providers:
-	using Exception = vide::Exception;
-
-	[[no_unique_address]] notnull_t notnull;
-	[[no_unique_address]] notnullrange_t notnullrange;
-	[[no_unique_address]] notempty_t notempty;
-	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
-		return maxsize_t{limit};
-	}
-	[[nodiscard]] constexpr inline minsize_t minsize(std::size_t limit) {
-		return minsize_t{limit};
-	}
-	template <typename Base>
-	[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
-		return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
-	}
-	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
-		return indirect_t<maxsize_t>{limit};
-	}
-};
-
-class InputArchiveBase {
-public:
-	InputArchiveBase() = default;
-	InputArchiveBase(InputArchiveBase&&) noexcept {}
-	InputArchiveBase& operator=(InputArchiveBase&&) noexcept { return *this; }
-	virtual ~InputArchiveBase() noexcept = default;
-
-private:
-	virtual void rtti() {}
-
-public:
-	// Dependent name providers:
-	using Exception = vide::Exception;
-
-	[[no_unique_address]] notnull_t notnull;
-	[[no_unique_address]] notnullrange_t notnullrange;
-	[[no_unique_address]] notempty_t notempty;
-	[[nodiscard]] constexpr inline maxsize_t maxsize(std::size_t limit) {
-		return maxsize_t{limit};
-	}
-	[[nodiscard]] constexpr inline minsize_t minsize(std::size_t limit) {
-		return minsize_t{limit};
-	}
-	template <typename Base>
-	[[nodiscard]] constexpr inline auto indirect(Base&& baseValidator) {
-		return indirect_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
-	}
-	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
-		return indirect_t<maxsize_t>{limit};
-	}
-	template <typename Base>
-	[[nodiscard]] constexpr inline auto ranged(Base&& baseValidator) {
-		return ranged_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
-	}
-};
-
 // forward decls for polymorphic support
 template <class Archive, class T> struct polymorphic_serialization_support;
 struct adl_tag;
@@ -178,19 +106,19 @@ template <class T, class BindingTag = version_binding_tag> struct Version {
 	// always get a version number of 0
 };
 
-//! Holds all registered version information
+/// Versions registered by VIDE_CLASS_VERSION
 struct Versions {
-	std::unordered_map<std::size_t, std::uint32_t> mapping;
+	std::unordered_map<std::type_index, std::uint32_t> mapping;
 
 	static Versions& instance() {
 		static Versions versions;
 		return versions;
 	}
 
-	//! The registered version of hash, or version when it was never registered
-	std::uint32_t find(std::size_t hash, std::uint32_t version) const {
+	/// Registered version of type, or version when it has none
+	std::uint32_t find(std::type_index type, std::uint32_t version) const {
 		// Read-only on purpose: called mid serialization, possibly from many threads at once
-		const auto it = mapping.find(hash);
+		const auto it = mapping.find(type);
 		return it != mapping.end() ? it->second : version;
 	}
 }; // struct Versions

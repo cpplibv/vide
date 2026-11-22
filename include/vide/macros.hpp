@@ -59,6 +59,16 @@
 #   define VIDE_USED __attribute__ ((__used__))
 #endif
 
+/// Keeps a type independent helper out of line. Inlined into every template caller, it would
+/// multiply optimizer work for no runtime gain. Such helpers are also template <class = void>:
+/// a plain inline function is analyzed (its std container calls instantiated) in every TU
+/// including the header, a template only where used; still one copy per TU
+#if defined(_MSC_VER) && !defined(__clang__)
+#   define VIDE_NOINLINE __declspec(noinline)
+#else // clang or gcc
+#   define VIDE_NOINLINE __attribute__ ((noinline))
+#endif
+
 #ifndef VIDE_SIZE_TYPE
 //! Determines the data type used for size_type
 /*! vide uses size_type to ensure that the serialized size of

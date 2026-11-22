@@ -15,6 +15,11 @@ add_library(vide::vide ALIAS vide)
 
 file(GLOB_RECURSE vide_headers CONFIGURE_DEPENDS include/*.hpp)
 target_sources(vide INTERFACE FILE_SET HEADERS BASE_DIRS include FILES ${vide_headers})
+
+# Bundled rapidjson headers and licenses: installed, but not verified (some header are MSVC only)
+file(GLOB_RECURSE vide_external_files CONFIGURE_DEPENDS include/vide/external/*)
+list(FILTER vide_external_files EXCLUDE REGEX "\\.hpp$")
+target_sources(vide INTERFACE FILE_SET external TYPE HEADERS BASE_DIRS include FILES ${vide_external_files})
 target_compile_features(vide INTERFACE cxx_std_26)
 
 # --- Install --------------------------------------------------------------------------------------
@@ -26,7 +31,7 @@ if (VIDE_INSTALL)
 	# Header-only, so the package files are arch independent and go to share/
 	set(vide_config_dir ${CMAKE_INSTALL_DATADIR}/cmake/vide)
 
-	install(TARGETS vide EXPORT videTargets FILE_SET HEADERS)
+	install(TARGETS vide EXPORT videTargets FILE_SET HEADERS FILE_SET external)
 	install(EXPORT videTargets NAMESPACE vide:: DESTINATION ${vide_config_dir})
 
 	configure_package_config_file(Config.cmake.in videConfig.cmake INSTALL_DESTINATION ${vide_config_dir})
@@ -46,7 +51,7 @@ if (PROJECT_IS_TOP_LEVEL)
 	# Dev: optimized, but asserts stay enabled
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release Dev)
 
-	set_target_properties(vide PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON)
+	set_target_properties(vide PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON INTERFACE_HEADER_SETS_TO_VERIFY HEADERS)
 
 	add_compile_options(
 			-freflection

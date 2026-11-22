@@ -43,8 +43,6 @@ Implementation skip validation support
 
 
 
-cleanup cmake, confirm to a proper modern design
-	ensure vide works with CPM https://github.com/cpm-cmake/CPM.cmake
 
 replace static_object with function static pattern
 	(the only place it should have been used is polymorphic type registration)

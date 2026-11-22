@@ -26,6 +26,8 @@ target_link_libraries(consumer PRIVATE vide::vide)
 
 file(WRITE ${consumer_source_dir}/main.cpp [=[
 #include <vide/archives/binary.hpp>
+#include <vide/archives/json.hpp>
+#include <vide/archives/xml.hpp>
 #include <cstdlib>
 #include <sstream>
 

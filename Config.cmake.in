@@ -1,9 +1,4 @@
 @PACKAGE_INIT@
 
-if (@VIDE_THREAD_SAFE@)
-	include(CMakeFindDependencyMacro)
-	find_dependency(Threads)
-endif ()
-
 include("${CMAKE_CURRENT_LIST_DIR}/videTargets.cmake")
 check_required_components(vide)

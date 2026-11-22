@@ -6,9 +6,7 @@
 
 #include "common.hpp"
 
-#if VIDE_THREAD_SAFE
 #include <future>
-#endif
 
 #include <iostream>
 
@@ -363,7 +361,6 @@ void test_polymorphic_legacy() {
 	}
 }
 
-#if VIDE_THREAD_SAFE
 template <class IArchive, class OArchive>
 inline
 void test_polymorphic_threading() {
@@ -371,7 +368,7 @@ void test_polymorphic_threading() {
 	for (size_t i = 0; i < 100; ++i)
 		pool.emplace_back(std::async(std::launch::async,
 				[]() {
-					test_polymorphic<IArchive, OArchive>();
+					test_polymorphic_legacy<IArchive, OArchive>();
 					return true;
 				}));
 
@@ -381,7 +378,6 @@ void test_polymorphic_threading() {
 	for (auto& future : pool)
 		CHECK_UNARY(future.get());
 }
-#endif // VIDE_THREAD_SAFE
 
 } // namespace legacy ------------------------------------------------------------------------------
 
@@ -389,9 +385,7 @@ TEST_SUITE_BEGIN("polymorphic");
 
 CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_legacy", legacy::test_polymorphic_legacy)
 
-#if VIDE_THREAD_SAFE
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE ("polymorphic_threading", legacy::test_polymorphic_threading)
-#endif // VIDE_THREAD_SAFE
+CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_threading", legacy::test_polymorphic_threading)
 
 TEST_SUITE_END();
 

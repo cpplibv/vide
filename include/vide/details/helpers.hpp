@@ -183,9 +183,11 @@ template <class T, class BindingTag = version_binding_tag> struct Version {
 struct Versions {
 	std::unordered_map<std::size_t, std::uint32_t> mapping;
 
-	std::uint32_t find(std::size_t hash, std::uint32_t version) {
-		const auto result = mapping.emplace(hash, version);
-		return result.first->second;
+	//! The registered version of hash, or version when it was never registered
+	std::uint32_t find(std::size_t hash, std::uint32_t version) const {
+		// Read-only on purpose: called mid serialization, possibly from many threads at once
+		const auto it = mapping.find(hash);
+		return it != mapping.end() ? it->second : version;
 	}
 }; // struct Versions
 

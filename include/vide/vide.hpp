@@ -475,7 +475,6 @@ public:
 		if constexpr (access::has_static_member_class_version<T>) {
 			version = access::static_member_class_version<T>();
 		} else {
-			const auto lock = detail::StaticObject<detail::Versions>::lock();
 			version = detail::StaticObject<detail::Versions>::getInstance().find(hash, detail::Version<T>::version);
 		}
 

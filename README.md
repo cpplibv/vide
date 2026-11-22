@@ -258,11 +258,11 @@ Additional nice to have extras may arrive in the future.
   - Bump required CMake version to 3.24
   - Remove pkgconfig file generation
   - Remove AllowEmptyClassElision
+  - Remove the `THREAD_SAFE` option and the mutexes (Threading was not needed)
   - Change duration and time_point serialization to be minimal
   - Rework and modernize the CMake scripts
     - Replace `VIDE_FORCE_COLORED_OUTPUT` with the built-in `CMAKE_COLOR_DIAGNOSTICS`
     - Replace `VIDE_ALTERNATIVE_LINKER` with the built-in `CMAKE_LINKER_TYPE` (uppercase, e.g. `-DCMAKE_LINKER_TYPE=LLD`)
-    - Rename `THREAD_SAFE` to `VIDE_THREAD_SAFE`; the define and the `Threads::Threads` dependency now propagate through `vide::vide` (installed package included)
     - Replace `VIDE_SKIP_PERFORMANCE_COMPARISON` with the opt-in `VIDE_BUILD_PERFORMANCE_COMPARISON`
     - Add opt-in `VIDE_BUILD_PORTABILITY_TEST` for the 32 bit test variants and the 32/64 bit portability test
     - Install the CMake package files to `share/cmake/vide` (header-only, arch independent)

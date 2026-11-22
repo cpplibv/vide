@@ -1,5 +1,7 @@
 option(VIDE_BUILD_PORTABILITY_TEST "Build the 32 bit test variants and the 32/64 bit portability test (needs -m32 support)" OFF)
 
+find_package(Threads REQUIRED)
+
 # vide_add_test(<source> [libraries...]): "pod.cpp" -> executable and test "test_pod"
 function(vide_add_test source)
 	cmake_path(GET source STEM name)
@@ -10,7 +12,7 @@ function(vide_add_test source)
 
 	foreach (target IN LISTS variants)
 		add_executable(${target} ${source})
-		target_link_libraries(${target} PRIVATE vide::vide ${ARGN})
+		target_link_libraries(${target} PRIVATE vide::vide Threads::Threads ${ARGN})
 		if (MINGW)
 			# Large tests (like polymorphic) with debug info exceed the 16 bit COFF section index limit of GNU as
 			target_compile_options(${target} PRIVATE -Wa,--mbig-obj)

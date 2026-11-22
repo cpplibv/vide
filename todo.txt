@@ -46,8 +46,7 @@ Implementation skip validation support
 cleanup cmake, confirm to a proper modern design
 	ensure vide works with CPM https://github.com/cpm-cmake/CPM.cmake
 
-review/remove threading
-	replace static_object with function static pattern
+replace static_object with function static pattern
 	(the only place it should have been used is polymorphic type registration)
 	which is startup or dll load time
 

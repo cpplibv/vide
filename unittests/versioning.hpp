@@ -28,9 +28,7 @@
 #define VIDE_TEST_VERSIONING_H_
 #include "common.hpp"
 
-#if VIDE_THREAD_SAFE
 #include <future>
-#endif
 
 namespace Nested {
 struct NestedClass {
@@ -154,11 +152,6 @@ inline void test_versioning() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
-#if VIDE_THREAD_SAFE
-  #include <future>
-  static std::mutex testMutex;
-#endif
-
 	for (size_t i = 0; i < 100; ++i) {
 		VersionStructMS o_MS = {random_value<uint8_t>(gen) % 2 ? true : false, 1};
 		VersionStructMSP o_MSP = {random_value<uint8_t>(gen), 1};
@@ -212,10 +205,6 @@ inline void test_versioning() {
 			iar(i_SMCVPriv);
 		}
 
-#if VIDE_THREAD_SAFE
-    std::lock_guard<std::mutex> lock( testMutex );
-#endif
-
 		CHECK_EQ(o_MS.x, i_MS.x);
 		CHECK_EQ(i_MS.v, 0u);
 		CHECK_EQ(o_MSP.x, i_MSP.x);
@@ -241,7 +230,6 @@ inline void test_versioning() {
 	}
 }
 
-#if VIDE_THREAD_SAFE
 template <class IArchive, class OArchive> inline
 void test_versioning_threading()
 {
@@ -256,6 +244,5 @@ void test_versioning_threading()
   for( auto & future : pool )
     CHECK_UNARY( future.get() );
 }
-#endif // VIDE_THREAD_SAFE
 
 #endif // VIDE_TEST_VERSIONING_H_

@@ -30,11 +30,6 @@
 
 #include <vide/macros.hpp>
 
-
-#if VIDE_THREAD_SAFE
-#include <mutex>
-#endif
-
 //! Prevent link optimization from removing non-referenced static objects
 /*! Especially for polymorphic support, we create static objects which
     may not ever be explicitly referenced.  Most linkers will detect this
@@ -61,7 +56,12 @@ namespace detail {
 	cause it to be instantiated and initialized pre-execution.
 	For example, this is used heavily in the polymorphic pointer
 	serialization mechanisms to bind various archive types with
-	different polymorphic classes */
+	different polymorphic classes
+
+	No locking: instances are written only during static initialization
+	(or a shared library load), then read-only. That is what makes separate
+	archives on separate threads safe; serialization must never write here,
+	and no library may be loaded while other threads serialize. */
 template <class T>
 class VIDE_DLL_EXPORT StaticObject {
 private:
@@ -78,37 +78,6 @@ private:
 public:
 	static T& getInstance() {
 		return create();
-	}
-
-	//! A class that acts like std::lock_guard
-	class LockGuard {
-#if VIDE_THREAD_SAFE
-		public:
-		  LockGuard(std::mutex & m) : lock(m) {}
-		private:
-		  std::unique_lock<std::mutex> lock;
-#else
-	public:
-		LockGuard() = default;
-		LockGuard(LockGuard const&) = default; // prevents implicit copy ctor warning
-		~LockGuard() noexcept {} // prevents variable not used
-#endif
-	};
-
-	//! Attempts to lock this static object for the current scope
-	/*! @note This function is a no-op if vide is not compiled with
-			  thread safety enabled (VIDE_THREAD_SAFE = 1).
-
-		This function returns an object that holds a lock for
-		this StaticObject that will release its lock upon destruction. This
-		call will block until the lock is available. */
-	static LockGuard lock() {
-#if VIDE_THREAD_SAFE
-		static std::mutex instanceMutex;
-		return LockGuard{instanceMutex};
-#else
-		return LockGuard{};
-#endif
 	}
 
 private:

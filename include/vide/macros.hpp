@@ -46,18 +46,6 @@
 #include <cstdint>
 
 
-#ifndef VIDE_THREAD_SAFE
-//! Whether vide should be compiled for a threaded environment
-/*! This macro causes vide to use mutexes to control access to
-    global internal state in a thread safe manner.
-
-    Note that even with this enabled you must still ensure that
-    archives are accessed by only one thread at a time; it is safe
-    to use multiple archives in parallel, but not to access one archive
-    from many places simultaneously. */
-#define VIDE_THREAD_SAFE 0
-#endif // VIDE_THREAD_SAFE
-
 #ifndef VIDE_SIZE_TYPE
 //! Determines the data type used for size_type
 /*! vide uses size_type to ensure that the serialized size of

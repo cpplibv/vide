@@ -7,7 +7,6 @@ option(VIDE_BUILD_SANDBOX "Build sandbox examples" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_BUILD_TESTS "Build tests" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_INSTALL "Generate the install target" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_JUST_INSTALL "Don't do anything besides installing the library" OFF)
-option(VIDE_THREAD_SAFE "Use mutexes to ensure thread safety" OFF)
 
 # --- Library --------------------------------------------------------------------------------------
 
@@ -17,12 +16,6 @@ add_library(vide::vide ALIAS vide)
 file(GLOB_RECURSE vide_headers CONFIGURE_DEPENDS include/*.hpp)
 target_sources(vide INTERFACE FILE_SET HEADERS BASE_DIRS include FILES ${vide_headers})
 target_compile_features(vide INTERFACE cxx_std_26)
-
-if (VIDE_THREAD_SAFE)
-	find_package(Threads REQUIRED)
-	target_compile_definitions(vide INTERFACE VIDE_THREAD_SAFE=1)
-	target_link_libraries(vide INTERFACE Threads::Threads)
-endif ()
 
 # --- Install --------------------------------------------------------------------------------------
 

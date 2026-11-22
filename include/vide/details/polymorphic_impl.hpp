@@ -198,7 +198,6 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 		const auto derivedKey = std::type_index(typeid(Derived));
 
 		// First insert the relation Base->Derived
-		const auto lock = StaticObject<PolymorphicCasters>::lock();
 		auto& baseMap = StaticObject<PolymorphicCasters>::getInstance().map;
 
 		{
@@ -448,8 +447,7 @@ template <class Archive, class T>
 struct InputBindingCreator {
 	//! Initialize the binding
 	InputBindingCreator() {
-		auto& map = StaticObject<InputBindingMap>::getInstance().map<Archive>();;
-		auto lock = StaticObject<InputBindingMap>::lock();
+		auto& map = StaticObject<InputBindingMap>::getInstance().map<Archive>();
 		auto key = std::string(binding_name<T>::name());
 		auto lb = map.lower_bound(key);
 

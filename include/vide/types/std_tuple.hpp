@@ -2,6 +2,7 @@
 
 #include <vide/macros.hpp>
 
+#include <cstddef>
 #include <tuple>
 
 
@@ -30,14 +31,14 @@ const char char_seq_to_c_str<Cs...>::str[sizeof...(Cs) + size] =
 	@tparam R The remainder of dividing the original number by 10
 	@tparam C The sequence built so far
 	@internal */
-template <size_t Q, size_t R, char ... C>
+template <std::size_t Q, std::size_t R, char ... C>
 struct to_string_impl {
 	using type = typename to_string_impl<Q / 10, Q % 10, static_cast<char>(R + std::size_t{'0'}), C...>::type;
 };
 
 //! Base case with no quotient
 /*! @internal */
-template <size_t R, char ... C>
+template <std::size_t R, char ... C>
 struct to_string_impl<0, R, C...> {
 	using type = char_seq_to_c_str<static_cast<char>(R + std::size_t{'0'}), C...>;
 };
@@ -48,7 +49,7 @@ struct to_string_impl<0, R, C...> {
 	tuple_element_name<3>::c_str();// returns "tuple_element3"
 	@endcode
 	@internal */
-template <size_t T>
+template <std::size_t T>
 struct tuple_element_name {
 	using type = typename to_string_impl<T / 10, T % 10>::type;
 
@@ -57,7 +58,7 @@ struct tuple_element_name {
 
 // unwinds a tuple to save it
 //! @internal
-template <size_t Height>
+template <std::size_t Height>
 struct serialize {
 	template <class Archive, class... Types>
 	inline static void apply(Archive& ar, std::tuple<Types...>& tuple) {

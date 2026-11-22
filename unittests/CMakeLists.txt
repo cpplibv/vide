@@ -49,7 +49,7 @@ foreach (TEST_SOURCE ${TESTS})
         target_link_libraries(${TEST_TARGET} ${VIDE_THREAD_LIBS})
         add_test(NAME "${TEST_TARGET}" COMMAND "${TEST_TARGET}")
 
-		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND WIN32)
 			# Large serialization unit tests (like polymorphic) generate an extreme number of COFF sections
 			# due to high test class count with debug info enabled. GNU as defaults to 16-bit section indices
 			# and fails with "too many sections". --mbig-obj enables extended indices

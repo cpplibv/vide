@@ -278,6 +278,8 @@ Additional nice to have extras may arrive in the future.
       ```
   - Add `vide::minsize(limit)` or `ar.minsize(limit)`: A `var.size() >= limit` testing validation object.
   - Fix multi-container deserialization order for equal keys (Upstream PR https://github.com/USCiLab/cereal/pull/874
+  - Fix Linux build
+  - Fix `long long` and `unsigned long long` JSON deserialization on Linux
   - Sync, review and resolve upstream commits, PRs, and issues up to and including 2026.07.24 22a1b369
 
 

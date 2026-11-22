@@ -852,17 +852,8 @@ public:
 	/// serialize_class_version static member and serialize that regardless if the serializer function uses it or not.
 	template <class T>
 	inline void loadClassVersionUnused() {
-		if constexpr (access::has_static_member_class_version<T>) {
-			static const auto hash = std::type_index(typeid(T)).hash_code();
-			auto lookupResult = itsVersionedTypes.find(hash);
-			if (lookupResult != itsVersionedTypes.end()) // Already loaded
-				return;
-
-			// Need to load
-			std::uint32_t version;
-			process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
-			itsVersionedTypes.emplace_hint(lookupResult, hash, version);
-		}
+		if constexpr (access::has_static_member_class_version<T>)
+			(void) loadClassVersion<T>();
 	}
 
 	//! Registers a class version with the archive and serializes it if necessary
@@ -874,17 +865,14 @@ public:
 	inline std::uint32_t loadClassVersion() {
 		static const auto hash = std::type_index(typeid(T)).hash_code();
 		auto lookupResult = itsVersionedTypes.find(hash);
-
-		if (lookupResult != itsVersionedTypes.end()) // already exists
+		if (lookupResult != itsVersionedTypes.end()) // Already loaded
 			return lookupResult->second;
-		else { // need to load
-			std::uint32_t version;
 
-			process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
-			itsVersionedTypes.emplace_hint(lookupResult, hash, version);
-
-			return version;
-		}
+		// Need to load
+		std::uint32_t version;
+		process_self(make_nvp<ArchiveType>(VIDE_CLASS_VERSION_TAG_NAME, version));
+		itsVersionedTypes.emplace_hint(lookupResult, hash, version);
+		return version;
 	}
 
 protected:

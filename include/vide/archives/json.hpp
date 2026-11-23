@@ -354,17 +354,13 @@ public:
 	//! @}
 
 public: // --- process_as remapping --------------------------------------------------------------------
+	using OutputArchive::process_as;
 
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
 		// NVPs do not start or finish nodes - they just set up the names
 		setNextName(t.name);
-		as(t.value);
-	}
-
-	template <class As, typename T>
-	inline void process_as(As& as, const DeferredData<T>& t) {
-		OutputArchive::process_as(as, t);
+		as.process_as(as, t.value);
 	}
 
 	template <class As, class T>
@@ -391,24 +387,6 @@ public: // --- process_as remapping --------------------------------------------
 		saveValue(str);
 	}
 
-	template <class As, class T>
-	inline void process_as(As& as, const T& t) {
-		// Use prologue/epilogue for all non-minimal types for JSON archives
-		// Minimal types do not start or end nodes
-		static constexpr bool useNode =
-				!minimal_with<As, T> &&
-				!detail::is_minimal_base_class<As, T>;
-
-		if constexpr(useNode)
-			// Starts a new node, named either automatically or by some NVP,
-			// that may be given data by the type about to be archived
-			startNode();
-
-		OutputArchive::process_as(as, t);
-
-		if constexpr(useNode)
-			finishNode();
-	}
 
 }; // JSONOutputArchive
 
@@ -628,7 +606,12 @@ private:
 		itsNextName = nullptr;
 	}
 
-protected:
+public:
+	//! Sets the name for the next node created with startNode
+	void setNextName(const char* name) {
+		itsNextName = name;
+	}
+
 	//! Starts a new node, going into its proper iterator
 	/*! This places an iterator for the next node to be parsed onto the iterator stack.  If the next
 		node is an array, this will be a value iterator, otherwise it will be a member iterator.
@@ -654,15 +637,11 @@ protected:
 		++itsIteratorStack.back();
 	}
 
+protected:
 	//! Retrieves the current node name
 	/*! @return nullptr if no name exists */
 	const char* getNodeName() const {
 		return itsIteratorStack.back().name();
-	}
-
-	//! Sets the name for the next node created with startNode
-	void setNextName(const char* name) {
-		itsNextName = name;
 	}
 
 	//! Loads an integral value from the current node
@@ -735,16 +714,12 @@ public:
 	//! @}
 
 public: // --- process_as remapping --------------------------------------------------------------------
+	using InputArchive::process_as;
 
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
 		setNextName(t.name);
-		as(t.value);
-	}
-
-	template <class As, typename T>
-	inline void process_as(As& as, DeferredData<T>& t) {
-		InputArchive::process_as(as, t);
+		as.process_as(as, t.value);
 	}
 
 	template <class As, class T>
@@ -767,22 +742,6 @@ public: // --- process_as remapping --------------------------------------------
 		loadValue(str);
 	}
 
-	template <class As, class T>
-	inline void process_as(As& as, T& t) {
-		// Use prologue/epilogue for all non-minimal types for JSON archives
-		// Minimal types do not start or end nodes
-		static constexpr bool useNode =
-				!minimal_with<As, T> &&
-				!detail::is_minimal_base_class<As, T>;
-
-		if constexpr(useNode)
-			startNode();
-
-		InputArchive::process_as(as, t);
-
-		if constexpr(useNode)
-			finishNode();
-	}
 };
 
 // =================================================================================================

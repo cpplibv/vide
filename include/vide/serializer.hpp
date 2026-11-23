@@ -37,44 +37,7 @@ struct serializer : detail::class_version_of<T> {
 	template <typename Archive>
 		requires (access::count_member_shapes<Archive, T> != 0)
 	static void serialize(Archive& ar, T& var, std::uint32_t version) {
-		static_assert(access::count_member_shapes<Archive, T> == 1, "\n"
-				"Vide found more than one member serialization function for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, load_minimal/save_minimal pair or serialize_minimal\n"
-				"(you may not mix these, nor versioned and non-versioned forms). Inherited serialization functions count too.\n"
-				"Specialize vide::serializer<T> to pick one explicitly.\n\n");
-
-		if constexpr (access::has_member_serialize<Archive, T>) {
-			access::member_serialize(ar, var);
-		} else if constexpr (access::has_member_serialize_versioned<Archive, T>) {
-			access::member_serialize(ar, var, version);
-		} else if constexpr (access::has_member_serialize_minimal<Archive, T>) {
-			ar(access::member_serialize_minimal(ar, var));
-		} else if constexpr (access::has_member_serialize_minimal_versioned<Archive, T>) {
-			ar(access::member_serialize_minimal(ar, var, version));
-		} else if constexpr (Archive::is_output) {
-			if constexpr (access::has_member_save<Archive, T>)
-				access::member_save(ar, var);
-			else if constexpr (access::has_member_save_versioned<Archive, T>)
-				access::member_save(ar, var, version);
-			else if constexpr (access::has_member_save_minimal<Archive, T>)
-				ar(access::member_save_minimal(ar, var));
-			else
-				ar(access::member_save_minimal(ar, var, version));
-		} else {
-			if constexpr (access::has_member_load<Archive, T>) {
-				access::member_load(ar, var);
-			} else if constexpr (access::has_member_load_versioned<Archive, T>) {
-				access::member_load(ar, var, version);
-			} else if constexpr (access::has_member_load_minimal<Archive, T>) {
-				access::get_member_save_minimal_t<Archive, T> value;
-				ar(value);
-				access::member_load_minimal(ar, var, std::move(value));
-			} else {
-				access::get_member_save_minimal_versioned_t<Archive, T> value;
-				ar(value);
-				access::member_load_minimal(ar, var, std::move(value), version);
-			}
-		}
+		access::serialize_members(ar, var, version);
 	}
 };
 

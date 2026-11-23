@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -129,14 +128,6 @@ inline decltype(auto) make_nvp(const char*, T&& value) {
 template <class Archive, class T> requires (not Archive::ignores_nvp)
 inline NameValuePair<T> make_nvp(const char* name, T&& value) {
 	return {name, std::forward<T>(value)};
-}
-
-//! Creates a name value pair
-/*! @relates NameValuePair
-	@ingroup Utility */
-template <class T>
-inline NameValuePair<T> make_nvp(const std::string& name, T&& value) {
-	return {name.c_str(), std::forward<T>(value)};
 }
 
 //! Creates a name value pair

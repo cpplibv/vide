@@ -16,6 +16,31 @@ if (VIDE_BUILD_PORTABILITY_TEST)
 	vide_add_doctest_main("_32")
 endif ()
 
+# Registers the types of polymorphic_test_classes.hpp; OBJECT so the registrations cannot be dropped by the linker
+function(vide_add_polymorphic_test_classes suffix)
+	add_library(vide_polymorphic_test_classes${suffix} OBJECT common/polymorphic_test_classes.cpp)
+	target_link_libraries(vide_polymorphic_test_classes${suffix} PRIVATE vide::vide)
+	if (MINGW)
+		target_compile_options(vide_polymorphic_test_classes${suffix} PRIVATE -Wa,--mbig-obj)
+	endif ()
+	if (suffix STREQUAL "_32")
+		target_compile_options(vide_polymorphic_test_classes${suffix} PRIVATE -m32)
+	endif ()
+endfunction()
+
+vide_add_polymorphic_test_classes("")
+if (VIDE_BUILD_PORTABILITY_TEST)
+	vide_add_polymorphic_test_classes("_32")
+endif ()
+
+# Tests including polymorphic_test_classes.hpp
+set(vide_polymorphic_class_tests
+		polymorphic_cached
+		polymorphic_classes0
+		polymorphic_classes1
+		polymorphic_cycles
+		polymorphic_type_mismatch)
+
 # vide_add_test(<source> [libraries...]): "pod.cpp" -> executable and test "test_pod"
 function(vide_add_test source)
 	cmake_path(GET source STEM name)
@@ -39,6 +64,9 @@ function(vide_add_test source)
 			set(suffix "")
 		endif ()
 		target_link_libraries(${target} PRIVATE vide_doctest_main${suffix})
+		if (name IN_LIST vide_polymorphic_class_tests)
+			target_link_libraries(${target} PRIVATE vide_polymorphic_test_classes${suffix})
+		endif ()
 		add_test(NAME ${target} COMMAND ${target})
 	endforeach ()
 endfunction()

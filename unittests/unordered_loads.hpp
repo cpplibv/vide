@@ -103,13 +103,13 @@ void test_unordered_loads()
     std::ostringstream os;
     {
 		OArchive oar(os);
-		oar(vide::make_nvp(name1, o_int1));
-		oar(vide::make_nvp(name2, o_double2));
-		oar(vide::make_nvp(name3, o_vecbool3));
-		oar(vide::make_nvp(name4, o_int4));
-		oar(vide::make_nvp(name5, o_int5));
-		oar(vide::make_nvp(name6, o_int6));
-		oar(vide::make_nvp(name7, o_un7));
+		oar(vide::make_nvp(name1.c_str(), o_int1));
+		oar(vide::make_nvp(name2.c_str(), o_double2));
+		oar(vide::make_nvp(name3.c_str(), o_vecbool3));
+		oar(vide::make_nvp(name4.c_str(), o_int4));
+		oar(vide::make_nvp(name5.c_str(), o_int5));
+		oar(vide::make_nvp(name6.c_str(), o_int6));
+		oar(vide::make_nvp(name7.c_str(), o_un7));
     }
 
     decltype(o_int1) i_int1;
@@ -123,12 +123,12 @@ void test_unordered_loads()
     std::istringstream is(os.str());
     {
 		IArchive iar(is);
-		iar(vide::make_nvp(name7, i_un7));
-		iar(vide::make_nvp(name2, i_double2));
-		iar(vide::make_nvp(name4, i_int4));
-		iar(vide::make_nvp(name3, i_vecbool3));
-		iar(vide::make_nvp(name1, i_int1));
-		iar(vide::make_nvp(name5, i_int5));
+		iar(vide::make_nvp(name7.c_str(), i_un7));
+		iar(vide::make_nvp(name2.c_str(), i_double2));
+		iar(vide::make_nvp(name4.c_str(), i_int4));
+		iar(vide::make_nvp(name3.c_str(), i_vecbool3));
+		iar(vide::make_nvp(name1.c_str(), i_int1));
+		iar(vide::make_nvp(name5.c_str(), i_int5));
 		iar(i_int6);
     }
 

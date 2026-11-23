@@ -42,47 +42,61 @@ public:
 	explicit constexpr inline ProxyArchive(Ar& ar) : ar(ar) {}
 
 public:
+	// Same parameter shape as the archives (const on output) on purpose: a CRTP overload for a
+	// specific type is more specialized and wins. A forwarding reference would win instead
 	template <typename As, typename T>
-	inline void process_as(As& as, T&& var) {
+	inline void process_as(As& as, const T& var) requires is_output {
 		ar.process_as(as, var);
 	}
+
 	template <typename As, typename T>
-	inline void process_as_virtual_base_class(As& as, const vide::virtual_base_class<T>& var) {
-		ar.process_as_virtual_base_class(as, var);
+	inline void process_as(As& as, T& var) requires is_input {
+		ar.process_as(as, var);
+	}
+
+	inline void setNextName(const char* name) {
+		ar.setNextName(name);
 	}
 
 public:
 	template <typename T, typename... Validators>
 	inline CRTP& operator()(T&& var, const Validators&... validators) {
 		auto& as = static_cast<CRTP&>(*this);
-		if constexpr (requires { typename std::remove_reference_t<T>::is_virtual_base_class; }) {
-			as.process_as_virtual_base_class(as, var);
-		} else {
-			if constexpr (CRTP::enforce_validation && is_output)
-				(validators(value_if_nvp(var)), ...); // Output archive check before save
-			as.process_as(as, std::forward<T>(var));
-			if constexpr (CRTP::enforce_validation && is_input)
-				(validators(value_if_nvp(var)), ...); // Input archive check after load
-		}
+		if constexpr (CRTP::enforce_validation && is_output)
+			(validators(value_if_nvp(var)), ...); // Output archive check before save
+		as.process_as(as, var);
+		if constexpr (CRTP::enforce_validation && is_input)
+			(validators(value_if_nvp(var)), ...); // Input archive check after load
 		return as;
 	}
 
+	// Sets the name directly instead of a NameValuePair round trip through operator()
 	template <typename T, typename... Validators>
 	inline CRTP& nvp(const char* name, T&& var, const Validators&... validators) {
-		if constexpr (ignores_nvp)
-			return (*this)(std::forward<T>(var), validators...);
-		else
-			return (*this)(vide::make_nvp(name, std::forward<T>(var)), validators...);
+		auto& as = static_cast<CRTP&>(*this);
+		if constexpr (CRTP::enforce_validation && is_output)
+			(validators(var), ...); // Output archive check before save
+		ar.setNextName(name);
+		as.process_as(as, var);
+		if constexpr (CRTP::enforce_validation && is_input)
+			(validators(var), ...); // Input archive check after load
+		return as;
 	}
 
 	template <typename Base, typename Derived>
 	inline CRTP& base_class(const Derived* derivedThis) {
-		return (*this)(vide::base_class<Base>(derivedThis));
+		auto& as = static_cast<CRTP&>(*this);
+		vide::base_class<Base> wrapper(derivedThis);
+		as.process_as(as, wrapper);
+		return as;
 	}
 
 	template <typename Base, typename Derived>
 	inline CRTP& virtual_base_class(const Derived* derivedThis) {
-		return (*this)(vide::virtual_base_class<Base>(derivedThis));
+		auto& as = static_cast<CRTP&>(*this);
+		vide::virtual_base_class<Base> wrapper(derivedThis);
+		as.process_as(as, wrapper);
+		return as;
 	}
 
 	template <typename T, typename... Validators>

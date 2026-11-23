@@ -122,7 +122,7 @@ random_value(std::mt19937& gen) {
 	return s;
 }
 
-size_t random_index(size_t min, size_t max, std::mt19937& gen) {
+inline size_t random_index(size_t min, size_t max, std::mt19937& gen) {
 	return std::uniform_int_distribution<size_t>(min, max)(gen);
 }
 

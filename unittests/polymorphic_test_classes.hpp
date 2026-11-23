@@ -2,6 +2,8 @@
 
 #pragma once
 
+// The types are registered in common/polymorphic_test_classes.cpp, compiled once for every test using them
+
 #include <source_location>
 
 
@@ -178,7 +180,6 @@ struct LeafFinal_EmptyA final : RootEmptyA {
 	virtual ~LeafFinal_EmptyA() = default;
 	[[nodiscard]] bool operator==(const LeafFinal_EmptyA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(LeafFinal_EmptyA)
 
 struct LeafFinal_SimpleA final : RootSimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -193,7 +194,6 @@ struct LeafFinal_SimpleA final : RootSimpleA {
 	virtual ~LeafFinal_SimpleA() = default;
 	[[nodiscard]] bool operator==(const LeafFinal_SimpleA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(LeafFinal_SimpleA)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -210,7 +210,6 @@ struct LeafNonFinal_EmptyA : RootEmptyA {
 	virtual ~LeafNonFinal_EmptyA() = default;
 	[[nodiscard]] bool operator==(const LeafNonFinal_EmptyA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(LeafNonFinal_EmptyA)
 
 struct LeafNonFinalA_SimpleA : RootSimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -225,7 +224,6 @@ struct LeafNonFinalA_SimpleA : RootSimpleA {
 	virtual ~LeafNonFinalA_SimpleA() = default;
 	[[nodiscard]] bool operator==(const LeafNonFinalA_SimpleA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(LeafNonFinalA_SimpleA)
 
 struct LeafNonFinalB_SimpleA : RootSimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -240,7 +238,6 @@ struct LeafNonFinalB_SimpleA : RootSimpleA {
 	virtual ~LeafNonFinalB_SimpleA() = default;
 	[[nodiscard]] bool operator==(const LeafNonFinalB_SimpleA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(LeafNonFinalB_SimpleA)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -264,7 +261,6 @@ struct BaseAtNonZeroOffset final : PreamblePadding, RootSimpleA {
 	virtual ~BaseAtNonZeroOffset() = default;
 	[[nodiscard]] bool operator==(const BaseAtNonZeroOffset& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(BaseAtNonZeroOffset)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -285,7 +281,6 @@ struct MultipleNonVirtualBases final : RootSimpleA, RootSimpleB {
 	virtual ~MultipleNonVirtualBases() = default;
 	[[nodiscard]] bool operator==(const MultipleNonVirtualBases& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(MultipleNonVirtualBases)
 
 struct MultipleNonVirtualReverseBases final : RootSimpleA, RootSimpleB {
 	mutable int usedSerializeFunction = 0;
@@ -304,7 +299,6 @@ struct MultipleNonVirtualReverseBases final : RootSimpleA, RootSimpleB {
 	virtual ~MultipleNonVirtualReverseBases() = default;
 	[[nodiscard]] bool operator==(const MultipleNonVirtualReverseBases& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(MultipleNonVirtualReverseBases)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -323,7 +317,6 @@ struct SingleVirtualBaseA_SimpleA : virtual RootSimpleA {
 	virtual ~SingleVirtualBaseA_SimpleA() = default;
 	[[nodiscard]] bool operator==(const SingleVirtualBaseA_SimpleA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(SingleVirtualBaseA_SimpleA)
 
 struct SingleVirtualBaseB_SimpleA : virtual RootSimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -340,7 +333,6 @@ struct SingleVirtualBaseB_SimpleA : virtual RootSimpleA {
 	virtual ~SingleVirtualBaseB_SimpleA() = default;
 	[[nodiscard]] bool operator==(const SingleVirtualBaseB_SimpleA& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(SingleVirtualBaseB_SimpleA)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -363,7 +355,6 @@ struct MultipleIndependentVirtualBase : virtual RootSimpleA, virtual RootSimpleB
 	virtual ~MultipleIndependentVirtualBase() = default;
 	[[nodiscard]] bool operator==(const MultipleIndependentVirtualBase& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(MultipleIndependentVirtualBase)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -384,7 +375,6 @@ struct VirtualBaseAfterNonVirtualBase final : RootSimpleA, virtual RootSimpleB {
 	virtual ~VirtualBaseAfterNonVirtualBase() = default;
 	[[nodiscard]] bool operator==(const VirtualBaseAfterNonVirtualBase& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(VirtualBaseAfterNonVirtualBase)
 
 struct NonVirtualBaseAfterVirtualBase final : virtual RootSimpleA, RootSimpleB {
 	mutable int usedSerializeFunction = 0;
@@ -403,7 +393,6 @@ struct NonVirtualBaseAfterVirtualBase final : virtual RootSimpleA, RootSimpleB {
 	virtual ~NonVirtualBaseAfterVirtualBase() = default;
 	[[nodiscard]] bool operator==(const NonVirtualBaseAfterVirtualBase& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(NonVirtualBaseAfterVirtualBase)
 
 // Macro or X Macro madness
 // CREATE_CLAZZ_0(VirtualBaseAfterNonVirtualBase, RootSimpleA, virtual RootSimpleB)
@@ -436,7 +425,6 @@ struct ClassicVirtualDiamond final : SingleVirtualBaseA_SimpleA, SingleVirtualBa
 	virtual ~ClassicVirtualDiamond() = default;
 	[[nodiscard]] bool operator==(const ClassicVirtualDiamond& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(ClassicVirtualDiamond)
 
 struct LeftVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, SingleVirtualBaseB_SimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -456,7 +444,6 @@ struct LeftVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, Sin
 	virtual ~LeftVirtualVirtualDiamond() = default;
 	[[nodiscard]] bool operator==(const LeftVirtualVirtualDiamond& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(LeftVirtualVirtualDiamond)
 
 struct RightVirtualVirtualDiamond final : SingleVirtualBaseA_SimpleA, virtual SingleVirtualBaseB_SimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -476,7 +463,6 @@ struct RightVirtualVirtualDiamond final : SingleVirtualBaseA_SimpleA, virtual Si
 	virtual ~RightVirtualVirtualDiamond() = default;
 	[[nodiscard]] bool operator==(const RightVirtualVirtualDiamond& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(RightVirtualVirtualDiamond)
 
 struct BothVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, virtual SingleVirtualBaseB_SimpleA {
 	mutable int usedSerializeFunction = 0;
@@ -496,7 +482,6 @@ struct BothVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, vir
 	virtual ~BothVirtualVirtualDiamond() = default;
 	[[nodiscard]] bool operator==(const BothVirtualVirtualDiamond& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(BothVirtualVirtualDiamond)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -517,7 +502,6 @@ struct MixedDepth : LeafNonFinalA_SimpleA, RootSimpleB {
 	virtual ~MixedDepth() = default;
 	[[nodiscard]] bool operator==(const MixedDepth& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(MixedDepth)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -538,7 +522,6 @@ struct DuplicateNonVirtualBase final : LeafNonFinalA_SimpleA, LeafNonFinalB_Simp
 	virtual ~DuplicateNonVirtualBase() = default;
 	[[nodiscard]] bool operator==(const DuplicateNonVirtualBase& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DuplicateNonVirtualBase)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -555,7 +538,6 @@ struct DeepChain1 {
 	virtual ~DeepChain1() = default;
 	[[nodiscard]] bool operator==(const DeepChain1& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepChain1)
 
 struct DeepChain2 : DeepChain1 {
 	mutable int usedSerializeFunction = 0;
@@ -572,7 +554,6 @@ struct DeepChain2 : DeepChain1 {
 	virtual ~DeepChain2() = default;
 	[[nodiscard]] bool operator==(const DeepChain2& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepChain2)
 
 struct DeepChain3 : DeepChain2 {
 	mutable int usedSerializeFunction = 0;
@@ -589,7 +570,6 @@ struct DeepChain3 : DeepChain2 {
 	virtual ~DeepChain3() = default;
 	[[nodiscard]] bool operator==(const DeepChain3& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepChain3)
 
 struct DeepChain4 : DeepChain3 {
 	mutable int usedSerializeFunction = 0;
@@ -606,7 +586,6 @@ struct DeepChain4 : DeepChain3 {
 	virtual ~DeepChain4() = default;
 	[[nodiscard]] bool operator==(const DeepChain4& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepChain4)
 
 struct DeepChain5 : DeepChain4 {
 	mutable int usedSerializeFunction = 0;
@@ -623,7 +602,6 @@ struct DeepChain5 : DeepChain4 {
 	virtual ~DeepChain5() = default;
 	[[nodiscard]] bool operator==(const DeepChain5& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepChain5)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -643,7 +621,6 @@ struct DeepVirtualChain3 : virtual SingleVirtualBaseA_SimpleA {
 	virtual ~DeepVirtualChain3() = default;
 	[[nodiscard]] bool operator==(const DeepVirtualChain3& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepVirtualChain3)
 
 struct DeepVirtualChain4 : virtual DeepVirtualChain3 {
 	mutable int usedSerializeFunction = 0;
@@ -662,7 +639,6 @@ struct DeepVirtualChain4 : virtual DeepVirtualChain3 {
 	virtual ~DeepVirtualChain4() = default;
 	[[nodiscard]] bool operator==(const DeepVirtualChain4& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepVirtualChain4)
 
 struct DeepVirtualChain5 : virtual DeepVirtualChain4 {
 	mutable int usedSerializeFunction = 0;
@@ -682,7 +658,6 @@ struct DeepVirtualChain5 : virtual DeepVirtualChain4 {
 	virtual ~DeepVirtualChain5() = default;
 	[[nodiscard]] bool operator==(const DeepVirtualChain5& other) const noexcept = default;
 };
-VIDE_REGISTER_TYPE(DeepVirtualChain5)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -712,7 +687,6 @@ struct StressAggregate : PreamblePadding, virtual LeafNonFinalA_SimpleA, virtual
 	[[nodiscard]] bool operator==(const StressAggregate& other) const noexcept = default;
 };
 #pragma GCC diagnostic pop
-VIDE_REGISTER_TYPE(StressAggregate)
 
 // -------------------------------------------------------------------------------------------------
 
@@ -740,7 +714,6 @@ struct WeakHolderBase {
 				dataWeakHolderBase == other.dataWeakHolderBase;
 	}
 };
-VIDE_REGISTER_TYPE(WeakHolderBase)
 
 struct WeakHolderDerived : WeakHolderBase {
 	mutable int usedSerializeFunction = 0;
@@ -766,4 +739,3 @@ struct WeakHolderDerived : WeakHolderBase {
 				dataWeakHolderDerived == other.dataWeakHolderDerived;
 	}
 };
-VIDE_REGISTER_TYPE(WeakHolderDerived)

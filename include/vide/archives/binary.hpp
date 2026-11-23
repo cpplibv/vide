@@ -53,12 +53,12 @@ public:
 
 	template <class As, typename T>
 	inline void process_as(As& as, const NameValuePair<T>& t) {
-		as(t.value);
+		as.process_as(as, t.value);
 	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, const SizeTag<T>& t) {
-		as(t.size);
+		as.process_as(as, t.size);
 	}
 
 	template <class As>
@@ -136,12 +136,12 @@ public:
 
 	template <class As, typename T>
 	inline void process_as(As& as, NameValuePair<T>& t) {
-		as(t.value);
+		as.process_as(as, t.value);
 	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, SizeTag<T>& t) {
-		as(t.size);
+		as.process_as(as, t.size);
 	}
 
 	template <class As>

@@ -129,66 +129,48 @@ struct access {
 			has_member_load_minimal<Archive, T> || has_member_load_minimal_versioned<Archive, T> ||
 			has_member_serialize_minimal<Archive, T> || has_member_serialize_minimal_versioned<Archive, T>;
 
-	// --- Member access -------------------------------------------------------------------------------
-
+	/// Calls the member shape of T: serialize, save/load, save_minimal/load_minimal or
+	/// serialize_minimal, each with or without the version parameter
 	template <class Archive, class T>
-	static constexpr inline void member_serialize(Archive& ar, T& var) {
-		var.VIDE_FUNCTION_NAME_SERIALIZE(ar);
-	}
+	static void serialize_members(Archive& ar, T& var, std::uint32_t version) {
+		static_assert(count_member_shapes<Archive, T> == 1, "\n"
+				"Vide found more than one member serialization function for the provided type and archive combination.\n\n"
+				"Types must either have a serialize function, load/save pair, load_minimal/save_minimal pair or serialize_minimal\n"
+				"(you may not mix these, nor versioned and non-versioned forms). Inherited serialization functions count too.\n"
+				"Specialize vide::serializer<T> to pick one explicitly.\n\n");
 
-	template <class Archive, class T>
-	static constexpr inline void member_serialize(Archive& ar, T& var, const std::uint32_t version) {
-		var.VIDE_FUNCTION_NAME_SERIALIZE(ar, version);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline void member_save(Archive& ar, const T& var) {
-		var.VIDE_FUNCTION_NAME_SAVE(ar);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline void member_save(Archive& ar, const T& var, const std::uint32_t version) {
-		var.VIDE_FUNCTION_NAME_SAVE(ar, version);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline void member_load(Archive& ar, T& var) {
-		var.VIDE_FUNCTION_NAME_LOAD(ar);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline void member_load(Archive& ar, T& var, const std::uint32_t version) {
-		var.VIDE_FUNCTION_NAME_LOAD(ar, version);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var) {
-		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline decltype(auto) member_save_minimal(Archive& ar, const T& var, const std::uint32_t version) {
-		return var.VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version);
-	}
-
-	template <class Archive, class T, class U>
-	static constexpr inline void member_load_minimal(Archive& ar, T& var, U&& value) {
-		var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value));
-	}
-
-	template <class Archive, class T, class U>
-	static constexpr inline void member_load_minimal(Archive& ar, T& var, U&& value, const std::uint32_t version) {
-		var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::forward<U>(value), version);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline auto& member_serialize_minimal(Archive& ar, T& var) {
-		return var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar);
-	}
-
-	template <class Archive, class T>
-	static constexpr inline auto& member_serialize_minimal(Archive& ar, T& var, const std::uint32_t version) {
-		return var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, version);
+		if constexpr (has_member_serialize<Archive, T>) {
+			var.VIDE_FUNCTION_NAME_SERIALIZE(ar);
+		} else if constexpr (has_member_serialize_versioned<Archive, T>) {
+			var.VIDE_FUNCTION_NAME_SERIALIZE(ar, version);
+		} else if constexpr (has_member_serialize_minimal<Archive, T>) {
+			ar(var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar));
+		} else if constexpr (has_member_serialize_minimal_versioned<Archive, T>) {
+			ar(var.VIDE_FUNCTION_NAME_SERIALIZE_MINIMAL(ar, version));
+		} else if constexpr (Archive::is_output) {
+			if constexpr (has_member_save<Archive, T>)
+				std::as_const(var).VIDE_FUNCTION_NAME_SAVE(ar);
+			else if constexpr (has_member_save_versioned<Archive, T>)
+				std::as_const(var).VIDE_FUNCTION_NAME_SAVE(ar, version);
+			else if constexpr (has_member_save_minimal<Archive, T>)
+				ar(std::as_const(var).VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar));
+			else
+				ar(std::as_const(var).VIDE_FUNCTION_NAME_SAVE_MINIMAL(ar, version));
+		} else {
+			if constexpr (has_member_load<Archive, T>) {
+				var.VIDE_FUNCTION_NAME_LOAD(ar);
+			} else if constexpr (has_member_load_versioned<Archive, T>) {
+				var.VIDE_FUNCTION_NAME_LOAD(ar, version);
+			} else if constexpr (has_member_load_minimal<Archive, T>) {
+				get_member_save_minimal_t<Archive, T> value;
+				ar(value);
+				var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::move(value));
+			} else {
+				get_member_save_minimal_versioned_t<Archive, T> value;
+				ar(value);
+				var.VIDE_FUNCTION_NAME_LOAD_MINIMAL(ar, std::move(value), version);
+			}
+		}
 	}
 
 	// Used for placement new

@@ -316,6 +316,12 @@ Additional nice to have extras may arrive in the future.
     class version. Versioned serializers without it no longer store a version, which changes their serialized data
   - Breaking: Map serialization covers the std and boost map types only, not every type with a `mapped_type`
   - Faster compilation of the serializer lookup
+  - Shallower call stacks through the archives, easier to step through in a debugger
+  - Breaking: Text archives now have to provide public `setNextName`, `startNode` and `finishNode` for the base archive
+  - Breaking: `nvp()` names its value through `setNextName`; archives no longer receive a `NameValuePair` for it
+  - Breaking: In text archives the name of a deferred value or of an already serialized virtual base class no longer lands
+    on the next unnamed value
+  - Fix proxy archives preferring their forwarding `process_as` over a derived proxy's overload for a const type
 
 
 -------------------------------------------------------------------------------------------------

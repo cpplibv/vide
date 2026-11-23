@@ -101,6 +101,11 @@ public:
 			deferments[i]();
 	}
 
+	/// Default case, does nothing
+	inline void setNextName(const char* name) {
+		(void) name;
+	}
+
 protected:
 	/// True on the first registration of id since the last reset()
 	// Template and VIDE_NOINLINE solely for compile time

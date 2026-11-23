@@ -36,7 +36,7 @@
 #include <utility>
 #include <vector>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "common/collection_checks.hpp"
 #include "common/proxy_test_group.hpp"

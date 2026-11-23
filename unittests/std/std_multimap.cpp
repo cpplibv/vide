@@ -9,7 +9,7 @@
 #include <sstream>
 #include <string>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "common/archive_test_cases.hpp"
 #include "common/random.hpp"

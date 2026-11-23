@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "common/archive_test_cases.hpp"
 #include "common/save_load_tester.hpp"

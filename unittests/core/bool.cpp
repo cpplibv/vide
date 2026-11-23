@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "common/archive_test_cases.hpp"
 #include "common/collection_checks.hpp"

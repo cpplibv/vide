@@ -19,7 +19,8 @@ serialized output are breaking changes.
   - `macros.hpp` - user-overridable configuration (`VIDE_SIZE_TYPE`, `VIDE_POLYMORPHIC_ID_TYPE`, function names, ...)
   - `external/` - bundled rapidjson and rapidxml; third-party code, leave it alone
 - `unittests/` - doctest tests, one executable per `.cpp`, grouped by area: `core/`, `archives/`, `std/`, `memory/`,
-  `polymorphic/`, `boost/` (needs boost); `common/` holds the shared test code, `external/` doctest
+  `polymorphic/`, `boost/` (needs boost); `common/` holds the shared test code
+- `cmake/CPM.cmake` - CPM bootstrap; fetches doctest when tests are built (set `CPM_SOURCE_CACHE` to reuse downloads)
 - `sandbox/` - example and experiment programs, also built by default
 - `doc/` - Doxygen setup; built only when Doxygen is found
 - `README.md` - user docs and the change log

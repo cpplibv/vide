@@ -5,7 +5,7 @@
 #include <iterator>
 #include <utility>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 
 // Lets CHECK_EQ print the elements of map like collections

@@ -6,7 +6,7 @@
 #include <sstream>
 #include <stack>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "common/archive_test_cases.hpp"
 #include "common/collection_checks.hpp"

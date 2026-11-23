@@ -10,7 +10,7 @@
 #include <sstream>
 #include <string>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 
 TEST_SUITE_BEGIN("text_names");

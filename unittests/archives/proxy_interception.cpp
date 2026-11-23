@@ -13,7 +13,7 @@
 #include <utility>
 #include <vector>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 
 TEST_SUITE_BEGIN("proxy_interception");

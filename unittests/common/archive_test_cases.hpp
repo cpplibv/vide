@@ -7,7 +7,7 @@
 #include <vide/archives/portable_binary.hpp>
 #include <vide/archives/xml.hpp>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "proxy_test_group.hpp"
 

@@ -3,14 +3,21 @@ option(VIDE_BUILD_PORTABILITY_TEST "Build the 32 bit test variants and the 32/64
 find_package(Threads REQUIRED)
 find_package(Boost CONFIG QUIET)
 
+include(${PROJECT_SOURCE_DIR}/cmake/CPM.cmake)
+CPMAddPackage(
+		NAME doctest
+		GITHUB_REPOSITORY doctest/doctest
+		VERSION 2.5.3
+		SYSTEM YES
+		OPTIONS "DOCTEST_NO_INSTALL ON" "DOCTEST_WITH_MAIN_IN_STATIC_LIB OFF")
+
 # Shared test code: doctest, the archive test case macros and helpers under common/. Header only, except the
 # doctest main and the polymorphic class registrations, which are compiled once in separate libraries
 add_library(vide_test_common INTERFACE)
 file(GLOB vide_test_common_headers CONFIGURE_DEPENDS common/*.hpp polymorphic/*.hpp)
 target_sources(vide_test_common INTERFACE FILE_SET HEADERS FILES ${vide_test_common_headers})
 target_include_directories(vide_test_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(vide_test_common SYSTEM INTERFACE external)
-target_link_libraries(vide_test_common INTERFACE vide::vide Threads::Threads)
+target_link_libraries(vide_test_common INTERFACE vide::vide doctest::doctest Threads::Threads)
 set_target_properties(vide_test_common PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON)
 
 # vide_add_common_libraries(<suffix>): the compiled shared test code, suffix "_32" for the -m32 variants

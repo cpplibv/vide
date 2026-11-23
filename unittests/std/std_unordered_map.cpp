@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <doctest.h>
+#include <doctest/doctest.h>
 
 #include "common/archive_test_cases.hpp"
 #include "common/random.hpp"

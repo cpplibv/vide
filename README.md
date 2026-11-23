@@ -323,6 +323,7 @@ Additional nice to have extras may arrive in the future.
     on the next unnamed value
   - Fix proxy archives preferring their forwarding `process_as` over a derived proxy's overload for a const type
   - Fix `types/std_queue.hpp` not including the serializer of `std::priority_queue`'s default container (`std::vector`)
+  - Add boost flat_multiset serializer
 
 
 -------------------------------------------------------------------------------------------------

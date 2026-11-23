@@ -49,13 +49,30 @@ ctest --test-dir build/dev -j 8 --output-on-failure
   named after folder and file (`core/pod.cpp` -> `test_core_pod`); files mirroring a `vide/types/` header keep its name
   (`std/std_vector.cpp` -> `test_std_vector`)
 - Include what the test uses: the `vide/types/*` serializers it exercises, and only the `common/` headers it needs
-- `common/archive_test_cases.hpp`: `CREATE_TEST_CASES_FOR_ALL_ARCHIVE(name, fn)` (and the `_BINARY_` / `_TEXT_` /
-  `_PROXY_ARCHIVE_` variants) instantiate a templated test function for every archive pair; prefer them over
-  hand-written cases
-- Other common headers: `random.hpp` (random values and strings), `sample_structs.hpp` (one struct per serialization
-  shape), `collection_checks.hpp`, `tester.hpp` (batched round trips), `save_load_tester.hpp`, `shared_ptr_helpers.hpp`
+- One `TEST_CASE_TEMPLATE` per feature over an archive list from `common/archives.hpp` (`VIDE_ALL_ARCHIVES`,
+  `VIDE_ALL_BINARY_ARCHIVES`, `VIDE_ALL_TEXT_ARCHIVES`, ...), `SUBCASE`s for its aspects:
+  ```cpp
+  TEST_CASE_TEMPLATE("std::vector", Ar, VIDE_ALL_ARCHIVES) {
+  	auto gen = test_rng();
+  	check_roundtrip<Ar>(random_container<std::vector<int>>(gen, 100));
+  }
+  ```
+- `check_roundtrip<Ar>(value)` (`common/check_roundtrip.hpp`) is the default assertion: the loaded value equals the
+  saved one, and every instrumented object inside ran its own save and load exactly once. Equal values alone can come
+  from the wrong serialization function or from a skipped load
+- Instrumented: a type whose serialization functions start with `record_call<Archive>(this)`
+  (`common/serialization_calls.hpp`); the sample structs are, and a test's own types should be (pass them as
+  `check_roundtrip<Ar, MyType>`). Beyond `check_roundtrip`, open a `CallLog` and check `calls.check<T>(n)` after
+- Loading starts from a value initialized object: give values that differ from it
+- `common/roundtrip.hpp`: `roundtrip` (several values share one archive), `roundtrip_as`, `save`, `load`,
+  `load_into`, `saves` / `loads` (validators)
+- Randomness only through `test_rng()`: seeded by `--rand-seed` (default 0), so failures reproduce
+- Other common headers: `random.hpp` (`random_value`, `random_container`), `sample_structs.hpp` (one struct per
+  serialization shape, `for_each_sample_struct`), `for_each_type.hpp`, `tester.hpp` (many values through one archive,
+  `expect_*` pointer checks), `shared_ptr_helpers.hpp`
 - `polymorphic/test_classes.hpp`: polymorphic class zoo, registered once in `polymorphic/test_classes.cpp`, which every
-  `polymorphic/` test links
+  `polymorphic/` test links. `Tester::run()` checks that no object ran its own save or load twice (a virtual base
+  serialized through `base_class` shows up there) and that loads mirror saves per type
 - Common headers are compiled standalone too (`VERIFY_INTERFACE_HEADER_SETS`), so they must include what they use
 - Portability (32 bit) tests are disabled
 

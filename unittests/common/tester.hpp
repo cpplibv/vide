@@ -17,96 +17,156 @@
 #include <utility>
 #include <vector>
 
+#include <doctest/doctest.h>
 #include <vide/details/util.hpp>
 
+#include "serialization_calls.hpp"
 
-/// Queues round trip tasks so many values share one archive: register with operator(), then
-/// outputAll(), inputAll(), checkAll(). Failures name the source location of the registering call
-template <class IArchive, class OArchive>
-struct Tester {
+
+/// Round trips many values through one archive, each with its own check. Ar is an Archives<Input, Output> pair;
+/// exceptions name the source location of the registering call
+template <typename Ar>
+class Tester {
+	using IArchive = typename Ar::input;
+	using OArchive = typename Ar::output;
+
 	struct BaseTask {
-		std::source_location testLocation;
+		std::source_location location;
 
-		explicit BaseTask(std::source_location&& testLocation) : testLocation(std::move(testLocation)) {}
+		explicit BaseTask(std::source_location location) :
+			location(location) {}
 
-		virtual void out(OArchive&) = 0;
-		virtual void in(IArchive&) = 0;
-		virtual void check() = 0;
 		virtual ~BaseTask() = default;
+		virtual void save(OArchive&) = 0;
+		virtual void load(IArchive&) = 0;
+		virtual void check() = 0;
 
-		std::string formatExceptionMessage(std::string_view operation, const char* exceptionType, const char* originalMessage) const {
+		/// Runs step, rethrowing its exception with the task location
+		void annotated(std::string_view step, auto&& fn) const {
+			try {
+				fn();
+			} catch (const std::exception& e) {
+				throw std::runtime_error(describe(step, vide::util::demangle(typeid(e).name()), e.what()));
+			} catch (...) {
+				throw std::runtime_error(describe(step, "unknown exception", "?"));
+			}
+		}
+
+		std::string describe(std::string_view step, std::string_view type, std::string_view message) const {
 			std::ostringstream os;
-			os << "\n";
-			os << "\tIn test task: " << testLocation.file_name() << ":" << testLocation.line() << ":" << testLocation.column() << "\n";
-			os << "\tDuring " << operation << " test task THROW exception of type [" << vide::util::demangle(exceptionType) << "] with message:\n";
-			os << "\t\t" << originalMessage;
+			os << "\n\tIn test task: " << location.file_name() << ":" << location.line() << ":" << location.column()
+					<< "\n\tDuring " << step << " test task THROW exception of type [" << type << "] with message:\n\t\t"
+					<< message;
 			return std::move(os).str();
 		}
 	};
 
 	std::vector<std::unique_ptr<BaseTask>> tasks;
 
+public:
 	template <typename T>
-	using CheckFn = std::function<void(const std::remove_cvref_t<T>&, const std::remove_cvref_t<T>&)>;
+	using CheckFn = std::function<void(const T& saved, const T& loaded)>;
 
+	/// Registers value for the next run(); check receives the saved and the loaded value
 	template <typename T>
-	void operator()(T&& output, CheckFn<T> checkFn, std::source_location testLocation = std::source_location::current()) {
+	void operator()(T&& value, CheckFn<std::remove_cvref_t<T>> check,
+			std::source_location location = std::source_location::current()) {
+		using Value = std::remove_cvref_t<T>;
+
 		struct Task : BaseTask {
-			std::remove_cvref_t<T> output;
-			std::remove_cvref_t<T> input;
-			CheckFn<T> checkFn;
+			Value saved;
+			Value loaded{};
+			CheckFn<Value> check_fn;
 
-			explicit Task(T&& output, CheckFn<T>&& checkFn, std::source_location&& testLocation) :
-				BaseTask{std::move(testLocation)},
-				output(std::forward<T>(output)),
-				checkFn(std::move(checkFn)) {
-			}
+			Task(T&& value, CheckFn<Value>&& check, std::source_location location) :
+				BaseTask(location),
+				saved(std::forward<T>(value)),
+				check_fn(std::move(check)) {}
 
-			virtual void out(OArchive& oar) override {
-				try {
-					oar(std::as_const(output));
-				} catch (const std::exception& e) {
-					throw std::runtime_error(BaseTask::formatExceptionMessage("output serialization", typeid(e).name(), e.what()));
-				} catch (...) {
-					throw std::runtime_error(BaseTask::formatExceptionMessage("output serialization", "unhandled exception", "?"));
-				}
+			void save(OArchive& ar) override {
+				this->annotated("output serialization", [&] { ar(std::as_const(saved)); });
 			}
-			virtual void in(IArchive& iar) override {
-				try {
-					iar(input);
-				} catch (const std::exception& e) {
-					throw std::runtime_error(BaseTask::formatExceptionMessage("input serialization", typeid(e).name(), e.what()));
-				} catch (...) {
-					throw std::runtime_error(BaseTask::formatExceptionMessage("input serialization", "unhandled exception", "?"));
-				}
+			void load(IArchive& ar) override {
+				this->annotated("input serialization", [&] { ar(loaded); });
 			}
-			virtual void check() override {
-				try {
-					checkFn(std::as_const(output), std::as_const(input));
-				} catch (const std::exception& e) {
-					throw std::runtime_error(BaseTask::formatExceptionMessage("result evaluation", typeid(e).name(), e.what()));
-				} catch (...) {
-					throw std::runtime_error(BaseTask::formatExceptionMessage("result evaluation", "unhandled exception", "?"));
-				}
+			void check() override {
+				this->annotated("result evaluation", [&] { check_fn(std::as_const(saved), std::as_const(loaded)); });
 			}
 		};
 
-		tasks.emplace_back(std::make_unique<Task>(std::forward<T>(output), std::move(checkFn), std::move(testLocation)));
+		tasks.emplace_back(std::make_unique<Task>(std::forward<T>(value), std::move(check), location));
 	}
 
-	void outputAll(OArchive& oar) {
-		for (const auto& task : tasks)
-			task->out(oar);
-	}
-	void inputAll(IArchive& iar) {
-		for (const auto& task : tasks)
-			task->in(iar);
-	}
-	void checkAll() {
+	/// Saves all values into one archive, loads them back in the same order and runs the checks. Also checks that no
+	/// object ran its own save or load twice (CallLog::check_once_per_object())
+	void run() {
+		const CallLog calls;
+		std::ostringstream os;
+		{
+			OArchive ar(os);
+			for (const auto& task : tasks)
+				task->save(ar);
+		}
+
+		std::istringstream is(std::move(os).str());
+		{
+			IArchive ar(is);
+			for (const auto& task : tasks)
+				task->load(ar);
+		}
+
 		for (const auto& task : tasks)
 			task->check();
+		calls.check_once_per_object();
 	}
+
 	void shuffle(std::mt19937& rng) {
 		std::ranges::shuffle(tasks, rng);
 	}
+};
+
+/// Repeats register_tasks(tester) + run() for the given rounds; the first and last keep registration order (easier to
+/// debug), the rest shuffle it so values meet many different archive states
+template <typename Ar>
+void run_rounds(int rounds, std::mt19937& rng, auto&& register_tasks) {
+	for (int round = 0; round < rounds; ++round) {
+		CAPTURE(round);
+		Tester<Ar> tester;
+		register_tasks(tester);
+		if (round != 0 && round != rounds - 1)
+			tester.shuffle(rng);
+		tester.run();
+	}
+}
+
+// Common Tester checks for pointers
+
+/// The loaded pointer is null
+inline constexpr auto expect_null = [](const auto&, const auto& loaded) {
+	CHECK_EQ(loaded.get(), nullptr);
+};
+
+/// The loaded pointer owns a new object equal to the saved one
+inline constexpr auto expect_equal_copy = [](const auto& saved, const auto& loaded) {
+	REQUIRE_NE(loaded.get(), nullptr);
+	CHECK_NE(loaded.get(), saved.get());
+	CHECK_EQ(*loaded, *saved);
+};
+
+/// The loaded pointee equals the saved one
+inline constexpr auto expect_equal = [](const auto& saved, const auto& loaded) {
+	REQUIRE_NE(loaded.get(), nullptr);
+	CHECK_EQ(*loaded, *saved);
+};
+
+/// Like expect_equal(), and both also cast to Derived with equal results: shared_as<Derived, Base>() values
+template <typename Derived>
+inline constexpr auto expect_equal_as = [](const auto& saved, const auto& loaded) {
+	REQUIRE_NE(loaded.get(), nullptr);
+	CHECK_EQ(*loaded, *saved);
+	const auto saved_derived = std::dynamic_pointer_cast<Derived>(saved);
+	const auto loaded_derived = std::dynamic_pointer_cast<Derived>(loaded);
+	REQUIRE(saved_derived);
+	REQUIRE(loaded_derived);
+	CHECK_EQ(*loaded_derived, *saved_derived);
 };

@@ -13,6 +13,7 @@
 #include <vide/types/polymorphic.hpp>
 
 #include "my_intrusive_ptr.hpp"
+#include "serialization_calls.hpp"
 
 
 #define UNREGISTERED_POLYMORPHIC_EXCEPTION(LoadSave, Name, ArName)                                                            \
@@ -168,7 +169,9 @@ public:
 	explicit TestRefCountedPolymorphic(int value) : value(value) {
 	}
 
-	template <typename Archive>	void serialize(Archive& ar) {
+	template <typename Archive>
+	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar.nvp("value", value);
 	}
 

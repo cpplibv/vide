@@ -2,94 +2,45 @@
 
 #include <vide/types/std_unordered_set.hpp>
 
-#include <random>
-#include <sstream>
+#include <cstddef>
+#include <tuple>
 #include <unordered_set>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_unordered_set() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::unordered_set<int> o_podunordered_set;
-		for (int j = 0; j < 100; ++j)
-			o_podunordered_set.insert(random_value<int>(gen));
+TEST_CASE_TEMPLATE("std::unordered_set", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-		std::unordered_set<StructInternalSerialize, StructHash<StructInternalSerialize>> o_iserunordered_set;
-		for (int j = 0; j < 100; ++j)
-			o_iserunordered_set.insert({random_value<int>(gen), random_value<int>(gen)});
+	SUBCASE("arithmetic") {
+		check_roundtrip<Ar>(random_container<std::unordered_set<int>>(gen, element_count));
+	}
 
-		std::unordered_set<StructInternalSplit, StructHash<StructInternalSplit>> o_isplunordered_set;
-		for (int j = 0; j < 100; ++j)
-			o_isplunordered_set.insert({random_value<int>(gen), random_value<int>(gen)});
+	SUBCASE("structs") {
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_container<std::unordered_set<S, StructHash<S>>>(gen, element_count));
+		});
+	}
 
-		std::unordered_set<StructExternalSerialize, StructHash<StructExternalSerialize>> o_eserunordered_set;
-		for (int j = 0; j < 100; ++j)
-			o_eserunordered_set.insert({random_value<int>(gen), random_value<int>(gen)});
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::unordered_set<int>{});
+	}
 
-		std::unordered_set<StructExternalSplit, StructHash<StructExternalSplit>> o_esplunordered_set;
-		for (int j = 0; j < 100; ++j)
-			o_esplunordered_set.insert({random_value<int>(gen), random_value<int>(gen)});
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podunordered_set);
-			oar(o_iserunordered_set);
-			oar(o_isplunordered_set);
-			oar(o_eserunordered_set);
-			oar(o_esplunordered_set);
-		}
-
-		std::unordered_set<int> i_podunordered_set;
-		std::unordered_set<StructInternalSerialize, StructHash<StructInternalSerialize>> i_iserunordered_set;
-		std::unordered_set<StructInternalSplit, StructHash<StructInternalSplit>> i_isplunordered_set;
-		std::unordered_set<StructExternalSerialize, StructHash<StructExternalSerialize>> i_eserunordered_set;
-		std::unordered_set<StructExternalSplit, StructHash<StructExternalSplit>> i_esplunordered_set;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podunordered_set);
-			iar(i_iserunordered_set);
-			iar(i_isplunordered_set);
-			iar(i_eserunordered_set);
-			iar(i_esplunordered_set);
-		}
-
-		for (auto const& p : i_podunordered_set) {
-			CHECK_EQ(o_podunordered_set.count(p), 1lu);
-		}
-
-		for (auto const& p : i_iserunordered_set) {
-			CHECK_EQ(o_iserunordered_set.count(p), 1lu);
-		}
-
-		for (auto const& p : i_isplunordered_set) {
-			CHECK_EQ(o_isplunordered_set.count(p), 1lu);
-		}
-
-		for (auto const& p : i_eserunordered_set) {
-			CHECK_EQ(o_eserunordered_set.count(p), 1lu);
-		}
-
-		for (auto const& p : i_esplunordered_set) {
-			CHECK_EQ(o_esplunordered_set.count(p), 1lu);
-		}
+	SUBCASE("duplicate keys") {
+		// Using the multi-container counterpart to force duplicate keys into the archive
+		using Unique = std::unordered_set<int>;
+		using Multi = std::unordered_multiset<int>;
+		CHECK_EQ((roundtrip_as<Ar, Unique>(Multi{0, 1, 2})), Unique{0, 1, 2});
+		CHECK_THROWS_AS((std::ignore = roundtrip_as<Ar, Unique>(
+				Multi{0, 0, 1, 2})),
+				vide::Exception);
 	}
 }
-
-
-TEST_SUITE_BEGIN("unordered_set");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("unordered_set", test_unordered_set)
-
-TEST_SUITE_END();

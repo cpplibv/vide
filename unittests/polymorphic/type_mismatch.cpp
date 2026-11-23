@@ -2,153 +2,57 @@
 
 #include <vide/types/memory.hpp>
 #include <vide/types/polymorphic.hpp>
+#include <vide/types/std_tuple.hpp>
 
-#include <iostream>
 #include <memory>
 #include <random>
-#include <sstream>
+#include <string>
+#include <tuple>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
 #include "common/my_intrusive_ptr_polymorphic.hpp"
+#include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "test_classes.hpp"
 
 
-template <class IArchive, class OArchive>
-inline void test_polymorphic_shared_ptr_type_mismatch() {
-	std::mt19937 rng(0x5EED);
+/// Saves pointer twice; loading the second reference through Mismatched (another pointee or pointer type) throws
+template <typename Ar, typename Mismatched, typename Pointer>
+void check_second_reference_mismatch(const Pointer& pointer) {
+	const std::string data = save<Ar>(std::tuple{pointer, pointer});
+	CHECK_THROWS_AS((std::ignore = load<Ar, std::tuple<Pointer, Mismatched>>(data)), vide::Exception);
+}
+
+TEST_CASE_TEMPLATE("polymorphic pointer type mismatch", Ar, VIDE_ALL_ARCHIVES) {
+	std::mt19937 rng = test_rng();
 	Initializer init{rng};
 
-	std::shared_ptr<RootSimpleA> o_ptr0 = std::make_shared<LeafNonFinalA_SimpleA>(init);
-	std::shared_ptr<RootSimpleA> o_ptr1 = o_ptr0;
-	std::shared_ptr<RootSimpleA> i_ptr0;
-	std::shared_ptr<RootSimpleB> i_ptr1; //< This will not be the same type as the data was saved with
+	SUBCASE("derived object, unrelated polymorphic pointee") {
+		check_second_reference_mismatch<Ar, std::shared_ptr<RootSimpleB>>(
+				std::shared_ptr<RootSimpleA>{std::make_shared<LeafNonFinalA_SimpleA>(init)});
+	}
 
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
+	SUBCASE("base object, unrelated polymorphic pointee") {
+		check_second_reference_mismatch<Ar, std::shared_ptr<RootSimpleB>>(std::make_shared<RootSimpleA>(init));
+	}
+
+	SUBCASE("derived object, non polymorphic pointee") {
+		check_second_reference_mismatch<Ar, std::shared_ptr<int>>(
+				std::shared_ptr<RootSimpleA>{std::make_shared<LeafNonFinalA_SimpleA>(init)});
+	}
+
+	SUBCASE("base object, non polymorphic pointee") {
+		check_second_reference_mismatch<Ar, std::shared_ptr<int>>(std::make_shared<RootSimpleA>(init));
+	}
+
+	SUBCASE("non polymorphic object, polymorphic pointee") {
+		check_second_reference_mismatch<Ar, std::shared_ptr<RootSimpleA>>(std::make_shared<int>(32));
+	}
+
+	SUBCASE("same pointee, other smart pointer type") {
+		check_second_reference_mismatch<Ar, my::intrusive_ptr<TestRefCountedPolymorphic>>(
+				std::make_shared<TestRefCountedPolymorphic>(32));
 	}
 }
-
-template <class IArchive, class OArchive>
-inline void test_polymorphic_shared_ptr_type_mismatch_base() {
-	std::mt19937 rng(0x5EED);
-	Initializer init{rng};
-
-	auto o_ptr0 = std::make_shared<RootSimpleA>(init);
-	auto o_ptr1 = o_ptr0;
-	std::shared_ptr<RootSimpleA> i_ptr0;
-	std::shared_ptr<RootSimpleB> i_ptr1; //< This will not be the same type as the data was saved with
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
-	}
-}
-
-template <class IArchive, class OArchive>
-inline void test_polymorphic_and_non_polymorphic_mismatch() {
-	std::mt19937 rng(0x5EED);
-	Initializer init{rng};
-
-	std::shared_ptr<RootSimpleA> o_ptr0 = std::static_pointer_cast<RootSimpleA>(std::make_shared<LeafNonFinalA_SimpleA>(init));
-	std::shared_ptr<RootSimpleA> o_ptr1 = o_ptr0;
-	std::shared_ptr<RootSimpleA> i_ptr0;
-	std::shared_ptr<int> i_ptr1; //< This will not be the same type as the data was saved with
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
-	}
-}
-
-template <class IArchive, class OArchive>
-inline void test_polymorphic_and_non_polymorphic_mismatch_base() {
-	std::mt19937 rng(0x5EED);
-	Initializer init{rng};
-
-	std::shared_ptr<RootSimpleA> o_ptr0 = std::make_shared<RootSimpleA>(init);
-	std::shared_ptr<RootSimpleA> o_ptr1 = o_ptr0;
-	std::shared_ptr<RootSimpleA> i_ptr0;
-	std::shared_ptr<int> i_ptr1; //< This will not be the same type as the data was saved with
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
-	}
-}
-
-template <class IArchive, class OArchive>
-inline void test_non_polymorphic_and_polymorphic_mismatch() {
-	std::shared_ptr<int> o_ptr0 = std::make_shared<int>(32);
-	std::shared_ptr<int> o_ptr1 = o_ptr0;
-	std::shared_ptr<int> i_ptr0;
-	std::shared_ptr<RootSimpleA> i_ptr1; //< This will not be the same type as the data was saved with
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
-	}
-}
-
-template <class IArchive, class OArchive>
-inline void test_polymorphic_pointer_type_mismatch() {
-	std::shared_ptr<TestRefCountedPolymorphic> o_ptr0 = std::make_shared<TestRefCountedPolymorphic>(32);
-	std::shared_ptr<TestRefCountedPolymorphic> o_ptr1 = o_ptr0;
-	std::shared_ptr<TestRefCountedPolymorphic> i_ptr0;
-	my::intrusive_ptr<TestRefCountedPolymorphic> i_ptr1; //< This will not be the same type as the data was saved with
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
-	}
-}
-
-TEST_SUITE_BEGIN("polymorphic");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_shared_ptr_type_mismatch", test_polymorphic_shared_ptr_type_mismatch)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_shared_ptr_type_mismatch_base", test_polymorphic_shared_ptr_type_mismatch_base)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_and_non_polymorphic_mismatch", test_polymorphic_and_non_polymorphic_mismatch)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_and_non_polymorphic_mismatch_base", test_polymorphic_and_non_polymorphic_mismatch_base)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("non_polymorphic_and_polymorphic_mismatch", test_non_polymorphic_and_polymorphic_mismatch)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_pointer_type_mismatch", test_polymorphic_pointer_type_mismatch)
-
-TEST_SUITE_END();
-

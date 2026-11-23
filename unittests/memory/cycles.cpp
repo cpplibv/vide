@@ -3,76 +3,38 @@
 #include <vide/types/memory.hpp>
 
 #include <memory>
-#include <ostream>
-#include <random>
-#include <sstream>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
 
-struct MemoryCycle {
-	MemoryCycle() = default;
-
-	MemoryCycle(int v) :
-		value(v) {
-	}
-
-	int value;
-	std::weak_ptr<MemoryCycle> ptr;
-
-	bool operator==(MemoryCycle const& other) const {
-		return value == other.value && ptr.lock() == other.ptr.lock();
-	}
+struct SelfReferencing {
+	int value = 0;
+	std::weak_ptr<SelfReferencing> self;
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(value)(ptr);
+		record_call<Archive>(this);
+		ar(value)(self);
 	}
 };
 
-std::ostream& operator<<(std::ostream& os, MemoryCycle const& s) {
-	os << "[value: " << s.value << " ptr: " << s.ptr.lock() << "]";
-	return os;
+TEST_CASE_TEMPLATE("a pointee referencing itself through a weak_ptr", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
+
+	const auto saved = std::make_shared<SelfReferencing>(random_value<int>(gen));
+	saved->self = saved;
+
+	const CallLog calls;
+	const auto loaded = roundtrip<Ar>(saved);
+
+	REQUIRE(loaded);
+	CHECK_EQ(loaded->value, saved->value);
+	CHECK_EQ(loaded->self.lock(), loaded);
+	calls.check<SelfReferencing>(1);
 }
-
-template <class IArchive, class OArchive>
-inline void test_memory_cycles() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	for (int ii = 0; ii < 100; ++ii) {
-		auto o_ptr1 = std::make_shared<MemoryCycle>(random_value<int>(gen));
-		o_ptr1->ptr = o_ptr1;
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_ptr1);
-		}
-
-		decltype(o_ptr1) i_ptr1;
-
-		// std::cout << std::endl;
-		// std::cout << "========" << std::endl;
-		// std::cout << os.str() << std::endl;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_ptr1);
-		}
-
-		CHECK_EQ(o_ptr1->value, i_ptr1->value);
-		CHECK_EQ(i_ptr1.get(), i_ptr1->ptr.lock().get());
-	}
-}
-
-
-TEST_SUITE_BEGIN("memory_cycles");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("memory_cycles", test_memory_cycles)
-
-TEST_SUITE_END();

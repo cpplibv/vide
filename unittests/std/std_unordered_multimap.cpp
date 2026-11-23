@@ -3,133 +3,43 @@
 #include <vide/types/std_string.hpp>
 #include <vide/types/std_unordered_map.hpp>
 
-#include <algorithm>
-#include <cstdint>
-#include <random>
-#include <sstream>
+#include <cstddef>
 #include <string>
 #include <unordered_map>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_unordered_multimap() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::unordered_multimap<std::string, int> o_podunordered_multimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<std::string>(gen);
-			o_podunordered_multimap.insert({key, random_value<int>(gen)});
-			o_podunordered_multimap.insert({key, random_value<int>(gen)});
-		}
-
-		std::unordered_multimap<int, StructInternalSerialize> o_iserunordered_multimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<int>(gen);
-			o_iserunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_iserunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
-
-		std::unordered_multimap<int, StructInternalSplit> o_isplunordered_multimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<int>(gen);
-			o_isplunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_isplunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
-
-		std::unordered_multimap<uint32_t, StructExternalSerialize> o_eserunordered_multimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<uint32_t>(gen);
-			o_eserunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_eserunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
-
-		std::unordered_multimap<int8_t, StructExternalSplit> o_esplunordered_multimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<int8_t>(gen);
-			o_esplunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_esplunordered_multimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podunordered_multimap);
-			oar(o_iserunordered_multimap);
-			oar(o_isplunordered_multimap);
-			oar(o_eserunordered_multimap);
-			oar(o_esplunordered_multimap);
-		}
-
-		std::unordered_multimap<std::string, int> i_podunordered_multimap;
-		std::unordered_multimap<int, StructInternalSerialize> i_iserunordered_multimap;
-		std::unordered_multimap<int, StructInternalSplit> i_isplunordered_multimap;
-		std::unordered_multimap<uint32_t, StructExternalSerialize> i_eserunordered_multimap;
-		std::unordered_multimap<int8_t, StructExternalSplit> i_esplunordered_multimap;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podunordered_multimap);
-			iar(i_iserunordered_multimap);
-			iar(i_isplunordered_multimap);
-			iar(i_eserunordered_multimap);
-			iar(i_esplunordered_multimap);
-		}
-
-		CHECK_EQ(i_podunordered_multimap.size(), o_podunordered_multimap.size());
-		CHECK_EQ(i_iserunordered_multimap.size(), o_iserunordered_multimap.size());
-		CHECK_EQ(i_isplunordered_multimap.size(), o_isplunordered_multimap.size());
-		CHECK_EQ(i_eserunordered_multimap.size(), o_eserunordered_multimap.size());
-		CHECK_EQ(i_esplunordered_multimap.size(), o_esplunordered_multimap.size());
-
-		for (auto const& p : i_podunordered_multimap) {
-			size_t const bucket = o_podunordered_multimap.bucket(p.first);
-			auto bucket_begin = o_podunordered_multimap.begin(bucket);
-			auto bucket_end = o_podunordered_multimap.end(bucket);
-			CHECK_NE(std::find(bucket_begin, bucket_end, p), bucket_end);
-		}
-
-		for (auto const& p : i_iserunordered_multimap) {
-			size_t const bucket = o_iserunordered_multimap.bucket(p.first);
-			auto bucket_begin = o_iserunordered_multimap.begin(bucket);
-			auto bucket_end = o_iserunordered_multimap.end(bucket);
-			CHECK_NE(std::find(bucket_begin, bucket_end, p), bucket_end);
-		}
-
-		for (auto const& p : i_isplunordered_multimap) {
-			size_t const bucket = o_isplunordered_multimap.bucket(p.first);
-			auto bucket_begin = o_isplunordered_multimap.begin(bucket);
-			auto bucket_end = o_isplunordered_multimap.end(bucket);
-			CHECK_NE(std::find(bucket_begin, bucket_end, p), bucket_end);
-		}
-
-		for (auto const& p : i_eserunordered_multimap) {
-			size_t const bucket = o_eserunordered_multimap.bucket(p.first);
-			auto bucket_begin = o_eserunordered_multimap.begin(bucket);
-			auto bucket_end = o_eserunordered_multimap.end(bucket);
-			CHECK_NE(std::find(bucket_begin, bucket_end, p), bucket_end);
-		}
-
-		for (auto const& p : i_esplunordered_multimap) {
-			size_t const bucket = o_esplunordered_multimap.bucket(p.first);
-			auto bucket_begin = o_esplunordered_multimap.begin(bucket);
-			auto bucket_end = o_esplunordered_multimap.end(bucket);
-			CHECK_NE(std::find(bucket_begin, bucket_end, p), bucket_end);
-		}
+/// Every random key twice, with different values
+template <typename C>
+C random_with_duplicate_keys(std::mt19937& gen) {
+	C values;
+	for (std::size_t i = 0; i < element_count; ++i) {
+		const auto key = random_value<typename C::key_type>(gen);
+		values.emplace(key, random_value<typename C::mapped_type>(gen));
+		values.emplace(key, random_value<typename C::mapped_type>(gen));
 	}
+	return values;
 }
 
+TEST_CASE_TEMPLATE("std::unordered_multimap", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-TEST_SUITE_BEGIN("unordered_multimap");
+	SUBCASE("duplicate keys") {
+		check_roundtrip<Ar>(random_with_duplicate_keys<std::unordered_multimap<std::string, int>>(gen));
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_with_duplicate_keys<std::unordered_multimap<int, S>>(gen));
+		});
+	}
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("unordered_multimap", test_unordered_multimap)
-
-TEST_SUITE_END();
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::unordered_multimap<int, int>{});
+	}
+}

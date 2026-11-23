@@ -13,8 +13,6 @@
 #include <doctest/doctest.h>
 
 
-TEST_SUITE_BEGIN("text_names");
-
 // A name given to a value that writes nothing must not label the next unnamed value.
 // Round trips cannot catch it: the input archive picks up the same stale name and still matches
 
@@ -130,5 +128,3 @@ TEST_CASE("xml skipped names") {
 			.diamond = "<value1><value0>3</value0></value1>",
 			.deferring = "<deferring><value0>6</value0></deferring>"});
 }
-
-TEST_SUITE_END();

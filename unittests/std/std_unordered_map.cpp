@@ -3,106 +3,56 @@
 #include <vide/types/std_string.hpp>
 #include <vide/types/std_unordered_map.hpp>
 
+#include <cstddef>
 #include <cstdint>
-#include <random>
-#include <sstream>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_unordered_map() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::unordered_map<std::string, int> o_podunordered_map;
-		for (int j = 0; j < 100; ++j)
-			o_podunordered_map.insert({random_value<std::string>(gen), random_value<int>(gen)});
+TEST_CASE_TEMPLATE("std::unordered_map", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-		std::unordered_map<uint16_t, StructInternalSerialize> o_iserunordered_map;
-		for (int j = 0; j < 100; ++j)
-			o_iserunordered_map.insert({random_value<uint16_t>(gen), {random_value<int>(gen), random_value<int>(gen)}});
+	SUBCASE("arithmetic and string keys") {
+		check_roundtrip<Ar>(random_container<std::unordered_map<std::string, int>>(gen, element_count));
+		check_roundtrip<Ar>(random_container<std::unordered_map<std::int8_t, int>>(gen, element_count));
+	}
 
-		std::unordered_map<uint16_t, StructInternalSplit> o_isplunordered_map;
-		for (int j = 0; j < 100; ++j)
-			o_isplunordered_map.insert({random_value<uint16_t>(gen), {random_value<int>(gen), random_value<int>(gen)}});
+	SUBCASE("struct values") {
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_container<std::unordered_map<int, S>>(gen, element_count));
+		});
+	}
 
-		std::unordered_map<uint32_t, StructExternalSerialize> o_eserunordered_map;
-		for (int j = 0; j < 100; ++j)
-			o_eserunordered_map.insert({random_value<uint32_t>(gen), {random_value<int>(gen), random_value<int>(gen)}});
+	SUBCASE("struct keys") {
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_container<std::unordered_map<S, int, StructHash<S>>>(gen, element_count));
+		});
+	}
 
-		std::unordered_map<int8_t, StructExternalSplit> o_esplunordered_map;
-		for (int j = 0; j < 100; ++j)
-			o_esplunordered_map.insert({random_value<int8_t>(gen), {random_value<int>(gen), random_value<int>(gen)}});
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::unordered_map<int, int>{});
+	}
 
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podunordered_map);
-			oar(o_iserunordered_map);
-			oar(o_isplunordered_map);
-			oar(o_eserunordered_map);
-			oar(o_esplunordered_map);
-		}
-
-		std::unordered_map<std::string, int> i_podunordered_map;
-		std::unordered_map<uint16_t, StructInternalSerialize> i_iserunordered_map;
-		std::unordered_map<uint16_t, StructInternalSplit> i_isplunordered_map;
-		std::unordered_map<uint32_t, StructExternalSerialize> i_eserunordered_map;
-		std::unordered_map<int8_t, StructExternalSplit> i_esplunordered_map;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podunordered_map);
-			iar(i_iserunordered_map);
-			iar(i_isplunordered_map);
-			iar(i_eserunordered_map);
-			iar(i_esplunordered_map);
-		}
-
-		for (auto const& p : i_podunordered_map) {
-			auto v = o_podunordered_map.find(p.first);
-			CHECK_NE(v, o_podunordered_map.end());
-			CHECK_EQ(p.second, v->second);
-		}
-
-		for (auto const& p : i_iserunordered_map) {
-			auto v = o_iserunordered_map.find(p.first);
-			CHECK_NE(v, o_iserunordered_map.end());
-			CHECK_EQ(p.second, v->second);
-		}
-
-		for (auto const& p : i_isplunordered_map) {
-			auto v = o_isplunordered_map.find(p.first);
-			CHECK_NE(v, o_isplunordered_map.end());
-			CHECK_EQ(p.second, v->second);
-		}
-
-		for (auto const& p : i_eserunordered_map) {
-			auto v = o_eserunordered_map.find(p.first);
-			CHECK_NE(v, o_eserunordered_map.end());
-			CHECK_EQ(p.second, v->second);
-		}
-
-		for (auto const& p : i_esplunordered_map) {
-			auto v = o_esplunordered_map.find(p.first);
-			CHECK_NE(v, o_esplunordered_map.end());
-			CHECK_EQ(p.second, v->second);
-		}
+	SUBCASE("duplicate keys") {
+		// Using the multi-container counterpart to force duplicate keys into the archive
+		using Unique = std::unordered_map<int, int>;
+		using Multi = std::unordered_multimap<int, int>;
+		CHECK_EQ((roundtrip_as<Ar, Unique>(
+				Multi{{0, 42}, {1, 42}, {2, 42}})),
+				Unique{{0, 42}, {1, 42}, {2, 42}});
+		CHECK_THROWS_AS((std::ignore = roundtrip_as<Ar, Unique>(
+				Multi{{0, 42}, {1, 42}, {1, 43}, {2, 42}})),
+				vide::Exception);
 	}
 }
-
-
-TEST_SUITE_BEGIN("unordered_map");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("unordered_map", test_unordered_map)
-
-TEST_SUITE_END();

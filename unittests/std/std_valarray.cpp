@@ -2,88 +2,56 @@
 
 #include <vide/types/std_valarray.hpp>
 
-#include <random>
-#include <sstream>
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <valarray>
+#include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
-#include "common/collection_checks.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-inline
-void test_valarray() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::valarray<int> o_podvalarray(100);
-		for (auto& elem : o_podvalarray)
-			elem = random_value<int>(gen);
-
-		std::valarray<StructInternalSerialize> o_iservalarray(100);
-		for (auto& elem : o_iservalarray)
-			elem = StructInternalSerialize(random_value<int>(gen), random_value<int>(gen));
-
-		std::valarray<StructInternalSplit> o_isplvalarray(100);
-		for (auto& elem : o_isplvalarray)
-			elem = StructInternalSplit(random_value<int>(gen), random_value<int>(gen));
-
-		std::valarray<StructExternalSerialize> o_eservalarray(100);
-		for (auto& elem : o_eservalarray)
-			elem = StructExternalSerialize(random_value<int>(gen), random_value<int>(gen));
-
-		std::valarray<StructExternalSplit> o_esplvalarray(100);
-		for (auto& elem : o_esplvalarray)
-			elem = StructExternalSplit(random_value<int>(gen), random_value<int>(gen));
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podvalarray);
-			oar(o_iservalarray);
-			oar(o_isplvalarray);
-			oar(o_eservalarray);
-			oar(o_esplvalarray);
-		}
-
-		std::valarray<int> i_podvalarray;
-		std::valarray<StructInternalSerialize> i_iservalarray;
-		std::valarray<StructInternalSplit> i_isplvalarray;
-		std::valarray<StructExternalSerialize> i_eservalarray;
-		std::valarray<StructExternalSplit> i_esplvalarray;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podvalarray);
-			iar(i_iservalarray);
-			iar(i_isplvalarray);
-			iar(i_eservalarray);
-			iar(i_esplvalarray);
-		}
-
-		CHECK_EQ(i_podvalarray.size(), o_podvalarray.size());
-		CHECK_EQ(i_iservalarray.size(), o_iservalarray.size());
-		CHECK_EQ(i_isplvalarray.size(), o_isplvalarray.size());
-		CHECK_EQ(i_eservalarray.size(), o_eservalarray.size());
-		CHECK_EQ(i_esplvalarray.size(), o_esplvalarray.size());
-
-		check_collection(i_podvalarray, o_podvalarray);
-		check_collection(i_iservalarray, o_iservalarray);
-		check_collection(i_isplvalarray, o_isplvalarray);
-		check_collection(i_eservalarray, o_eservalarray);
-		check_collection(i_esplvalarray, o_esplvalarray);
-	}
+template <typename T>
+std::valarray<T> random_valarray(std::mt19937& gen) {
+	const auto elements = random_container<std::vector<T>>(gen, element_count);
+	return std::valarray<T>(elements.data(), elements.size());
 }
 
+/// std::valarray == compares element-wise
+template <typename T>
+bool same_elements(const std::valarray<T>& a, const std::valarray<T>& b) {
+	return a.size() == b.size() && std::equal(std::begin(a), std::end(a), std::begin(b));
+}
 
-TEST_SUITE_BEGIN("valarray");
+template <typename Ar, typename T>
+void check_valarray_roundtrip(const std::valarray<T>& values) {
+	const CallLog calls;
+	CHECK(same_elements(roundtrip<Ar>(values), values));
+	check_once_each(calls, values);
+}
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("valarray", test_valarray)
+TEST_CASE_TEMPLATE("std::valarray", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-TEST_SUITE_END();
+	SUBCASE("arithmetic") {
+		check_valarray_roundtrip<Ar>(random_valarray<int>(gen));
+	}
+
+	SUBCASE("structs") {
+		for_each_sample_struct([&]<typename S> {
+			check_valarray_roundtrip<Ar>(random_valarray<S>(gen));
+		});
+	}
+
+	SUBCASE("empty") {
+		check_valarray_roundtrip<Ar>(std::valarray<int>{});
+	}
+}

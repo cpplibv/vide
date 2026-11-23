@@ -25,157 +25,105 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <vide/archives/json.hpp>
-#include <vide/archives/xml.hpp>
+#include <vide/nvp.hpp>
 #include <vide/types/std_pair.hpp>
 #include <vide/types/std_vector.hpp>
 
-#include <ostream>
-#include <random>
 #include <sstream>
 #include <utility>
 #include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/collection_checks.hpp"
-#include "common/proxy_test_group.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/serialization_calls.hpp"
 
 
-struct unordered_naming
-{
-  int x;
-  int xx;
-  int y;
-  int z;
+/// Loads its members in another order than it saves them, and x by position
+struct Reordered {
+	int x = 0;
+	int xx = 0;
+	int y = 0;
+	int z = 0;
 
-  template <class Archive>
-  void save( Archive & ar ) const
-  {
-    	ar(VIDE_NVP(x));
-        ar(VIDE_NVP(z));
-        ar(VIDE_NVP(y));
-        ar(VIDE_NVP(xx));
-  }
+	template <class Archive>
+	void save(Archive& ar) const {
+		record_call<Archive>(this);
+		ar(VIDE_NVP(x));
+		ar(VIDE_NVP(z));
+		ar(VIDE_NVP(y));
+		ar(VIDE_NVP(xx));
+	}
 
-  template <class Archive>
-  void load( Archive & ar )
-  {
-    	ar(x);
-        ar(VIDE_NVP(y));
-        ar(VIDE_NVP(z));
-        ar(VIDE_NVP(xx));
-  }
+	template <class Archive>
+	void load(Archive& ar) {
+		record_call<Archive>(this);
+		ar(x);
+		ar(VIDE_NVP(y));
+		ar(VIDE_NVP(z));
+		ar(VIDE_NVP(xx));
+	}
 
-  bool operator==( unordered_naming const & other ) const
-  {
-    return x == other.x && xx == other.xx && y == other.y && z == other.z;
-  }
+	bool operator==(const Reordered&) const = default;
 };
 
-std::ostream& operator<<(std::ostream& os, unordered_naming const & s)
-{
-  os << "[x: " << s.x << " xx: " << s.xx << " y: " << s.y << " z: " << s.z << "]";
-  return os;
+// Text archives look values up by name, so loading may follow another order than saving; an unnamed load takes the
+// next value in saving order
+
+TEST_CASE_TEMPLATE("unordered loads", Ar, VIDE_ALL_TEXT_ARCHIVES) {
+	auto gen = test_rng();
+
+	const int first = random_value<int>(gen);
+	const double second = random_value<double>(gen);
+	const auto third = random_container<std::vector<bool>>(gen, 5);
+	const int fourth = random_value<int>(gen);
+	const int fifth = random_value<int>(gen);
+	const int sixth = random_value<int>(gen);
+	const auto seventh = std::pair{random_value<float>(gen), Reordered{random_value<int>(gen), random_value<int>(gen),
+			random_value<int>(gen), random_value<int>(gen)}};
+
+	const CallLog calls;
+
+	std::ostringstream os;
+	{
+		typename Ar::output ar(os);
+		ar(vide::make_nvp("first", first));
+		ar(vide::make_nvp("second", second));
+		ar(vide::make_nvp("third", third));
+		ar(vide::make_nvp("fourth", fourth));
+		ar(vide::make_nvp("fifth", fifth));
+		ar(vide::make_nvp("sixth", sixth));
+		ar(vide::make_nvp("seventh", seventh));
+	}
+
+	int loaded_first = 0;
+	double loaded_second = 0;
+	std::vector<bool> loaded_third;
+	int loaded_fourth = 0;
+	int loaded_fifth = 0;
+	int loaded_sixth = 0;
+	std::pair<float, Reordered> loaded_seventh;
+
+	std::istringstream is(os.str());
+	{
+		typename Ar::input ar(is);
+		ar(vide::make_nvp("seventh", loaded_seventh));
+		ar(vide::make_nvp("second", loaded_second));
+		ar(vide::make_nvp("fourth", loaded_fourth));
+		ar(vide::make_nvp("third", loaded_third));
+		ar(vide::make_nvp("first", loaded_first));
+		ar(vide::make_nvp("fifth", loaded_fifth));
+		ar(loaded_sixth);
+	}
+
+	CHECK_EQ(loaded_first, first);
+	CHECK_EQ(loaded_second, second);
+	CHECK_EQ(loaded_third, third);
+	CHECK_EQ(loaded_fourth, fourth);
+	CHECK_EQ(loaded_fifth, fifth);
+	CHECK_EQ(loaded_sixth, sixth);
+	CHECK_EQ(loaded_seventh, seventh);
+	calls.check<Reordered>(1);
 }
-
-template <class IArchive, class OArchive> inline
-void test_unordered_loads()
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
-
-  auto rngB = [&](){ return random_value<int>( gen ) % 2 == 0; };
-  auto rngI = [&](){ return random_value<int>( gen ); };
-  auto rngF = [&](){ return random_value<float>( gen ); };
-  auto rngD = [&](){ return random_value<double>( gen ); };
-  auto rngS = [&](){ return random_basic_string<char>( gen ); };
-
-  for(int ii=0; ii<100; ++ii)
-  {
-    auto const name1 = rngS();
-    auto const name2 = rngS();
-    auto const name3 = rngS();
-    auto const name4 = rngS();
-    auto const name5 = rngS();
-    auto const name6 = rngS();
-    auto const name7 = rngS();
-
-    int o_int1 = rngI();
-    double o_double2 = rngD();
-    std::vector<bool> o_vecbool3 = { rngB(), rngB(), rngB(), rngB(), rngB() };
-    int o_int4 = rngI();
-    int o_int5 = rngI();
-    int o_int6 = rngI();
-    std::pair<float, unordered_naming> o_un7;
-    o_un7.first = rngF();
-    o_un7.second.x = rngI();
-    o_un7.second.xx = rngI();
-    o_un7.second.y = rngI();
-    o_un7.second.z = rngI();
-
-    std::ostringstream os;
-    {
-		OArchive oar(os);
-		oar(vide::make_nvp(name1.c_str(), o_int1));
-		oar(vide::make_nvp(name2.c_str(), o_double2));
-		oar(vide::make_nvp(name3.c_str(), o_vecbool3));
-		oar(vide::make_nvp(name4.c_str(), o_int4));
-		oar(vide::make_nvp(name5.c_str(), o_int5));
-		oar(vide::make_nvp(name6.c_str(), o_int6));
-		oar(vide::make_nvp(name7.c_str(), o_un7));
-    }
-
-    decltype(o_int1) i_int1;
-    decltype(o_double2) i_double2;
-    decltype(o_vecbool3) i_vecbool3;
-    decltype(o_int4) i_int4;
-    decltype(o_int5) i_int5;
-    decltype(o_int6) i_int6;
-    decltype(o_un7) i_un7;
-
-    std::istringstream is(os.str());
-    {
-		IArchive iar(is);
-		iar(vide::make_nvp(name7.c_str(), i_un7));
-		iar(vide::make_nvp(name2.c_str(), i_double2));
-		iar(vide::make_nvp(name4.c_str(), i_int4));
-		iar(vide::make_nvp(name3.c_str(), i_vecbool3));
-		iar(vide::make_nvp(name1.c_str(), i_int1));
-		iar(vide::make_nvp(name5.c_str(), i_int5));
-		iar(i_int6);
-    }
-
-    CHECK_EQ(o_int1, i_int1);
-    CHECK_EQ(o_double2, doctest::Approx(o_double2).epsilon(1e-5));
-    CHECK_EQ(o_vecbool3.size(), i_vecbool3.size());
-    check_collection(i_vecbool3, o_vecbool3);
-    CHECK_EQ(o_int4, i_int4);
-    CHECK_EQ(o_int5, i_int5);
-    CHECK_EQ(o_int6, i_int6);
-    CHECK_EQ(o_un7.first, i_un7.first);
-    CHECK_EQ(o_un7.second, i_un7.second);
-  }
-}
-
-
-TEST_SUITE_BEGIN("unordered_loads");
-
-TEST_CASE("xml_unordered_loads") {
-	test_unordered_loads<vide::XMLInputArchive, vide::XMLOutputArchive>();
-}
-
-TEST_CASE("json_unordered_loads") {
-	test_unordered_loads<vide::JSONInputArchive, vide::JSONOutputArchive>();
-}
-
-TEST_CASE("proxy xml_unordered_loads") {
-	test_unordered_loads<ProxyTestGroup<vide::XMLInputArchive>, ProxyTestGroup<vide::XMLOutputArchive>>();                      \
-}
-
-TEST_CASE("proxy json_unordered_loads") {
-	test_unordered_loads<ProxyTestGroup<vide::JSONInputArchive>, ProxyTestGroup<vide::JSONOutputArchive>>();                    \
-}
-
-TEST_SUITE_END();

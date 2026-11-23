@@ -1,156 +1,113 @@
 //
 
 #include <vide/types/memory.hpp>
+#include <vide/types/std_tuple.hpp>
 
 #include <memory>
-#include <random>
-#include <sstream>
+#include <string>
+#include <tuple>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
+#include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-inline void test_memory() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+TEST_CASE_TEMPLATE("std::shared_ptr", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::shared_ptr<int> o_xptr1 = std::make_shared<int>(random_value<int>(gen));
-		std::shared_ptr<int> o_xptr2 = o_xptr1;
-		std::shared_ptr<const int> o_xptr3 = o_xptr1;
-		std::shared_ptr<int> o_yptr1 = std::make_shared<int>(random_value<int>(gen));
-		std::shared_ptr<int> o_yptr2 = o_yptr1;
-		std::shared_ptr<int> o_nullptr1;
-		std::shared_ptr<int> o_nullptr2;
+	SUBCASE("shared pointees stay shared and are serialized once") {
+		for_each_sample_struct([&]<typename S> {
+			const auto x = std::make_shared<S>(random_value<S>(gen));
+			const std::shared_ptr<const S> x_const = x;
+			const auto y = std::make_shared<S>(random_value<S>(gen));
+			const std::shared_ptr<S> null;
 
-		std::unique_ptr<int> o_zptr1(new int(random_value<int>(gen)));
-		std::unique_ptr<const int> o_zptr2(new int(random_value<int>(gen)));
-		std::unique_ptr<int> o_nullptr3;
+			const auto saved = std::tuple{x, x, x_const, y, y, null};
+			const CallLog calls;
+			const auto [x1, x2, x3, y1, y2, null1] = roundtrip<Ar>(saved);
 
-		std::ostringstream os; {
-			OArchive oar(os);
+			REQUIRE(x1);
+			REQUIRE(y1);
+			CHECK_EQ(*x1, *x);
+			CHECK_EQ(*y1, *y);
+			CHECK_EQ(x2, x1);
+			CHECK_EQ(x3, x1);
+			CHECK_EQ(y2, y1);
+			CHECK_NE(x1, y1);
+			CHECK_FALSE(null1);
+			calls.check<S>(2);
+		});
+	}
 
-			oar(o_xptr1)(o_xptr2)(o_xptr3);
-			oar(o_yptr1)(o_yptr2);
-			oar(o_nullptr1)(o_nullptr2);
-
-			oar(o_zptr1)(o_zptr2);
-			oar(o_nullptr3);
-		}
-
-		// std::cout << std::endl;
-		// std::cout << "========" << std::endl;
-		// std::cout << os.str() << std::endl;
-
-		std::shared_ptr<int> i_xptr1;
-		std::shared_ptr<int> i_xptr2;
-		std::shared_ptr<const int> i_xptr3;
-		std::shared_ptr<int> i_yptr1;
-		std::shared_ptr<int> i_yptr2;
-		std::shared_ptr<int> i_nullptr1;
-		std::shared_ptr<int> i_nullptr2;
-
-		std::unique_ptr<int> i_zptr1;
-		std::unique_ptr<const int> i_zptr2;
-		std::unique_ptr<int> i_nullptr3;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_xptr1)(i_xptr2)(i_xptr3);
-			iar(i_yptr1)(i_yptr2);
-			iar(i_nullptr1)(i_nullptr2);
-
-			iar(i_zptr1)(i_zptr2);
-			iar(i_nullptr3);
-		}
-
-		CHECK_EQ(o_xptr1.get(), o_xptr2.get());
-		CHECK_EQ(o_xptr1.get(), o_xptr3.get());
-		CHECK_EQ(i_xptr1.get(), i_xptr2.get());
-		CHECK_EQ(i_xptr1.get(), i_xptr3.get());
-		CHECK_EQ(*i_xptr1, *i_xptr2);
-		CHECK_EQ(*i_xptr1, *i_xptr3);
-
-		CHECK_EQ(o_yptr1.get(), o_yptr2.get());
-		CHECK_EQ(i_yptr1.get(), i_yptr2.get());
-		CHECK_EQ(*i_yptr1, *i_yptr2);
-		CHECK_UNARY_FALSE(i_nullptr1);
-		CHECK_UNARY_FALSE(i_nullptr2);
-
-		CHECK_EQ(*i_xptr1, *o_xptr1);
-		CHECK_EQ(*i_xptr2, *o_xptr2);
-		CHECK_EQ(*i_xptr3, *o_xptr3);
-
-		CHECK_EQ(*i_zptr1, *o_zptr1);
-		CHECK_EQ(*i_zptr2, *o_zptr2);
-		CHECK_UNARY_FALSE(i_nullptr3);
+	SUBCASE("arithmetic pointee") {
+		const auto value = std::make_shared<int>(random_value<int>(gen));
+		const auto [first, second] = roundtrip<Ar>(value, value);
+		REQUIRE(first);
+		CHECK_EQ(*first, *value);
+		CHECK_EQ(second, first);
 	}
 }
 
-class TestClass {
-public:
-	TestClass(int v) : x(v) {
-	}
+TEST_CASE_TEMPLATE("std::unique_ptr", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-	int x;
+	for_each_sample_struct([&]<typename S> {
+		const auto value = std::make_unique<S>(random_value<S>(gen));
+		const auto const_value = std::make_unique<const S>(random_value<S>(gen));
+		const std::unique_ptr<S> null;
 
-private:
+		const CallLog calls;
+		const auto [loaded, loaded_const, loaded_null] = roundtrip<Ar>(value, const_value, null);
+
+		REQUIRE(loaded);
+		REQUIRE(loaded_const);
+		CHECK_EQ(*loaded, *value);
+		CHECK_EQ(*loaded_const, *const_value);
+		CHECK_FALSE(loaded_null);
+		calls.check<S>(2);
+	});
+}
+
+/// Default constructor only reachable through vide::access
+class PrivatelyConstructed {
 	friend class vide::access;
-	TestClass() = default;
+
+	PrivatelyConstructed() = default;
 
 	template <class Archive>
-	void serialize(Archive& ar) { ar(x); }
+	void serialize(Archive& ar) {
+		record_call<Archive>(this);
+		ar(x);
+	}
+
+public:
+	int x = 0;
+
+	explicit PrivatelyConstructed(int x) :
+		x(x) {}
 };
 
-template <class IArchive, class OArchive>
-inline void test_default_construction() {
-	auto o_ptr = std::make_shared<TestClass>(1);
-	auto o_ptr2 = std::make_shared<const TestClass>(1);
-	std::shared_ptr<TestClass> i_ptr;
-	std::shared_ptr<const TestClass> i_ptr2;
+TEST_CASE_TEMPLATE("pointees are constructed through vide::access", Ar, VIDE_ALL_ARCHIVES) {
+	const auto value = std::make_shared<PrivatelyConstructed>(1);
+	const auto const_value = std::make_shared<const PrivatelyConstructed>(2);
 
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr);
-		oar(o_ptr2);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr);
-		iar(i_ptr2);
-	}
-	CHECK_EQ(o_ptr->x, i_ptr->x);
-	CHECK_EQ(o_ptr2->x, i_ptr2->x);
+	const CallLog calls;
+	const auto [loaded, loaded_const] = roundtrip<Ar>(value, const_value);
+
+	REQUIRE(loaded);
+	REQUIRE(loaded_const);
+	CHECK_EQ(loaded->x, 1);
+	CHECK_EQ(loaded_const->x, 2);
+	calls.check<PrivatelyConstructed>(2);
 }
 
-template <class IArchive, class OArchive>
-inline void test_shared_ptr_type_mismatch() {
-	auto o_ptr0 = std::make_shared<int>(42);
-	auto o_ptr1 = o_ptr0;
-	std::shared_ptr<int> i_ptr0;
-	std::shared_ptr<double> i_ptr1; //< This will not be the same type as the data was saved with
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(o_ptr0);
-		oar(o_ptr1);
-	} {
-		std::istringstream is(os.str());
-		IArchive iar(is);
-		iar(i_ptr0);
-		CHECK_THROWS_AS(iar(i_ptr1), vide::Exception);
-	}
+TEST_CASE_TEMPLATE("a shared pointee loaded as another type throws", Ar, VIDE_ALL_ARCHIVES) {
+	const auto value = std::make_shared<int>(42);
+	const std::string data = save<Ar>(std::tuple{value, value});
+	using Mismatched = std::tuple<std::shared_ptr<int>, std::shared_ptr<double>>;
+	CHECK_THROWS_AS((std::ignore = load<Ar, Mismatched>(data)), vide::Exception);
 }
-
-
-TEST_SUITE_BEGIN("memory");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("memory", test_memory)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("default_construction", test_default_construction)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("shared_ptr_type_mismatch", test_shared_ptr_type_mismatch)
-
-TEST_SUITE_END();

@@ -7,19 +7,19 @@
 
 #include <cmath>
 #include <future>
-#include <iostream>
 #include <memory>
 #include <ostream>
 #include <random>
-#include <source_location>
-#include <sstream>
 #include <string>
 #include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
 
 namespace legacy { // ------------------------------------------------------------------------------
@@ -36,6 +36,7 @@ struct PolyBaseAA : PolyBaseA {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(w);
 	}
 
@@ -62,6 +63,7 @@ struct PolyBaseB : virtual PolyBaseAA {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(vide::virtual_base_class<PolyBaseAA>(this));
 		ar(x);
 	}
@@ -84,6 +86,7 @@ struct PolyBaseC : virtual PolyBaseAA {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(vide::virtual_base_class<PolyBaseAA>(this));
 		ar(y);
 	}
@@ -106,6 +109,7 @@ struct PolyDerivedD : PolyBaseB, PolyBaseC {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(vide::base_class<PolyBaseB>(this));
 		ar(vide::base_class<PolyBaseC>(this));
 		ar(z);
@@ -135,6 +139,7 @@ struct PolyBase {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(x)(y);
 	}
 
@@ -158,6 +163,7 @@ struct PolyDerived : PolyBase {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(vide::base_class<PolyBase>(this));
 		ar(a)(b);
 	}
@@ -195,6 +201,7 @@ struct PolyDerivedLA : public PolyLA {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar(x);
 		ar(vec);
 	}
@@ -243,161 +250,96 @@ std::ostream& operator<<(std::ostream& os, PolyDerivedD const& s) {
 	return os;
 }
 
-template <class IArchive, class OArchive>
-void test_polymorphic_legacy() {
-	std::mt19937 rng(0x5EED);
-
-	auto rngB = [&]() { return random_value<int>(rng) % 2 == 0; };
-	auto rngI = [&]() { return random_value<int>(rng); };
-	auto rngL = [&]() { return random_value<long>(rng); };
-	auto rngF = [&]() { return random_value<float>(rng); };
-	auto rngD = [&]() { return random_value<double>(rng); };
-
-	for (int ii = 0; ii < 100; ++ii) {
-		std::shared_ptr<PolyBase> o_shared = std::make_shared<PolyDerived>(rngI(), rngF(), rngB(), rngD());
-		std::shared_ptr<const PolyBase> o_sharedC = std::make_shared<const PolyDerived>(rngI(), rngF(), rngB(), rngD());
-
-		std::weak_ptr<PolyBase> o_weak = o_shared;
-		std::weak_ptr<const PolyBase> o_weakC = o_sharedC;
-
-		std::unique_ptr<PolyBase> o_unique(new PolyDerived(rngI(), rngF(), rngB(), rngD()));
-		std::unique_ptr<const PolyBase> o_uniqueC(new PolyDerived(rngI(), rngF(), rngB(), rngD()));
-
-		std::shared_ptr<PolyBaseA> o_sharedA = std::make_shared<PolyDerivedD>(random_basic_string<char>(rng),
-				rngD(), rngI(), rngL());
-
-		std::weak_ptr<PolyBaseA> o_weakA = o_sharedA;
-		std::unique_ptr<PolyBaseA> o_uniqueA(new PolyDerivedD(random_basic_string<char>(rng),
-				rngD(), rngI(), rngL()));
-
-		auto pda = std::make_shared<PolyDerivedLA>(rngI());
-		pda->vec.emplace_back(std::make_shared<PolyDerivedLA>(rngI()));
-		std::shared_ptr<PolyLA> o_sharedLA = pda;
-
-		auto pdaC = std::make_shared<const PolyDerivedLA>(rngI());
-		pda->vec.emplace_back(std::make_shared<PolyDerivedLA>(rngI()));
-		std::shared_ptr<const PolyLA> o_sharedLAC = pdaC;
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_shared);
-			oar(o_sharedC);
-			oar(o_weak);
-			oar(o_weakC);
-			oar(o_unique);
-			oar(o_uniqueC);
-
-			oar(o_sharedLA);
-			oar(o_sharedLAC);
-
-			oar(o_sharedA);
-			oar(o_weakA);
-			oar(o_uniqueA);
-		}
-
-		// std::cout << std::endl;
-		// std::cout << "========" << std::endl;
-		// std::cout << os.str() << std::endl;
-		// std::cout << hex_dump_with_ascii(os.str()) << std::endl;
-
-		decltype(o_shared) i_shared;
-		decltype(o_sharedC) i_sharedC;
-
-		decltype(o_weak) i_weak;
-		decltype(o_weakC) i_weakC;
-
-		decltype(o_unique) i_unique;
-		decltype(o_uniqueC) i_uniqueC;
-
-		decltype(o_sharedLA) i_sharedLA;
-		decltype(o_sharedLAC) i_sharedLAC;
-
-		decltype(o_sharedA) i_sharedA;
-		decltype(o_weakA) i_weakA;
-		decltype(o_uniqueA) i_uniqueA;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_shared);
-			iar(i_sharedC);
-			iar(i_weak);
-			iar(i_weakC);
-			iar(i_unique);
-			iar(i_uniqueC);
-
-			iar(i_sharedLA);
-			iar(i_sharedLAC);
-
-			iar(i_sharedA);
-			iar(i_weakA);
-			iar(i_uniqueA);
-		}
-
-		auto i_locked = i_weak.lock();
-		auto o_locked = o_weak.lock();
-
-		auto i_lockedC = i_weakC.lock();
-		auto o_lockedC = o_weakC.lock();
-
-		auto i_sharedLA2 = i_sharedLA->shared_from_this();
-		auto i_sharedLA2C = i_sharedLAC->shared_from_this();
-
-		auto i_lockedA = i_weakA.lock();
-		auto o_lockedA = o_weakA.lock();
-
-		CHECK_EQ(i_shared.get(), i_locked.get());
-		CHECK_EQ(*dynamic_cast<PolyDerived*>(i_shared.get()), *dynamic_cast<PolyDerived*>(o_shared.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerived*>(i_shared.get()), *dynamic_cast<PolyDerived*>(i_locked.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerived*>(i_locked.get()), *dynamic_cast<PolyDerived*>(o_locked.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerived*>(i_unique.get()), *dynamic_cast<PolyDerived*>(o_unique.get()));
-
-		CHECK_EQ(i_sharedC.get(), i_lockedC.get());
-		CHECK_EQ(*dynamic_cast<const PolyDerived*>(i_sharedC.get()), *dynamic_cast<const PolyDerived*>(o_sharedC.get()));
-		CHECK_EQ(*dynamic_cast<const PolyDerived*>(i_sharedC.get()), *dynamic_cast<const PolyDerived*>(i_lockedC.get()));
-		CHECK_EQ(*dynamic_cast<const PolyDerived*>(i_lockedC.get()), *dynamic_cast<const PolyDerived*>(o_lockedC.get()));
-		CHECK_EQ(*dynamic_cast<const PolyDerived*>(i_uniqueC.get()), *dynamic_cast<const PolyDerived*>(o_uniqueC.get()));
-
-		CHECK_EQ(*dynamic_cast<PolyDerivedLA*>(i_sharedLA.get()), *dynamic_cast<PolyDerivedLA*>(o_sharedLA.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerivedLA*>(i_sharedLA2.get()), *dynamic_cast<PolyDerivedLA*>(o_sharedLA.get()));
-
-		CHECK_EQ(*dynamic_cast<const PolyDerivedLA*>(i_sharedLAC.get()), *dynamic_cast<const PolyDerivedLA*>(o_sharedLAC.get()));
-		CHECK_EQ(*dynamic_cast<const PolyDerivedLA*>(i_sharedLA2C.get()), *dynamic_cast<const PolyDerivedLA*>(o_sharedLAC.get()));
-
-		CHECK_EQ(i_sharedA.get(), i_lockedA.get());
-		CHECK_EQ(*dynamic_cast<PolyDerivedD*>(i_sharedA.get()), *dynamic_cast<PolyDerivedD*>(o_sharedA.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerivedD*>(i_sharedA.get()), *dynamic_cast<PolyDerivedD*>(i_lockedA.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerivedD*>(i_lockedA.get()), *dynamic_cast<PolyDerivedD*>(o_lockedA.get()));
-		CHECK_EQ(*dynamic_cast<PolyDerivedD*>(i_uniqueA.get()), *dynamic_cast<PolyDerivedD*>(o_uniqueA.get()));
-	}
+/// Pointees reached through base class pointers, shared, weak and unique, a diamond with a virtual base and a
+/// pointee holding pointers of its own
+/// The pointee as T; fails the test case unless it is one
+template <typename T>
+const T& as(const auto& pointer) {
+	const auto* derived = dynamic_cast<const T*>(pointer.get());
+	REQUIRE(derived);
+	return *derived;
 }
 
-template <class IArchive, class OArchive>
-inline
-void test_polymorphic_threading() {
-	std::vector<std::future<bool>> pool;
-	for (size_t i = 0; i < 100; ++i)
-		pool.emplace_back(std::async(std::launch::async,
-				[]() {
-					test_polymorphic_legacy<IArchive, OArchive>();
-					return true;
-				}));
+template <typename Ar>
+void check_legacy_roundtrip(std::mt19937& gen) {
+	const auto random_derived = [&] {
+		const int x = random_value<int>(gen);
+		const float y = random_value<float>(gen);
+		const bool a = random_value<bool>(gen);
+		return PolyDerived{x, y, a, random_value<double>(gen)};
+	};
+	const auto random_diamond = [&] {
+		std::string z = random_value<std::string>(gen);
+		const double y = random_value<double>(gen);
+		const int x = random_value<int>(gen);
+		return PolyDerivedD{z, y, x, random_value<long>(gen)};
+	};
+	const auto random_holder = [&] { // Holds one child
+		auto holder = std::make_shared<PolyDerivedLA>(random_value<int>(gen));
+		holder->vec.push_back(std::make_shared<PolyDerivedLA>(random_value<int>(gen)));
+		return holder;
+	};
 
-	for (auto& future : pool)
-		future.wait();
+	const std::shared_ptr<PolyBase> shared = std::make_shared<PolyDerived>(random_derived());
+	const std::shared_ptr<const PolyBase> shared_const = std::make_shared<const PolyDerived>(random_derived());
+	const std::weak_ptr<PolyBase> weak = shared;
+	const std::weak_ptr<const PolyBase> weak_const = shared_const;
+	const std::unique_ptr<PolyBase> unique = std::make_unique<PolyDerived>(random_derived());
+	const std::unique_ptr<const PolyBase> unique_const = std::make_unique<const PolyDerived>(random_derived());
+	const std::shared_ptr<PolyLA> holder = random_holder();
+	const std::shared_ptr<const PolyLA> holder_const = random_holder();
+	const std::shared_ptr<PolyBaseA> diamond = std::make_shared<PolyDerivedD>(random_diamond());
+	const std::weak_ptr<PolyBaseA> weak_diamond = diamond;
+	const std::unique_ptr<PolyBaseA> unique_diamond = std::make_unique<PolyDerivedD>(random_diamond());
 
-	for (auto& future : pool)
-		CHECK_UNARY(future.get());
+	const CallLog calls;
+	const auto [loaded_shared, loaded_shared_const, loaded_weak, loaded_weak_const, loaded_unique, loaded_unique_const,
+			loaded_holder, loaded_holder_const, loaded_diamond, loaded_weak_diamond, loaded_unique_diamond] =
+			roundtrip<Ar>(shared, shared_const, weak, weak_const, unique, unique_const, holder, holder_const, diamond,
+					weak_diamond, unique_diamond);
+
+	CHECK_EQ(as<PolyDerived>(loaded_shared), as<PolyDerived>(shared));
+	CHECK_EQ(as<PolyDerived>(loaded_shared_const), as<PolyDerived>(shared_const));
+	CHECK_EQ(loaded_weak.lock(), loaded_shared);
+	CHECK_EQ(loaded_weak_const.lock(), loaded_shared_const);
+	CHECK_EQ(as<PolyDerived>(loaded_unique), as<PolyDerived>(unique));
+	CHECK_EQ(as<PolyDerived>(loaded_unique_const), as<PolyDerived>(unique_const));
+
+	CHECK_EQ(as<PolyDerivedLA>(loaded_holder), as<PolyDerivedLA>(holder));
+	CHECK_EQ(as<PolyDerivedLA>(loaded_holder_const), as<PolyDerivedLA>(holder_const));
+	CHECK_EQ(loaded_holder->shared_from_this(), loaded_holder);
+
+	CHECK_EQ(as<PolyDerivedD>(loaded_diamond), as<PolyDerivedD>(diamond));
+	CHECK_EQ(loaded_weak_diamond.lock(), loaded_diamond);
+	CHECK_EQ(as<PolyDerivedD>(loaded_unique_diamond), as<PolyDerivedD>(unique_diamond));
+
+	// Weak pointers reach no new object; a virtual base runs once per object, not once per path to it
+	calls.check<PolyDerived>(4);
+	calls.check<PolyBase>(4);
+	calls.check<PolyDerivedLA>(4);
+	calls.check<PolyDerivedD>(2);
+	calls.check<PolyBaseB>(2);
+	calls.check<PolyBaseC>(2);
+	calls.check<PolyBaseAA>(2);
 }
 
 } // namespace legacy ------------------------------------------------------------------------------
 
-TEST_SUITE_BEGIN("polymorphic");
+TEST_CASE_TEMPLATE("polymorphic legacy", Ar, VIDE_ALL_ARCHIVES) {
+	SUBCASE("pointer kinds and hierarchies") {
+		auto gen = test_rng();
+		legacy::check_legacy_roundtrip<Ar>(gen);
+	}
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_legacy", legacy::test_polymorphic_legacy)
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_threading", legacy::test_polymorphic_threading)
-
-TEST_SUITE_END();
-
+	SUBCASE("concurrent archives") { // The polymorphic registries are shared between threads
+		constexpr unsigned thread_count = 32;
+		std::vector<std::future<void>> pool;
+		for (unsigned i = 0; i < thread_count; ++i)
+			pool.push_back(std::async(std::launch::async, [seed = test_rng()() + i] {
+				std::mt19937 gen{seed};
+				legacy::check_legacy_roundtrip<Ar>(gen);
+			}));
+		for (auto& future : pool)
+			CHECK_NOTHROW(future.get());
+	}
+}

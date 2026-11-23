@@ -5,146 +5,79 @@
 #include <vide/types/std_string.hpp>
 #include <vide/types/std_vector.hpp>
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <random>
-#include <sstream>
 #include <string>
+#include <tuple>
 #include <vector>
 
+#include <boost/container/flat_map.hpp>
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
-#include "common/collection_checks.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_boost_flat_map() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		boost::container::flat_map<size_t, std::vector<StructInternalSerialize>> o_vectormap;
-		for (int j = 0; j < 10; ++j) {
-			size_t id = random_value<size_t>(gen);
-			for (int k = 0; k < 100; ++k)
-				o_vectormap[id].emplace_back(random_value<int>(gen), random_value<int>(gen));
+template <typename K, typename V>
+using flat_map = boost::container::flat_map<K, V>;
+
+TEST_CASE_TEMPLATE("boost::container::flat_map", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
+
+	SUBCASE("arithmetic and string keys") {
+		check_roundtrip<Ar>(random_container<flat_map<std::string, int>>(gen, element_count));
+		check_roundtrip<Ar>(random_container<flat_map<std::int8_t, int>>(gen, element_count));
+	}
+
+	SUBCASE("struct values") {
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_container<flat_map<int, S>>(gen, element_count));
+		});
+	}
+
+	SUBCASE("nested containers") {
+		flat_map<std::size_t, std::vector<StructInternalSerialize>> nested;
+		for (std::size_t i = 0; i < 10; ++i)
+			nested[random_value<std::size_t>(gen)] = random_container<std::vector<StructInternalSerialize>>(gen, element_count);
+		check_roundtrip<Ar>(nested);
+	}
+
+	SUBCASE("smart pointer values") {
+		flat_map<int, std::unique_ptr<int>> unique;
+		flat_map<int, std::shared_ptr<int>> shared;
+		for (std::size_t i = 0; i < element_count; ++i) {
+			unique.emplace(random_value<int>(gen), std::make_unique<int>(random_value<int>(gen)));
+			shared.emplace(random_value<int>(gen), std::make_shared<int>(random_value<int>(gen)));
 		}
 
-		boost::container::flat_map<std::string, int> o_podmap;
-		for (int j = 0; j < 100; ++j)
-			o_podmap.insert({random_value<std::string>(gen), random_value<int>(gen)});
+		const auto [loaded_unique, loaded_shared] = roundtrip<Ar>(unique, shared);
+		const auto same_pointees = [](const auto& a, const auto& b) {
+			return std::ranges::equal(a, b, [](const auto& x, const auto& y) { return x.first == y.first && *x.second == *y.second; });
+		};
+		CHECK(same_pointees(loaded_unique, unique));
+		CHECK(same_pointees(loaded_shared, shared));
+	}
 
-		boost::container::flat_map<int, StructInternalSerialize> o_isermap;
-		for (int j = 0; j < 100; ++j)
-			o_isermap.insert({random_value<int>(gen), {random_value<int>(gen), random_value<int>(gen)}});
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(flat_map<int, int>{});
+	}
 
-		boost::container::flat_map<int, StructInternalSplit> o_isplmap;
-		for (int j = 0; j < 100; ++j)
-			o_isplmap.insert({random_value<int>(gen), {random_value<int>(gen), random_value<int>(gen)}});
-
-		boost::container::flat_map<uint32_t, StructExternalSerialize> o_esermap;
-		for (int j = 0; j < 100; ++j)
-			o_esermap.insert({random_value<uint32_t>(gen), {random_value<int>(gen), random_value<int>(gen)}});
-
-		boost::container::flat_map<int8_t, StructExternalSplit> o_esplmap;
-		for (int j = 0; j < 100; ++j)
-			o_esplmap.insert({random_value<int8_t>(gen), {random_value<int>(gen), random_value<int>(gen)}});
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_vectormap);
-			oar(o_podmap);
-			oar(o_isermap);
-			oar(o_isplmap);
-			oar(o_esermap);
-			oar(o_esplmap);
-		}
-
-		boost::container::flat_map<size_t, std::vector<StructInternalSerialize>> i_vectormap;
-		boost::container::flat_map<std::string, int> i_podmap;
-		boost::container::flat_map<int, StructInternalSerialize> i_isermap;
-		boost::container::flat_map<int, StructInternalSplit> i_isplmap;
-		boost::container::flat_map<uint32_t, StructExternalSerialize> i_esermap;
-		boost::container::flat_map<int8_t, StructExternalSplit> i_esplmap;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_vectormap);
-			iar(i_podmap);
-			iar(i_isermap);
-			iar(i_isplmap);
-			iar(i_esermap);
-			iar(i_esplmap);
-		}
-
-		CHECK_EQ(i_vectormap.size(), o_vectormap.size());
-		auto o_v_it = o_vectormap.begin();
-		auto i_v_it = i_vectormap.begin();
-		for (; o_v_it != o_vectormap.end(); ++o_v_it, ++i_v_it) {
-			CHECK_EQ(i_v_it->second.size(), o_v_it->second.size());
-			check_collection(i_v_it->second, o_v_it->second);
-		}
-
-		check_collection(i_podmap, o_podmap);
-		check_collection(i_isermap, o_isermap);
-		check_collection(i_isplmap, o_isplmap);
-		check_collection(i_esermap, o_esermap);
-		check_collection(i_esplmap, o_esplmap);
+	SUBCASE("duplicate keys") {
+		// Using the multi-container counterpart to force duplicate keys into the archive
+		using Unique = flat_map<int, int>;
+		using Multi = boost::container::flat_multimap<int, int>;
+		CHECK_EQ((roundtrip_as<Ar, Unique>(
+				Multi{{0, 42}, {1, 42}, {2, 42}})),
+				Unique{{0, 42}, {1, 42}, {2, 42}});
+		CHECK_THROWS_AS((std::ignore = roundtrip_as<Ar, Unique>(
+				Multi{{0, 42}, {1, 42}, {1, 43}, {2, 42}})),
+				vide::Exception);
 	}
 }
-
-template <class IArchive, class OArchive>
-void test_boost_flat_map_memory() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	for (int ii = 0; ii < 100; ++ii) {
-		boost::container::flat_map<int, std::unique_ptr<int>> o_uniqueptrMap;
-		boost::container::flat_map<int, std::shared_ptr<int>> o_sharedptrMap;
-
-		for (int j = 0; j < 100; ++j) {
-			o_uniqueptrMap.emplace(random_value<int>(gen), std::unique_ptr<int>(new int(random_value<int>(gen))));
-			o_sharedptrMap.emplace(random_value<int>(gen), std::make_shared<int>(random_value<int>(gen)));
-		}
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_uniqueptrMap);
-			oar(o_sharedptrMap);
-		}
-
-		decltype( o_uniqueptrMap ) i_uniqueptrMap;
-		decltype( o_sharedptrMap ) i_sharedptrMap;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_uniqueptrMap);
-			iar(i_sharedptrMap);
-		}
-
-		CHECK_EQ(o_sharedptrMap.size(), i_sharedptrMap.size());
-		CHECK_EQ(o_uniqueptrMap.size(), i_uniqueptrMap.size());
-
-		auto o_v_it = o_uniqueptrMap.begin();
-		auto i_v_it = i_uniqueptrMap.begin();
-		for (; o_v_it != o_uniqueptrMap.end(); ++o_v_it, ++i_v_it) {
-			CHECK_EQ(i_v_it->first, o_v_it->first);
-			CHECK_EQ(*i_v_it->second, *o_v_it->second);
-		}
-	}
-}
-
-
-TEST_SUITE_BEGIN("boost_flat_map");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("boost_flat_map", test_boost_flat_map)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("boost_flat_map_memory", test_boost_flat_map_memory)
-
-TEST_SUITE_END();

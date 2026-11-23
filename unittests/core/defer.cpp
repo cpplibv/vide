@@ -30,189 +30,148 @@
 #include <vide/types/std_vector.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <ostream>
 #include <random>
 #include <sstream>
 #include <string>
+#include <tuple>
+#include <utility>
 #include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
-#include "common/collection_checks.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
 #include "common/sample_structs.hpp"
 
 
 struct DeferNode;
 
-struct DeferRelation
-{
-  std::shared_ptr<DeferNode> node;
-  int x;
-  std::string y;
+struct DeferRelation {
+	std::shared_ptr<DeferNode> node;
+	int x = 0;
+	std::string y;
 
-  template <class Archive>
-  void serialize( Archive & ar )
-  {
-    ar(node);
-	ar(x);
-	ar(y);
-  }
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(node);
+		ar(x);
+		ar(y);
+	}
 
-  bool operator==( DeferRelation const & other ) const;
+	bool operator==(const DeferRelation& other) const;
 };
 
-struct DeferNode
-{
-  DeferNode() = default;
-  DeferNode( size_t id_, std::mt19937 & gen ) :
-      id(id_),
-      w(random_value<long>(gen)),
-      iser{random_value<int>(gen), random_value<int>(gen)},
-      ispl{random_value<int>(gen), random_value<int>(gen)},
-      eser{random_value<int>(gen), random_value<int>(gen)},
-      espl{random_value<int>(gen), random_value<int>(gen)},
-      relations(),
-      z(random_value<char>(gen))
-  { }
+/// Every member but the plain ones is deferred; relations point at nodes anywhere in the graph
+struct DeferNode {
+	std::size_t id = 0;
+	long w = 0;
+	StructInternalSerialize iser;
+	StructInternalSplit ispl;
+	StructExternalSerialize eser;
+	StructExternalSplit espl;
+	std::vector<DeferRelation> relations;
+	char z = 0;
 
-  size_t id;
-  long w;
+	DeferNode() = default;
+	DeferNode(std::size_t id, std::mt19937& gen) :
+		id(id),
+		w(random_value<long>(gen)),
+		iser(random_value<StructInternalSerialize>(gen)),
+		ispl(random_value<StructInternalSplit>(gen)),
+		eser(random_value<StructExternalSerialize>(gen)),
+		espl(random_value<StructExternalSplit>(gen)),
+		z(random_value<char>(gen)) {}
 
-  StructInternalSerialize iser;
-  StructInternalSplit     ispl;
-  StructExternalSerialize eser;
-  StructExternalSplit     espl;
-
-  std::vector<DeferRelation> relations;
-
-  char z;
-
-  template <class Archive>
-  void serialize( Archive & ar )
-  {
-        ar(id);
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(id);
 		ar(w);
-        ar(vide::defer( iser ));
-        ar(vide::defer( ispl ));
-        ar(vide::defer( eser ));
-        ar(vide::defer( espl ));
-        ar(vide::defer( relations ));
-        ar(z);
-  }
+		ar(vide::defer(iser));
+		ar(vide::defer(ispl));
+		ar(vide::defer(eser));
+		ar(vide::defer(espl));
+		ar(vide::defer(relations));
+		ar(z);
+	}
 
-  bool operator==( DeferNode const & other ) const
-  {
-    bool relationsEqual = true;
+	bool operator==(const DeferNode&) const = default;
 
-    if( relations.size() == other.relations.size() )
-      for( size_t i = 0; i < relations.size(); ++i )
-        relationsEqual &= relations[i] == other.relations[i];
-    else
-      relationsEqual = false;
-
-    return id == other.id && w == other.w &&
-           iser == other.iser && ispl == other.ispl &&
-           eser == other.eser && espl == other.espl &&
-           relationsEqual;
-  }
+	friend std::ostream& operator<<(std::ostream& os, const DeferNode& node) {
+		return os << "[id: " << node.id << " relations: " << node.relations.size() << "]";
+	}
 };
 
-inline std::ostream& operator<<(std::ostream& os, DeferRelation const & s)
-{
-  os << "[node(id): " << (s.node ? std::to_string(s.node->id) : "null") << " x: " << s.x << " y: " << s.y << "]";
-  return os;
+/// Relations compare their target by id (0 for null, real ids start at 1); comparing the nodes would recurse through
+/// cycles
+bool DeferRelation::operator==(const DeferRelation& other) const {
+	const auto id = [](const std::shared_ptr<DeferNode>& target) { return target ? target->id : 0; };
+	return x == other.x && y == other.y && id(node) == id(other.node);
 }
 
+using Nodes = std::vector<std::shared_ptr<DeferNode>>;
 
-bool DeferRelation::operator==( DeferRelation const & other ) const
-{
-  return x == other.x && y == other.y && node->id == other.node->id;
+constexpr std::size_t nodes_per_list = 10;
+constexpr std::size_t max_relations = 20;
+
+/// Two node lists; the relations of both point into the first
+std::pair<Nodes, Nodes> random_graph(std::mt19937& gen) {
+	std::size_t id = 1;
+	Nodes first;
+	Nodes second;
+	for (std::size_t i = 0; i < nodes_per_list; ++i)
+		first.push_back(std::make_shared<DeferNode>(id++, gen));
+	for (std::size_t i = 0; i < nodes_per_list; ++i)
+		second.push_back(std::make_shared<DeferNode>(id++, gen));
+
+	for (const Nodes* nodes : {&first, &second})
+		for (const auto& node : *nodes) {
+			node->relations.resize(random_index(0, max_relations, gen));
+			for (auto& relation : node->relations)
+				relation = {first[random_index(0, first.size() - 1, gen)], random_value<int>(gen), random_value<std::string>(gen)};
+		}
+	return {std::move(first), std::move(second)};
 }
 
-
-inline std::ostream& operator<<(std::ostream& os, DeferNode const & s)
-{
-  os << "[id: " << s.id << " w " << s.w << " iser " << s.iser;
-  os << " ispl " << s.ispl << " eser " << s.eser << " espl " << s.espl;
-  os << " relations (size: " << s.relations.size() << "): ";
-  for( auto & r : s.relations )
-    os << r;
-  os << " z " << s.z << "]";
-  return os;
+/// The pointees are equal; pointer identity cannot match across a round trip
+bool same_nodes(const Nodes& a, const Nodes& b) {
+	return std::ranges::equal(a, b, [](const auto& x, const auto& y) { return x && y && *x == *y; });
 }
 
-template <class IArchive, class OArchive> inline
-void test_defer()
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
+TEST_CASE_TEMPLATE("defer", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
+	const auto [first, second] = random_graph(gen);
 
-  for(int ii=0; ii<100; ++ii)
-  {
-    size_t id = 0;
-    std::vector<std::shared_ptr<DeferNode>> o_nodes0(1);
-    for( auto & node : o_nodes0 )
-      node = std::make_shared<DeferNode>(id++, gen);
+	const CallLog calls;
 
-    std::vector<std::shared_ptr<DeferNode>> o_nodes1(1);
-    for( auto & node : o_nodes1 )
-      node = std::make_shared<DeferNode>(id++, gen);
+	std::ostringstream os;
+	{
+		typename Ar::output ar(os);
+		ar(first);
+		ar(second);
+		ar.serializeDeferments();
+	}
 
-    std::shuffle( o_nodes1.begin(), o_nodes1.end(), gen );
+	Nodes loaded_first;
+	Nodes loaded_second;
+	std::istringstream is(os.str());
+	{
+		typename Ar::input ar(is);
+		ar(loaded_first);
+		ar(loaded_second);
+		ar.serializeDeferments();
+	}
 
-    for( auto & node : o_nodes0 )
-    {
-      node->relations.resize( random_index( 0, 100, gen ) );
-      for (auto & r : node->relations)
-      {
-        r = { o_nodes0[random_index( 0, o_nodes0.size() - 1, gen )],
-             random_value<int>( gen ), random_basic_string<char>( gen ) };
-      }
-    }
+	CHECK(same_nodes(loaded_first, first));
+	CHECK(same_nodes(loaded_second, second));
 
-    for( auto & node : o_nodes1 )
-    {
-      node->relations.resize( random_index( 0, 100, gen ) );
-      for (auto & r : node->relations)
-      {
-        r = { o_nodes0[random_index( 0, o_nodes0.size() - 1, gen )],
-             random_value<int>( gen ), random_basic_string<char>( gen ) };
-      }
-    }
-
-    std::ostringstream os;
-    {
-      OArchive oar(os);
-
-      oar( o_nodes0 );
-      oar( o_nodes1 );
-      oar.serializeDeferments();
-      // TODO: throw exception if deferments not done when destructor fires
-    }
-
-    decltype(o_nodes0) i_nodes0;
-    decltype(o_nodes1) i_nodes1;
-
-    std::istringstream is(os.str());
-    {
-      IArchive iar(is);
-
-      iar( i_nodes0 );
-      iar( i_nodes1 );
-      iar.serializeDeferments();
-    }
-
-    check_ptr_collection(o_nodes0, i_nodes0);
-    check_ptr_collection(o_nodes1, i_nodes1);
-  }
+	// Nodes reached again through relations are references, so each struct still runs once per node
+	const std::size_t node_count = first.size() + second.size();
+	calls.check<StructInternalSerialize>(node_count);
+	calls.check<StructInternalSplit>(node_count);
+	calls.check<StructExternalSerialize>(node_count);
+	calls.check<StructExternalSplit>(node_count);
 }
-
-
-TEST_SUITE_BEGIN("defer");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("defer", test_defer)
-
-TEST_SUITE_END();

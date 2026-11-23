@@ -1,144 +1,78 @@
 //
 
 #include <vide/types/polymorphic.hpp>
+#include <vide/types/std_tuple.hpp>
 
-#include <random>
-#include <sstream>
+#include <tuple>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/my_intrusive_ptr_polymorphic.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
 
 struct TestRefCountedPolymorphicDerived : TestRefCountedPolymorphic {
 	using TestRefCountedPolymorphic::TestRefCountedPolymorphic;
 
-	template <typename Archive> void serialize(Archive& ar) {
+	template <typename Archive>
+	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar.template base_class<TestRefCountedPolymorphic>(this);
 	}
 };
+
 VIDE_REGISTER_TYPE(TestRefCountedPolymorphicDerived)
 
-template <class IArchive, class OArchive>
-inline void test_polymorphic_custom_smart_ptr() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+using Base = TestRefCountedPolymorphic;
+using Derived = TestRefCountedPolymorphicDerived;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		my::intrusive_ptr<TestRefCountedPolymorphic> o_xptr1 = my::intrusive_ptr<TestRefCountedPolymorphic>(new TestRefCountedPolymorphic{random_value<int>(gen)});
-		my::intrusive_ptr<TestRefCountedPolymorphic> o_xptr2 = o_xptr1;
-		my::intrusive_ptr<const TestRefCountedPolymorphic> o_xptr3 = o_xptr1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> o_yptr1 = my::intrusive_ptr<TestRefCountedPolymorphic>(new TestRefCountedPolymorphic{random_value<int>(gen)});
-		my::intrusive_ptr<TestRefCountedPolymorphic> o_yptr2 = o_yptr1;
+template <typename T>
+using ptr = my::intrusive_ptr<T>;
 
-		my::intrusive_ptr<TestRefCountedPolymorphic> outputA0 = my::intrusive_ptr<TestRefCountedPolymorphicDerived>(new TestRefCountedPolymorphicDerived{random_value<int>(gen)});
-		my::intrusive_ptr<TestRefCountedPolymorphic> outputA1 = outputA0;
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> outputB0 = my::intrusive_ptr<TestRefCountedPolymorphicDerived>(new TestRefCountedPolymorphicDerived{random_value<int>(gen)});
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> outputB1 = outputB0;
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> outputC0 = my::intrusive_ptr<TestRefCountedPolymorphicDerived>(new TestRefCountedPolymorphicDerived{random_value<int>(gen)});
-		my::intrusive_ptr<TestRefCountedPolymorphic> outputC1 = outputC0;
-		my::intrusive_ptr<TestRefCountedPolymorphic> outputD0 = my::intrusive_ptr<TestRefCountedPolymorphicDerived>(new TestRefCountedPolymorphicDerived{random_value<int>(gen)});
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> outputD1 = my::intrusive_ptr<TestRefCountedPolymorphicDerived>(static_cast<TestRefCountedPolymorphicDerived*>(outputD0.get()));
-		my::intrusive_ptr<TestRefCountedPolymorphic> o_nullptr1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> o_nullptr2;
+TEST_CASE_TEMPLATE("polymorphic custom smart pointer", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
+	const auto random_base = [&] { return ptr<Base>{new Base{random_value<int>(gen)}}; };
+	const auto random_derived = [&] { return ptr<Derived>{new Derived{random_value<int>(gen)}}; };
 
-		std::ostringstream os; {
-			OArchive oar(os);
+	// Every object is referenced twice, through the pointer types in the comment
+	const ptr<Base> x = random_base();                        // Base, Base, const Base
+	const ptr<Base> y = random_base();                        // Base, Base
+	const ptr<Base> a = random_derived();                     // Base, Base
+	const ptr<Derived> b = random_derived();                  // Derived, Derived
+	const ptr<Derived> c = random_derived();                  // Derived, Base
+	const ptr<Base> d = random_derived();                     // Base, Derived
+	const ptr<Derived> d_derived{static_cast<Derived*>(d.get())};
+	const ptr<Base> null;
 
-			oar(o_xptr1);
-			oar(o_xptr2);
-			oar(o_xptr3);
-			oar(o_yptr1);
-			oar(o_yptr2);
-			oar(outputA0);
-			oar(outputA1);
-			oar(outputB0);
-			oar(outputB1);
-			oar(outputC0);
-			oar(outputC1);
-			oar(outputD0);
-			oar(outputD1);
-			oar(o_nullptr1);
-			oar(o_nullptr2);
-		}
+	const auto saved = std::tuple{x, x, ptr<const Base>{x}, y, y, a, a, b, b, c, ptr<Base>{c}, d, d_derived, null, null};
+	const CallLog calls;
+	const auto [x1, x2, x3, y1, y2, a1, a2, b1, b2, c1, c2, d1, d2, null1, null2] = roundtrip<Ar>(saved);
 
-		// std::cout << std::endl;
-		// std::cout << "========" << std::endl;
-		// std::cout << os.str() << std::endl;
+	CHECK_EQ(*x1, *x);
+	CHECK_EQ(*y1, *y);
+	CHECK_EQ(*a1, *a);
+	CHECK_EQ(*b1, *b);
+	CHECK_EQ(*c1, *c);
+	CHECK_EQ(*d1, *d);
+	CHECK(dynamic_cast<const Derived*>(a1.get()));
+	CHECK(dynamic_cast<const Derived*>(d1.get()));
 
-		my::intrusive_ptr<TestRefCountedPolymorphic> i_xptr1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> i_xptr2;
-		my::intrusive_ptr<const TestRefCountedPolymorphic> i_xptr3;
-		my::intrusive_ptr<TestRefCountedPolymorphic> i_yptr1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> i_yptr2;
-		my::intrusive_ptr<TestRefCountedPolymorphic> inputA0;
-		my::intrusive_ptr<TestRefCountedPolymorphic> inputA1;
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> inputB0;
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> inputB1;
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> inputC0;
-		my::intrusive_ptr<TestRefCountedPolymorphic> inputC1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> inputD0;
-		my::intrusive_ptr<TestRefCountedPolymorphicDerived> inputD1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> i_nullptr1;
-		my::intrusive_ptr<TestRefCountedPolymorphic> i_nullptr2;
+	// Shared objects stay shared
+	CHECK_EQ(x2.get(), x1.get());
+	CHECK_EQ(x3.get(), x1.get());
+	CHECK_EQ(y2.get(), y1.get());
+	CHECK_EQ(a2.get(), a1.get());
+	CHECK_EQ(b2.get(), b1.get());
+	CHECK_EQ(c2.get(), c1.get());
+	CHECK_EQ(d2.get(), d1.get());
+	CHECK_FALSE(null1);
+	CHECK_FALSE(null2);
 
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_xptr1);
-			iar(i_xptr2);
-			iar(i_xptr3);
-			iar(i_yptr1);
-			iar(i_yptr2);
-			iar(inputA0);
-			iar(inputA1);
-			iar(inputB0);
-			iar(inputB1);
-			iar(inputC0);
-			iar(inputC1);
-			iar(inputD0);
-			iar(inputD1);
-			iar(i_nullptr1);
-			iar(i_nullptr2);
-		}
-
-		CHECK_EQ(o_xptr1.get(), o_xptr2.get());
-		CHECK_EQ(o_xptr1.get(), o_xptr3.get());
-		CHECK_EQ(o_xptr1.get(), o_xptr1.get());
-		CHECK_EQ(outputA0.get(), outputA1.get());
-		CHECK_EQ(outputB0.get(), outputB1.get());
-		CHECK_EQ(outputC0.get(), outputC1.get());
-		CHECK_EQ(outputD0.get(), outputD1.get());
-		CHECK_EQ(o_yptr1.get(), o_yptr2.get());
-
-		CHECK_EQ(i_xptr1.get(), i_xptr2.get());
-		CHECK_EQ(i_xptr1.get(), i_xptr3.get());
-		CHECK_EQ(i_yptr1.get(), i_yptr2.get());
-		CHECK_EQ(inputA0.get(), inputA1.get());
-		CHECK_EQ(inputB0.get(), inputB1.get());
-		CHECK_EQ(inputC0.get(), inputC1.get());
-		CHECK_EQ(inputD0.get(), inputD1.get());
-
-		CHECK_EQ(*i_xptr1, *o_xptr1);
-		CHECK_EQ(*i_xptr2, *o_xptr2);
-		CHECK_EQ(*i_xptr3, *o_xptr3);
-		CHECK_EQ(*i_yptr1, *o_yptr1);
-		CHECK_EQ(*i_yptr2, *o_yptr2);
-		CHECK_EQ(*inputA0, *outputA0);
-		CHECK_EQ(*inputB0, *outputB0);
-		CHECK_EQ(*inputC0, *outputC0);
-		CHECK_EQ(*inputD0, *outputD0);
-
-		CHECK_UNARY_FALSE(i_nullptr1);
-		CHECK_UNARY_FALSE(i_nullptr2);
-	}
+	// Six objects, each serialized once; the four derived ones reach Base through base_class()
+	calls.check<Derived>(4);
+	calls.check<Base>(6);
 }
-
-
-TEST_SUITE_BEGIN("polymorphic_custom_smart_ptr");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic_custom_smart_ptr", test_polymorphic_custom_smart_ptr)
-
-TEST_SUITE_END();

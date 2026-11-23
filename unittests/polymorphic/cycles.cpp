@@ -3,29 +3,26 @@
 #include <vide/types/memory.hpp>
 #include <vide/types/polymorphic.hpp>
 
-#include <iostream>
 #include <memory>
 #include <random>
-#include <sstream>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/random.hpp"
 #include "common/shared_ptr_helpers.hpp"
 #include "common/tester.hpp"
 #include "test_classes.hpp"
 
 
-// =================================================================================================
-
-template <class IArchive, class OArchive>
-void test_polymorphic_cycles() {
-	std::mt19937 rng(0x5EED);
+// Proxy archives are left out: these tests take too long to compile for them (TODO P4)
+TEST_CASE_TEMPLATE("polymorphic pointer cycles", Ar, VIDE_BINARY_ARCHIVES, VIDE_TEXT_ARCHIVES) {
+	using IArchive = typename Ar::input;
+	using OArchive = typename Ar::output;
+	std::mt19937 rng = test_rng();
 	Initializer init{rng};
 
-	for (int i = 0; i < 100; ++i) {
-		Tester<IArchive, OArchive> test;
-
+	run_rounds<Ar>(100, rng, [&](Tester<Ar>& test) {
 		// --- Self References ---
 
 		{
@@ -113,7 +110,7 @@ void test_polymorphic_cycles() {
 		{
 			// A -> B
 			// B -> A
-			struct _ {
+			struct Holder1 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				void serialize(IArchive& ar) { ar(a)(b); }
@@ -134,7 +131,7 @@ void test_polymorphic_cycles() {
 			// A -> B
 			// B -> C
 			// C -> A
-			struct _ {
+			struct Holder2 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				std::shared_ptr<WeakHolderBase> c;
@@ -159,7 +156,7 @@ void test_polymorphic_cycles() {
 		} {
 			// WeakHolderDerived as WeakHolderBase: A base -> B base
 			// WeakHolderDerived as WeakHolderBase: B base -> A base
-			struct _ {
+			struct Holder3 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				void serialize(IArchive& ar) { ar(a)(b); }
@@ -183,7 +180,7 @@ void test_polymorphic_cycles() {
 			// WeakHolderDerived as WeakHolderBase: A base -> B base
 			// WeakHolderDerived as WeakHolderBase: B base -> C base
 			// WeakHolderDerived as WeakHolderBase: C base -> A base
-			struct _ {
+			struct Holder4 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				std::shared_ptr<WeakHolderBase> c;
@@ -211,7 +208,7 @@ void test_polymorphic_cycles() {
 		} {
 			// WeakHolderDerived as WeakHolderBase: A base -> B derived
 			// WeakHolderDerived as WeakHolderBase: B base -> A derived
-			struct _ {
+			struct Holder5 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				void serialize(IArchive& ar) { ar(a)(b); }
@@ -233,7 +230,7 @@ void test_polymorphic_cycles() {
 		} {
 			// WeakHolderDerived as WeakHolderBase: A derived -> B derived
 			// WeakHolderDerived as WeakHolderBase: B derived -> A derived
-			struct _ {
+			struct Holder6 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				void serialize(IArchive& ar) { ar(a)(b); }
@@ -258,7 +255,7 @@ void test_polymorphic_cycles() {
 			// WeakHolderDerived as WeakHolderBase: A derived -> B derived
 			// WeakHolderDerived as WeakHolderBase: B derived -> C derived
 			// WeakHolderDerived as WeakHolderBase: C derived -> A derived
-			struct _ {
+			struct Holder7 {
 				std::shared_ptr<WeakHolderBase> a;
 				std::shared_ptr<WeakHolderBase> b;
 				std::shared_ptr<WeakHolderBase> c;
@@ -287,41 +284,5 @@ void test_polymorphic_cycles() {
 				CHECK((derivedInC && derivedInC->ptrWeakHolderDerived_Derived.lock() == derivedInA));
 			});
 		}
-
-		// === Runner code ===
-
-		if (i != 0 && i != 99) // First and last is not shuffled for ease of debugging
-			test.shuffle(rng);
-
-		std::ostringstream os; {
-			OArchive oar(os);
-			test.outputAll(oar);
-		}
-
-		// std::cout << std::endl;
-		// std::cout << "========" << std::endl;
-		// std::cout << os.str() << std::endl;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-			test.inputAll(iar);
-		}
-
-		test.checkAll();
-	}
+	});
 }
-
-
-TEST_SUITE_BEGIN("polymorphic");
-
-// TEST_CASE("json_polymorphic") {
-// 	test_polymorphic_cycles<vide::JSONInputArchive, vide::JSONOutputArchive>();
-// }
-CREATE_TEST_CASES_FOR_BINARY_ARCHIVE("polymorphic", test_polymorphic_cycles)
-CREATE_TEST_CASES_FOR_TEXT_ARCHIVE("polymorphic", test_polymorphic_cycles)
-// Proxy archives are skipped for test_polymorphic_cycles as it takes ages to compile. A separate test will take care of it
-// TODO P4: Enable for proxies too:
-// CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic", test_polymorphic_cycles)
-
-TEST_SUITE_END();
-

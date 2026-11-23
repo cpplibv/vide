@@ -3,70 +3,33 @@
 #include <vide/types/std_bitset.hpp>
 
 #include <bitset>
-#include <random>
-#include <sstream>
+#include <cstddef>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_bitset() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	auto rng32 = [&]() { return random_binary_string<32>(gen); };
-	auto rng65 = [&]() { return random_binary_string<65>(gen); };
-	auto rng256 = [&]() { return random_binary_string<256>(gen); };
-	auto rng512 = [&]() { return random_binary_string<512>(gen); };
-
-	for (int ii = 0; ii < 100; ++ii) {
-		std::bitset<32> o_bit32(rng32());
-		std::bitset<65> o_bit65(rng65());
-		std::bitset<256> o_bit256(rng256());
-		std::bitset<512> o_bit512(rng512());
-		std::bitset<32> o_bit32_low(0);
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_bit32);
-			oar(o_bit65);
-			oar(o_bit256);
-			oar(o_bit512);
-			oar(o_bit32_low);
-		}
-
-		std::bitset<32> i_bit32;
-		std::bitset<65> i_bit65;
-		std::bitset<256> i_bit256;
-		std::bitset<512> i_bit512;
-		std::bitset<32> i_bit32_low(0xffffffff);
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_bit32);
-			iar(i_bit65);
-			iar(i_bit256);
-			iar(i_bit512);
-			iar(i_bit32_low);
-		}
-
-		CHECK_EQ(o_bit32, i_bit32);
-		CHECK_EQ(o_bit65, i_bit65);
-		CHECK_EQ(o_bit256, i_bit256);
-		CHECK_EQ(o_bit512, i_bit512);
-
-		CHECK_EQ(o_bit32_low, i_bit32_low);
-	}
+template <std::size_t N>
+std::bitset<N> random_bitset(std::mt19937& gen) {
+	return std::bitset<N>(random_binary_string<N>(gen));
 }
 
+TEST_CASE_TEMPLATE("std::bitset", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-TEST_SUITE_BEGIN("bitset");
+	SUBCASE("sizes around the word boundaries") {
+		check_roundtrip<Ar>(random_bitset<32>(gen));
+		check_roundtrip<Ar>(random_bitset<65>(gen));
+		check_roundtrip<Ar>(random_bitset<256>(gen));
+		check_roundtrip<Ar>(random_bitset<512>(gen));
+	}
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("bitset", test_bitset)
-
-TEST_SUITE_END();
+	SUBCASE("all clear and all set") { // Loading starts from all clear, so all set shows a skipped load too
+		check_roundtrip<Ar>(std::bitset<32>{});
+		check_roundtrip<Ar>(std::bitset<32>{}.set());
+		check_roundtrip<Ar>(std::bitset<65>{}.set());
+	}
+}

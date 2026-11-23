@@ -2,109 +2,42 @@
 
 #include <vide/types/std_unordered_set.hpp>
 
-#include <random>
-#include <sstream>
+#include <cstddef>
 #include <unordered_set>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_unordered_multiset() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::unordered_multiset<int> o_podunordered_multiset;
-		for (int j = 0; j < 100; ++j) {
-			int value = random_value<int>(gen);
-			o_podunordered_multiset.insert(value);
-			o_podunordered_multiset.insert(value);
-		}
-
-		std::unordered_multiset<StructInternalSerialize, StructHash<StructInternalSerialize>> o_iserunordered_multiset;
-		for (int j = 0; j < 100; ++j) {
-			StructInternalSerialize value = {random_value<int>(gen), random_value<int>(gen)};
-			o_iserunordered_multiset.insert(value);
-			o_iserunordered_multiset.insert(value);
-		}
-
-		std::unordered_multiset<StructInternalSplit, StructHash<StructInternalSplit>> o_isplunordered_multiset;
-		for (int j = 0; j < 100; ++j) {
-			StructInternalSplit value = {random_value<int>(gen), random_value<int>(gen)};
-			o_isplunordered_multiset.insert(value);
-			o_isplunordered_multiset.insert(value);
-		}
-
-		std::unordered_multiset<StructExternalSerialize, StructHash<StructExternalSerialize>> o_eserunordered_multiset;
-		for (int j = 0; j < 100; ++j) {
-			StructExternalSerialize value = {random_value<int>(gen), random_value<int>(gen)};
-			o_eserunordered_multiset.insert(value);
-			o_eserunordered_multiset.insert(value);
-		}
-
-		std::unordered_multiset<StructExternalSplit, StructHash<StructExternalSplit>> o_esplunordered_multiset;
-		for (int j = 0; j < 100; ++j) {
-			StructExternalSplit value = {random_value<int>(gen), random_value<int>(gen)};
-			o_esplunordered_multiset.insert(value);
-			o_esplunordered_multiset.insert(value);
-		}
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podunordered_multiset);
-			oar(o_iserunordered_multiset);
-			oar(o_isplunordered_multiset);
-			oar(o_eserunordered_multiset);
-			oar(o_esplunordered_multiset);
-		}
-
-		std::unordered_multiset<int> i_podunordered_multiset;
-		std::unordered_multiset<StructInternalSerialize, StructHash<StructInternalSerialize>> i_iserunordered_multiset;
-		std::unordered_multiset<StructInternalSplit, StructHash<StructInternalSplit>> i_isplunordered_multiset;
-		std::unordered_multiset<StructExternalSerialize, StructHash<StructExternalSerialize>> i_eserunordered_multiset;
-		std::unordered_multiset<StructExternalSplit, StructHash<StructExternalSplit>> i_esplunordered_multiset;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podunordered_multiset);
-			iar(i_iserunordered_multiset);
-			iar(i_isplunordered_multiset);
-			iar(i_eserunordered_multiset);
-			iar(i_esplunordered_multiset);
-		}
-
-		for (auto const& p : i_podunordered_multiset) {
-			CHECK_EQ(o_podunordered_multiset.count(p), i_podunordered_multiset.count(p));
-		}
-
-		for (auto const& p : i_iserunordered_multiset) {
-			CHECK_EQ(o_iserunordered_multiset.count(p), i_iserunordered_multiset.count(p));
-		}
-
-		for (auto const& p : i_isplunordered_multiset) {
-			CHECK_EQ(o_isplunordered_multiset.count(p), i_isplunordered_multiset.count(p));
-		}
-
-		for (auto const& p : i_eserunordered_multiset) {
-			CHECK_EQ(o_eserunordered_multiset.count(p), i_eserunordered_multiset.count(p));
-		}
-
-		for (auto const& p : i_esplunordered_multiset) {
-			CHECK_EQ(o_esplunordered_multiset.count(p), i_esplunordered_multiset.count(p));
-		}
+/// Every random element twice, so duplicates are present
+template <typename C>
+C random_with_duplicates(std::mt19937& gen) {
+	C values;
+	for (std::size_t i = 0; i < element_count; ++i) {
+		const auto value = random_value<typename C::value_type>(gen);
+		values.insert(value);
+		values.insert(value);
 	}
+	return values;
 }
 
+TEST_CASE_TEMPLATE("std::unordered_multiset", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-TEST_SUITE_BEGIN("unordered_multiset");
+	SUBCASE("duplicates") {
+		check_roundtrip<Ar>(random_with_duplicates<std::unordered_multiset<int>>(gen));
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_with_duplicates<std::unordered_multiset<S, StructHash<S>>>(gen));
+		});
+	}
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("unordered_multiset", test_unordered_multiset)
-
-TEST_SUITE_END();
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::unordered_multiset<int>{});
+	}
+}

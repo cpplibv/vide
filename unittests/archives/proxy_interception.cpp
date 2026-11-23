@@ -16,8 +16,6 @@
 #include <doctest/doctest.h>
 
 
-TEST_SUITE_BEGIN("proxy_interception");
-
 namespace { // -------------------------------------------------------------------------------------
 
 struct Password {
@@ -223,5 +221,3 @@ TEST_CASE("input interception") {
 	CHECK_EQ(undone.password.text, "hunter2");
 	CHECK_EQ(undone.user, "vader");
 }
-
-TEST_SUITE_END();

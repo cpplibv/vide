@@ -3,134 +3,51 @@
 #include <vide/types/std_map.hpp>
 #include <vide/types/std_string.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <map>
-#include <random>
-#include <sstream>
 #include <string>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
 #include "common/sample_structs.hpp"
-#include "common/save_load_tester.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_multimap() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::multimap<std::string, int> o_podmultimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<std::string>(gen);
-			o_podmultimap.insert({key, random_value<int>(gen)});
-			o_podmultimap.insert({key, random_value<int>(gen)});
-		}
+/// Every random key twice, with different values
+template <typename C>
+C random_with_duplicate_keys(std::mt19937& gen) {
+	C values;
+	for (std::size_t i = 0; i < element_count; ++i) {
+		const auto key = random_value<typename C::key_type>(gen);
+		values.emplace(key, random_value<typename C::mapped_type>(gen));
+		values.emplace(key, random_value<typename C::mapped_type>(gen));
+	}
+	return values;
+}
 
-		std::multimap<uint8_t, StructInternalSerialize> o_isermultimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<uint8_t>(gen);
-			o_isermultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_isermultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
+TEST_CASE_TEMPLATE("std::multimap", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-		std::multimap<int16_t, StructInternalSplit> o_isplmultimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<int16_t>(gen);
-			o_isplmultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_isplmultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
+	SUBCASE("duplicate keys") {
+		check_roundtrip<Ar>(random_with_duplicate_keys<std::multimap<std::string, int>>(gen));
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_with_duplicate_keys<std::multimap<std::int8_t, S>>(gen));
+		});
+	}
 
-		std::multimap<uint32_t, StructExternalSerialize> o_esermultimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<uint32_t>(gen);
-			o_esermultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_esermultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
+	SUBCASE("equal keys keep their order") { // multimap == compares in order, equal keys included
+		std::multimap<int, int> ordered;
+		for (int value = 1; value <= 9; ++value)
+			ordered.emplace(10, value);
+		check_roundtrip<Ar>(ordered);
+	}
 
-		std::multimap<int8_t, StructExternalSplit> o_esplmultimap;
-		for (int j = 0; j < 100; ++j) {
-			auto key = random_value<int8_t>(gen);
-			o_esplmultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-			o_esplmultimap.insert({key, {random_value<int>(gen), random_value<int>(gen)}});
-		}
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podmultimap);
-			oar(o_isermultimap);
-			oar(o_isplmultimap);
-			oar(o_esermultimap);
-			oar(o_esplmultimap);
-		}
-
-		std::multimap<std::string, int> i_podmultimap;
-		std::multimap<uint8_t, StructInternalSerialize> i_isermultimap;
-		std::multimap<int16_t, StructInternalSplit> i_isplmultimap;
-		std::multimap<uint32_t, StructExternalSerialize> i_esermultimap;
-		std::multimap<int8_t, StructExternalSplit> i_esplmultimap;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podmultimap);
-			iar(i_isermultimap);
-			iar(i_isplmultimap);
-			iar(i_esermultimap);
-			iar(i_esplmultimap);
-		}
-
-#define MULTIMAP_CHECK(InMap, OutMap) \
-    for( auto & pair : OutMap ) \
-    { \
-      auto const count = InMap.count( pair.first ); \
-      CHECK_EQ( count, OutMap.count( pair.first ) ); \
-      auto find = InMap.find( pair.first ); \
-      bool found = false; \
-      for( size_t i = 0; i < count; ++i, ++find ) \
-        found |= find->second == pair.second; \
-      CHECK_UNARY( found ); \
-    }
-
-		MULTIMAP_CHECK(i_podmultimap, o_podmultimap);
-		MULTIMAP_CHECK(i_isermultimap, o_isermultimap);
-		MULTIMAP_CHECK(i_isplmultimap, o_isplmultimap);
-		MULTIMAP_CHECK(i_esermultimap, o_esermultimap);
-		MULTIMAP_CHECK(i_esplmultimap, o_esplmultimap);
-
-#undef MULTIMAP_CHECK
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::multimap<int, int>{});
 	}
 }
-
-// -------------------------------------------------------------------------------------------------
-
-template <class IArchive, class OArchive>
-void test_multimap_preserve_order() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	SaveLoadTester<IArchive, OArchive> test{};
-
-	std::multimap<int, int> map;
-	map.emplace(10, 1);
-	map.emplace(10, 2);
-	map.emplace(10, 3);
-	map.emplace(10, 4);
-	map.emplace(10, 5);
-	map.emplace(10, 6);
-	map.emplace(10, 7);
-	map.emplace(10, 8);
-	map.emplace(10, 9);
-	CHECK(test(map));
-}
-
-TEST_SUITE_BEGIN("multimap");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multimap", test_multimap)
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("multimap_preserve_order", test_multimap_preserve_order)
-
-TEST_SUITE_END();

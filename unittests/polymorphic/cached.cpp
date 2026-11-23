@@ -3,34 +3,31 @@
 #include <vide/types/memory.hpp>
 #include <vide/types/polymorphic.hpp>
 
-#include <iostream>
 #include <memory>
 #include <random>
-#include <sstream>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/random.hpp"
 #include "common/shared_ptr_helpers.hpp"
 #include "common/tester.hpp"
 #include "test_classes.hpp"
 
 
-// =================================================================================================
-
-template <class IArchive, class OArchive>
-void test_polymorphic_cached() {
-	std::mt19937 rng(0x5EED);
+// Proxy archives are left out: these tests take too long to compile for them (TODO P4)
+TEST_CASE_TEMPLATE("polymorphic pointers with cached casts", Ar, VIDE_BINARY_ARCHIVES, VIDE_TEXT_ARCHIVES) {
+	using IArchive = typename Ar::input;
+	using OArchive = typename Ar::output;
+	std::mt19937 rng = test_rng();
 	Initializer init{rng};
 
-	for (int i = 0; i < 100; ++i) {
-		Tester<IArchive, OArchive> test;
-
+	run_rounds<Ar>(100, rng, [&](Tester<Ar>& test) {
 		// --- Polymorphic loading via different types to the same object ---
 
 		// Deep chain
 		{
-			struct _ {
+			struct Holder1 {
 				std::shared_ptr<DeepChain5> a;
 				std::shared_ptr<DeepChain4> b;
 				std::shared_ptr<DeepChain3> c;
@@ -59,7 +56,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<DeepChain5>(in.a), dcast<DeepChain5>(in.e));
 			});
 		} {
-			struct _ {
+			struct Holder2 {
 				std::shared_ptr<DeepChain1> a;
 				std::shared_ptr<DeepChain2> b;
 				std::shared_ptr<DeepChain3> c;
@@ -88,7 +85,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<DeepChain5>(in.a), dcast<DeepChain5>(in.e));
 			});
 		} {
-			struct _ {
+			struct Holder3 {
 				std::shared_ptr<DeepChain3> a;
 				std::shared_ptr<DeepChain2> b;
 				std::shared_ptr<DeepChain1> c;
@@ -119,7 +116,7 @@ void test_polymorphic_cached() {
 		}
 
 		{ // BaseAtNonZeroOffset
-			struct _ {
+			struct Holder4 {
 				std::shared_ptr<BaseAtNonZeroOffset> a;
 				std::shared_ptr<RootSimpleA> b;
 				void serialize(IArchive& ar) { ar(a)(b); }
@@ -136,7 +133,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<BaseAtNonZeroOffset>(in.a), dcast<BaseAtNonZeroOffset>(in.b));
 			});
 		} {
-			struct _ {
+			struct Holder5 {
 				std::shared_ptr<RootSimpleA> a;
 				std::shared_ptr<BaseAtNonZeroOffset> b;
 				void serialize(IArchive& ar) { ar(a)(b); }
@@ -156,7 +153,7 @@ void test_polymorphic_cached() {
 
 		// ClassicVirtualDiamond
 		{
-			struct _ {
+			struct Holder6 {
 				std::shared_ptr<ClassicVirtualDiamond> a;
 				std::shared_ptr<SingleVirtualBaseA_SimpleA> b;
 				std::shared_ptr<SingleVirtualBaseB_SimpleA> c;
@@ -181,7 +178,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<ClassicVirtualDiamond>(in.a), dcast<ClassicVirtualDiamond>(in.d));
 			});
 		} {
-			struct _ {
+			struct Holder7 {
 				std::shared_ptr<RootSimpleA> a;
 				std::shared_ptr<SingleVirtualBaseA_SimpleA> b;
 				std::shared_ptr<SingleVirtualBaseB_SimpleA> c;
@@ -206,7 +203,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<ClassicVirtualDiamond>(in.a), dcast<ClassicVirtualDiamond>(in.d));
 			});
 		} {
-			struct _ {
+			struct Holder8 {
 				std::shared_ptr<SingleVirtualBaseB_SimpleA> a;
 				std::shared_ptr<RootSimpleA> b;
 				std::shared_ptr<ClassicVirtualDiamond> c;
@@ -231,7 +228,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<ClassicVirtualDiamond>(in.a), dcast<ClassicVirtualDiamond>(in.d));
 			});
 		} {
-			struct _ {
+			struct Holder9 {
 				std::shared_ptr<SingleVirtualBaseA_SimpleA> a;
 				std::shared_ptr<RootSimpleA> b;
 				std::shared_ptr<SingleVirtualBaseB_SimpleA> c;
@@ -258,7 +255,7 @@ void test_polymorphic_cached() {
 		}
 
 		{ // MultipleNonVirtualBases
-			struct _ {
+			struct Holder10 {
 				std::shared_ptr<MultipleNonVirtualBases> a;
 				std::shared_ptr<RootSimpleA> b;
 				std::shared_ptr<RootSimpleB> c;
@@ -279,7 +276,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<MultipleNonVirtualBases>(in.a), dcast<MultipleNonVirtualBases>(in.c));
 			});
 		} {
-			struct _ {
+			struct Holder11 {
 				std::shared_ptr<RootSimpleA> a;
 				std::shared_ptr<MultipleNonVirtualBases> b;
 				std::shared_ptr<RootSimpleB> c;
@@ -300,7 +297,7 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<MultipleNonVirtualBases>(in.a), dcast<MultipleNonVirtualBases>(in.c));
 			});
 		} {
-			struct _ {
+			struct Holder12 {
 				std::shared_ptr<RootSimpleB> a;
 				std::shared_ptr<RootSimpleA> b;
 				std::shared_ptr<MultipleNonVirtualBases> c;
@@ -321,41 +318,5 @@ void test_polymorphic_cached() {
 				CHECK_EQ(dcast<MultipleNonVirtualBases>(in.a), dcast<MultipleNonVirtualBases>(in.c));
 			});
 		}
-
-		// === Runner code ===
-
-		if (i != 0 && i != 99) // First and last is not shuffled for ease of debugging
-			test.shuffle(rng);
-
-		std::ostringstream os; {
-			OArchive oar(os);
-			test.outputAll(oar);
-		}
-
-		// std::cout << std::endl;
-		// std::cout << "========" << std::endl;
-		// std::cout << os.str() << std::endl;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-			test.inputAll(iar);
-		}
-
-		test.checkAll();
-	}
+	});
 }
-
-
-TEST_SUITE_BEGIN("polymorphic");
-
-// TEST_CASE("json_polymorphic") {
-// 	test_polymorphic_cached<vide::JSONInputArchive, vide::JSONOutputArchive>();
-// }
-CREATE_TEST_CASES_FOR_BINARY_ARCHIVE("polymorphic", test_polymorphic_cached)
-CREATE_TEST_CASES_FOR_TEXT_ARCHIVE("polymorphic", test_polymorphic_cached)
-// Proxy archives are skipped for test_polymorphic_cached as it takes ages to compile. A separate test will take care of it
-// TODO P4: Enable for proxies too:
-// CREATE_TEST_CASES_FOR_ALL_ARCHIVE("polymorphic", test_polymorphic_cached)
-
-TEST_SUITE_END();
-

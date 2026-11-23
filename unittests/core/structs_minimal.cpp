@@ -25,330 +25,325 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
 #include <vide/types/std_string.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <cstdint>
-#include <random>
-#include <sstream>
 #include <string>
 #include <utility>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
+
+// One type per minimal shape: member save_minimal / load_minimal pairs with each return and parameter form, the
+// specialized serializer with minimal = true, and serialize_minimal. All record their calls
 
 class MemberMinimal {
-public:
-	std::string x;
-
-protected:
 	friend class vide::access;
 
 	template <class Archive>
 	std::string save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
 	template <class Archive>
 	void load_minimal(const Archive&, const std::string& str) {
+		record_call<Archive>(this);
 		x = str;
 	}
-};
 
-class MemberMinimalRecursive {
 public:
 	std::string x;
 
-protected:
+	bool operator==(const MemberMinimal&) const = default;
+};
+
+/// Saves as another minimal type, which collapses to its string as well
+class MemberMinimalRecursive {
 	friend class vide::access;
 
 	template <class Archive>
 	MemberMinimal save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return MemberMinimal{x};
 	}
 
 	template <class Archive>
-	void load_minimal(const Archive&, const MemberMinimal& str) {
-		x = str.x;
+	void load_minimal(const Archive&, const MemberMinimal& inner) {
+		record_call<Archive>(this);
+		x = inner.x;
 	}
-};
 
-class MemberMinimalRecursiveNested {
 public:
 	std::string x;
 
-protected:
+	bool operator==(const MemberMinimalRecursive&) const = default;
+};
+
+class MemberMinimalRecursiveNested {
 	friend class vide::access;
 
 	template <class Archive>
 	MemberMinimalRecursive save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return MemberMinimalRecursive{x};
 	}
 
 	template <class Archive>
-	void load_minimal(const Archive&, const MemberMinimalRecursive& str) {
-		x = str.x;
+	void load_minimal(const Archive&, const MemberMinimalRecursive& inner) {
+		record_call<Archive>(this);
+		x = inner.x;
 	}
-};
 
-class MemberMinimalContRef {
 public:
 	std::string x;
 
-protected:
+	bool operator==(const MemberMinimalRecursiveNested&) const = default;
+};
+
+class MemberMinimalConstRef {
 	friend class vide::access;
 
 	template <class Archive>
 	const std::string& save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
 	template <class Archive>
 	void load_minimal(const Archive&, const std::string& str) {
+		record_call<Archive>(this);
 		x = str;
 	}
-};
 
-class MemberMinimalValueOutAndValueIn {
 public:
 	std::string x;
 
-protected:
+	bool operator==(const MemberMinimalConstRef&) const = default;
+};
+
+class MemberMinimalByValue {
 	friend class vide::access;
 
 	template <class Archive>
 	std::string save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
 	template <class Archive>
 	void load_minimal(const Archive&, std::string str) {
+		record_call<Archive>(this);
 		x = std::move(str);
 	}
-};
 
-class MemberMinimalContRefOutAndMoveRefIn {
 public:
 	std::string x;
 
-protected:
+	bool operator==(const MemberMinimalByValue&) const = default;
+};
+
+class MemberMinimalConstRefOutRvalueIn {
 	friend class vide::access;
 
 	template <class Archive>
 	const std::string& save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
 	template <class Archive>
 	void load_minimal(const Archive&, std::string&& str) {
+		record_call<Archive>(this);
 		x = std::move(str);
 	}
-};
 
-class MemberMinimalContRefOutAndMoveRefInVersioned {
 public:
 	std::string x;
 
-protected:
+	bool operator==(const MemberMinimalConstRefOutRvalueIn&) const = default;
+};
+
+class MemberMinimalConstRefOutRvalueInVersioned {
 	friend class vide::access;
 
 	template <class Archive>
-	const std::string& save_minimal(const Archive&, const std::uint32_t) const {
+	const std::string& save_minimal(const Archive&, std::uint32_t) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
 	template <class Archive>
-	void load_minimal(const Archive&, std::string&& str, const std::uint32_t) {
+	void load_minimal(const Archive&, std::string&& str, std::uint32_t) {
+		record_call<Archive>(this);
 		x = std::move(str);
 	}
+
+public:
+	std::string x;
+
+	bool operator==(const MemberMinimalConstRefOutRvalueInVersioned&) const = default;
 };
 
 class MemberMinimalVersioned {
-public:
-	double x = 42;
-
-protected:
 	friend class vide::access;
 
 	template <class Archive>
-	double save_minimal(const Archive&, const std::uint32_t) const {
+	double save_minimal(const Archive&, std::uint32_t) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
 	template <class Archive>
-	void load_minimal(const Archive&, const double& d, const std::uint32_t) {
+	void load_minimal(const Archive&, const double& d, std::uint32_t) {
+		record_call<Archive>(this);
 		x = d;
 	}
-};
 
-struct GlobalMinimal {
-	std::uint32_t x = 42;
-};
-
-template <>
-struct vide::serializer<GlobalMinimal> {
-	static constexpr bool minimal = true;
-
-	template <class Archive>
-	static void serialize(Archive& ar, GlobalMinimal& var, std::uint32_t) {
-		ar(var.x);
-	}
-};
-
-struct GlobalMinimalVersioned {
-	bool x;
-};
-
-template <>
-struct vide::serializer<GlobalMinimalVersioned> {
-	static constexpr bool minimal = true;
-
-	template <class Archive>
-	static void serialize(Archive& ar, GlobalMinimalVersioned& var, std::uint32_t version) {
-		ar(var.x);
-		(void) version;
-	}
-};
-
-struct GlobalMinimalContRefOutAndMoveRefIn {
-	std::string x;
-};
-
-template <>
-struct vide::serializer<GlobalMinimalContRefOutAndMoveRefIn> {
-	static constexpr bool minimal = true;
-
-	template <class Archive>
-	static void serialize(Archive& ar, GlobalMinimalContRefOutAndMoveRefIn& var, std::uint32_t) {
-		if constexpr (Archive::is_output) {
-			ar(var.x);
-		} else {
-			std::string str;
-			ar(str);
-			var.x = std::move(str);
-		}
-	}
-};
-
-struct GlobalMinimalContRefOutAndMoveRefInVersioned {
-	std::string x;
-};
-
-template <>
-struct vide::serializer<GlobalMinimalContRefOutAndMoveRefInVersioned> {
-	static constexpr bool minimal = true;
-
-	template <class Archive>
-	static void serialize(Archive& ar, GlobalMinimalContRefOutAndMoveRefInVersioned& var, std::uint32_t) {
-		if constexpr (Archive::is_output) {
-			ar(var.x);
-		} else {
-			std::string str;
-			ar(str);
-			var.x = std::move(str);
-		}
-	}
-};
-
-// gmtgsplbv
-
-struct TrivialGSPL {
-	int x = 4;
-};
-
-template <>
-struct vide::serializer<TrivialGSPL> {
-	template <class Archive>
-	static void serialize(Archive& ar, TrivialGSPL& var, std::uint32_t) {
-		ar(var.x);
-	}
-};
-
-class GlobalMinimalTrivialGSPLByValue {
 public:
-	TrivialGSPL x;
+	double x = 0;
 
-protected:
-	friend class vide::access;
+	bool operator==(const MemberMinimalVersioned&) const = default;
+};
+
+struct SpecializedMinimal {
+	std::uint32_t x = 0;
+
+	bool operator==(const SpecializedMinimal&) const = default;
 };
 
 template <>
-struct vide::serializer<GlobalMinimalTrivialGSPLByValue> {
+struct vide::serializer<SpecializedMinimal> {
 	static constexpr bool minimal = true;
 
 	template <class Archive>
-	static void serialize(Archive& ar, GlobalMinimalTrivialGSPLByValue& var, std::uint32_t) {
+	static void serialize(Archive& ar, SpecializedMinimal& var, std::uint32_t) {
+		record_call<Archive>(&var);
 		ar(var.x);
 	}
 };
 
-// -------------------------------------------------------------------------------------------------
+struct SpecializedMinimalSplit {
+	std::string x;
 
-struct TestStruct {
-	MemberMinimal mm;
-	MemberMinimalRecursive mm_recursive;
-	MemberMinimalRecursiveNested mm_recursive_nested;
-	MemberMinimalContRef mmcr;
-	MemberMinimalValueOutAndValueIn mmvv;
-	MemberMinimalContRefOutAndMoveRefIn mmcrmr;
-	MemberMinimalContRefOutAndMoveRefInVersioned mmcrmrv;
-	MemberMinimalVersioned mmv;
-	GlobalMinimal nmm;
-	GlobalMinimalVersioned nmmv;
-	GlobalMinimalContRefOutAndMoveRefIn gmcrmr;
-	GlobalMinimalContRefOutAndMoveRefInVersioned gmcrmrv;
-	GlobalMinimalTrivialGSPLByValue gmtgsplbv;
-
-	TestStruct() = default;
-
-	TestStruct(const std::string& s, double d, std::uint32_t u, bool b) :
-			mm(s),
-			mm_recursive(s),
-			mm_recursive_nested(s),
-			mmcr(s),
-			mmvv(s),
-			mmcrmr(s),
-			mmcrmrv(s),
-			mmv(d),
-			nmm(u),
-			nmmv(b),
-			gmcrmr(s),
-			gmcrmrv(s) {}
-
-	template <class Archive>
-	void serialize(Archive& ar) {
-		ar(mm);
-		ar(mm_recursive);
-		ar.nvp("nest", mm_recursive_nested);
-		ar(mmcr);
-		ar(mmvv);
-		ar(mmcrmr);
-		ar(mmcrmrv);
-		ar(mmv);
-		ar(nmm);
-		ar(nmmv);
-		ar(gmcrmr);
-		ar(gmcrmrv);
-		ar(gmtgsplbv);
-	}
+	bool operator==(const SpecializedMinimalSplit&) const = default;
 };
 
-// -------------------------------------------------------------------------------------------------
-
-struct Issue79Struct {
-	std::int32_t x;
-};
-
-// Representation depends on the archive: decimal string in text archives, raw int otherwise
 template <>
-struct vide::serializer<Issue79Struct> {
+struct vide::serializer<SpecializedMinimalSplit> {
 	static constexpr bool minimal = true;
 
 	template <class Archive>
-	static void serialize(Archive& ar, Issue79Struct& var, std::uint32_t) {
+	static void serialize(Archive& ar, SpecializedMinimalSplit& var, std::uint32_t) {
+		record_call<Archive>(&var);
+		if constexpr (Archive::is_output) {
+			ar(var.x);
+		} else {
+			std::string str;
+			ar(str);
+			var.x = std::move(str);
+		}
+	}
+};
+
+struct SpecializedMinimalVersioned {
+	static constexpr std::uint32_t serialize_class_version = 3;
+
+	bool x = false;
+
+	bool operator==(const SpecializedMinimalVersioned&) const = default;
+};
+
+template <>
+struct vide::serializer<SpecializedMinimalVersioned> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, SpecializedMinimalVersioned& var, std::uint32_t) {
+		record_call<Archive>(&var);
+		ar(var.x);
+	}
+};
+
+/// A non-minimal type as the minimal value
+struct Inner {
+	int x = 0;
+
+	bool operator==(const Inner&) const = default;
+};
+
+template <>
+struct vide::serializer<Inner> {
+	template <class Archive>
+	static void serialize(Archive& ar, Inner& var, std::uint32_t) {
+		record_call<Archive>(&var);
+		ar(var.x);
+	}
+};
+
+struct SpecializedMinimalOfClass {
+	Inner x;
+
+	bool operator==(const SpecializedMinimalOfClass&) const = default;
+};
+
+template <>
+struct vide::serializer<SpecializedMinimalOfClass> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, SpecializedMinimalOfClass& var, std::uint32_t) {
+		record_call<Archive>(&var);
+		ar(var.x);
+	}
+};
+
+struct MemberSerializeMinimal {
+	std::int32_t x = 0;
+
+	template <typename Archive>
+	std::int32_t& serialize_minimal(Archive&) {
+		record_call<Archive>(this);
+		return x;
+	}
+
+	bool operator==(const MemberSerializeMinimal&) const = default;
+};
+
+struct MemberSerializeMinimalVersioned {
+	std::int32_t x = 0;
+
+	template <typename Archive>
+	std::int32_t& serialize_minimal(Archive&, std::uint32_t) {
+		record_call<Archive>(this);
+		return x;
+	}
+
+	bool operator==(const MemberSerializeMinimalVersioned&) const = default;
+};
+
+/// Representation depends on the archive: decimal string in text archives, raw int otherwise (upstream issue 79)
+struct ArchiveDependentSpecialized {
+	std::int32_t x = 0;
+
+	bool operator==(const ArchiveDependentSpecialized&) const = default;
+};
+
+template <>
+struct vide::serializer<ArchiveDependentSpecialized> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, ArchiveDependentSpecialized& var, std::uint32_t) {
+		record_call<Archive>(&var);
 		if constexpr (Archive::is_text_archive) {
 			if constexpr (Archive::is_output) {
 				ar(std::to_string(var.x));
@@ -363,153 +358,111 @@ struct vide::serializer<Issue79Struct> {
 	}
 };
 
-struct Issue79StructInternal {
-	std::int32_t x;
+struct ArchiveDependentMember {
+	std::int32_t x = 0;
 
-public:
 	template <class Archive> requires Archive::is_text_archive
-	inline std::string save_minimal(const Archive&) const {
+	std::string save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return std::to_string(x);
 	}
 
 	template <class Archive> requires Archive::is_text_archive
-	inline void load_minimal(const Archive&, const std::string& str) {
+	void load_minimal(const Archive&, const std::string& str) {
+		record_call<Archive>(this);
 		x = std::stoi(str);
 	}
 
-	template <class Archive> requires (not Archive::is_text_archive)
-	inline std::int32_t save_minimal(const Archive&) const {
+	template <class Archive> requires (!Archive::is_text_archive)
+	std::int32_t save_minimal(const Archive&) const {
+		record_call<Archive>(this);
 		return x;
 	}
 
-	template <class Archive> requires (not Archive::is_text_archive)
-	inline void load_minimal(const Archive&, std::int32_t const& xx) {
-		x = xx;
+	template <class Archive> requires (!Archive::is_text_archive)
+	void load_minimal(const Archive&, const std::int32_t& value) {
+		record_call<Archive>(this);
+		x = value;
 	}
+
+	bool operator==(const ArchiveDependentMember&) const = default;
 };
+
+/// Every shape as a member, one of them named
+struct AllMinimal {
+	MemberMinimal a;
+	MemberMinimalRecursive b;
+	MemberMinimalRecursiveNested c;
+	MemberMinimalConstRef d;
+	MemberMinimalByValue e;
+	MemberMinimalConstRefOutRvalueIn f;
+	MemberMinimalConstRefOutRvalueInVersioned g;
+	MemberMinimalVersioned h;
+	SpecializedMinimal i;
+	SpecializedMinimalSplit j;
+	SpecializedMinimalVersioned k;
+	SpecializedMinimalOfClass l;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar(a)(b);
+		ar.nvp("nested", c);
+		ar(d)(e)(f)(g)(h)(i)(j)(k)(l);
+	}
+
+	bool operator==(const AllMinimal&) const = default;
+};
+
+std::string without_whitespace(std::string text) {
+	std::erase_if(text, [](unsigned char c) { return std::isspace(c); });
+	return text;
+}
 
 // -------------------------------------------------------------------------------------------------
 
-struct StructMemberSerializeMinimal {
-	std::int32_t x;
+TEST_CASE_TEMPLATE("minimal serialization", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
+	const std::string text = random_value<std::string>(gen);
+	const auto number = random_value<std::int32_t>(gen);
 
-	template <typename Archive>	std::int32_t& serialize_minimal(Archive&) {
-		return x;
+	SUBCASE("member save_minimal / load_minimal") {
+		check_roundtrip<Ar, MemberMinimal>(MemberMinimal{text});
+		check_roundtrip<Ar, MemberMinimalRecursive>(MemberMinimalRecursive{text});
+		check_roundtrip<Ar, MemberMinimalRecursiveNested>(MemberMinimalRecursiveNested{text});
+		check_roundtrip<Ar, MemberMinimalConstRef>(MemberMinimalConstRef{text});
+		check_roundtrip<Ar, MemberMinimalByValue>(MemberMinimalByValue{text});
+		check_roundtrip<Ar, MemberMinimalConstRefOutRvalueIn>(MemberMinimalConstRefOutRvalueIn{text});
+		check_roundtrip<Ar, MemberMinimalConstRefOutRvalueInVersioned>(MemberMinimalConstRefOutRvalueInVersioned{text});
+		check_roundtrip<Ar, MemberMinimalVersioned>(MemberMinimalVersioned{random_value<double>(gen)});
 	}
-};
 
-struct StructGlobalSerializeMinimal {
-	std::int32_t x;
-};
-
-template <>
-struct vide::serializer<StructGlobalSerializeMinimal> {
-	static constexpr bool minimal = true;
-
-	template <class Archive>
-	static void serialize(Archive& ar, StructGlobalSerializeMinimal& var, std::uint32_t) {
-		ar(var.x);
+	SUBCASE("specialized serializer with minimal = true") {
+		check_roundtrip<Ar, SpecializedMinimal>(SpecializedMinimal{random_value<std::uint32_t>(gen)});
+		check_roundtrip<Ar, SpecializedMinimalSplit>(SpecializedMinimalSplit{text});
+		check_roundtrip<Ar, SpecializedMinimalVersioned>(SpecializedMinimalVersioned{true});
+		check_roundtrip<Ar, SpecializedMinimalOfClass, Inner>(SpecializedMinimalOfClass{Inner{number}});
 	}
-};
 
-struct StructMemberSerializeMinimalVersioned {
-	std::int32_t x;
-
-	template <typename Archive> std::int32_t& serialize_minimal(Archive&, std::uint32_t version) {
-		(void) version;
-		return x;
+	SUBCASE("member serialize_minimal") {
+		check_roundtrip<Ar, MemberSerializeMinimal>(MemberSerializeMinimal{number});
+		check_roundtrip<Ar, MemberSerializeMinimalVersioned>(MemberSerializeMinimalVersioned{number});
 	}
-};
 
-struct StructGlobalSerializeMinimalVersioned {
-	std::int32_t x;
-};
-
-template <>
-struct vide::serializer<StructGlobalSerializeMinimalVersioned> {
-	static constexpr bool minimal = true;
-
-	template <class Archive>
-	static void serialize(Archive& ar, StructGlobalSerializeMinimalVersioned& var, std::uint32_t version) {
-		ar(var.x);
-		(void) version;
+	SUBCASE("representation chosen by archive") {
+		check_roundtrip<Ar, ArchiveDependentSpecialized>(ArchiveDependentSpecialized{number});
+		check_roundtrip<Ar, ArchiveDependentMember>(ArchiveDependentMember{number});
 	}
-};
 
-// -------------------------------------------------------------------------------------------------
-
-template <class IArchive, class OArchive>
-inline void test_structs_minimal() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	for (int ii = 0; ii < 100; ++ii) {
-		TestStruct o_struct = {random_basic_string<char>(gen), random_value<double>(gen),
-				random_value<std::uint32_t>(gen), random_value<uint8_t>(gen) % 2 ? true : false};
-
-		Issue79Struct o_struct2 = {random_value<std::int32_t>(gen)};
-		Issue79StructInternal o_struct3 = {random_value<std::int32_t>(gen)};
-		StructMemberSerializeMinimal o_smsm{random_value<std::int32_t>(gen)};
-		StructGlobalSerializeMinimal o_sgsm{random_value<std::int32_t>(gen)};
-		StructMemberSerializeMinimalVersioned o_smsmv{random_value<std::int32_t>(gen)};
-		StructGlobalSerializeMinimalVersioned o_sgsmv{random_value<std::int32_t>(gen)};
-
-		std::ostringstream os;
-		{
-			OArchive oar(os);
-			oar(o_struct);
-			oar(o_struct2);
-			oar(o_struct3);
-			oar(o_smsm);
-			oar(o_sgsm);
-			oar(o_smsmv);
-			oar(o_sgsmv);
-		}
-
-		decltype(o_struct) i_struct;
-		decltype(o_struct2) i_struct2;
-		decltype(o_struct3) i_struct3;
-		decltype(o_smsm) i_smsm;
-		decltype(o_sgsm) i_sgsm;
-		decltype(o_smsmv) i_smsmv;
-		decltype(o_sgsmv) i_sgsmv;
-
-		std::istringstream is(os.str());
-		{
-			IArchive iar(is);
-			iar(i_struct);
-			iar(i_struct2);
-			iar(i_struct3);
-			iar(i_smsm);
-			iar(i_sgsm);
-			iar(i_smsmv);
-			iar(i_sgsmv);
-		}
-
-		CHECK_EQ(o_struct.mm.x, i_struct.mm.x);
-		CHECK_EQ(o_struct.mm_recursive.x, i_struct.mm_recursive.x);
-		CHECK_EQ(o_struct.mm_recursive_nested.x, i_struct.mm_recursive_nested.x);
-		CHECK_EQ(o_struct.mmcr.x, i_struct.mmcr.x);
-		CHECK_EQ(o_struct.mmcrmr.x, i_struct.mmcrmr.x);
-		CHECK_EQ(o_struct.mmv.x, doctest::Approx(i_struct.mmv.x).epsilon(1e-5));
-
-		CHECK_EQ(o_struct.nmm.x, i_struct.nmm.x);
-		CHECK_EQ(o_struct.nmmv.x, i_struct.nmmv.x);
-
-		CHECK_EQ(o_struct2.x, i_struct2.x);
-
-		CHECK_EQ(o_struct3.x, i_struct3.x);
-
-		CHECK_EQ(o_smsm.x, i_smsm.x);
-		CHECK_EQ(o_sgsm.x, i_sgsm.x);
-		CHECK_EQ(o_smsmv.x, i_smsmv.x);
-		CHECK_EQ(o_sgsmv.x, i_sgsmv.x);
+	SUBCASE("as members") {
+		check_roundtrip<Ar>(AllMinimal{{text}, {text}, {text}, {text}, {text}, {text}, {text}, {1.5}, {7}, {text}, {true}, {{number}}});
 	}
 }
 
-
-TEST_SUITE_BEGIN("structs_minimal");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("structs_minimal", test_structs_minimal)
-
-TEST_SUITE_END();
+TEST_CASE("minimal types are written as a bare value") {
+	CHECK_EQ(without_whitespace(save<JSONArchives>(MemberMinimal{"abc"})), R"({"value0":"abc"})");
+	CHECK_EQ(without_whitespace(save<JSONArchives>(MemberMinimalRecursiveNested{"abc"})), R"({"value0":"abc"})");
+	CHECK_EQ(without_whitespace(save<JSONArchives>(SpecializedMinimal{42})), R"({"value0":42})");
+	CHECK_EQ(without_whitespace(save<JSONArchives>(MemberSerializeMinimal{-7})), R"({"value0":-7})");
+	CHECK_EQ(without_whitespace(save<JSONArchives>(ArchiveDependentSpecialized{12})), R"({"value0":"12"})");
+	CHECK_EQ(without_whitespace(save<JSONArchives>(ArchiveDependentMember{12})), R"({"value0":"12"})");
+}

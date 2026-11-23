@@ -2,93 +2,52 @@
 
 #include <vide/types/std_queue.hpp>
 
+#include <cstddef>
 #include <queue>
-#include <random>
-#include <sstream>
+#include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
-#include "common/collection_checks.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_priority_queue() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
+constexpr std::size_t element_count = 100;
 
-	for (int ii = 0; ii < 100; ++ii) {
-		std::priority_queue<int> o_podpriority_queue;
-		for (int j = 0; j < 100; ++j)
-			o_podpriority_queue.push(random_value<int>(gen));
-
-		std::priority_queue<StructInternalSerialize> o_iserpriority_queue;
-		for (int j = 0; j < 100; ++j)
-			o_iserpriority_queue.push({random_value<int>(gen), random_value<int>(gen)});
-
-		std::priority_queue<StructInternalSplit> o_isplpriority_queue;
-		for (int j = 0; j < 100; ++j)
-			o_isplpriority_queue.push({random_value<int>(gen), random_value<int>(gen)});
-
-		std::priority_queue<StructExternalSerialize> o_eserpriority_queue;
-		for (int j = 0; j < 100; ++j)
-			o_eserpriority_queue.push({random_value<int>(gen), random_value<int>(gen)});
-
-		std::priority_queue<StructExternalSplit> o_esplpriority_queue;
-		for (int j = 0; j < 100; ++j)
-			o_esplpriority_queue.push({random_value<int>(gen), random_value<int>(gen)});
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_podpriority_queue);
-			oar(o_iserpriority_queue);
-			oar(o_isplpriority_queue);
-			oar(o_eserpriority_queue);
-			oar(o_esplpriority_queue);
-		}
-
-		std::priority_queue<int> i_podpriority_queue;
-		std::priority_queue<StructInternalSerialize> i_iserpriority_queue;
-		std::priority_queue<StructInternalSplit> i_isplpriority_queue;
-		std::priority_queue<StructExternalSerialize> i_eserpriority_queue;
-		std::priority_queue<StructExternalSplit> i_esplpriority_queue;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_podpriority_queue);
-			iar(i_iserpriority_queue);
-			iar(i_isplpriority_queue);
-			iar(i_eserpriority_queue);
-			iar(i_esplpriority_queue);
-		}
-
-		auto& i_podpriority_queue_c = vide::queue_detail::container(i_podpriority_queue);
-		auto& i_iserpriority_queue_c = vide::queue_detail::container(i_iserpriority_queue);
-		auto& i_isplpriority_queue_c = vide::queue_detail::container(i_isplpriority_queue);
-		auto& i_eserpriority_queue_c = vide::queue_detail::container(i_eserpriority_queue);
-		auto& i_esplpriority_queue_c = vide::queue_detail::container(i_esplpriority_queue);
-
-		auto& o_podpriority_queue_c = vide::queue_detail::container(o_podpriority_queue);
-		auto& o_iserpriority_queue_c = vide::queue_detail::container(o_iserpriority_queue);
-		auto& o_isplpriority_queue_c = vide::queue_detail::container(o_isplpriority_queue);
-		auto& o_eserpriority_queue_c = vide::queue_detail::container(o_eserpriority_queue);
-		auto& o_esplpriority_queue_c = vide::queue_detail::container(o_esplpriority_queue);
-
-		check_collection(i_podpriority_queue_c, o_podpriority_queue_c);
-		check_collection(i_iserpriority_queue_c, o_iserpriority_queue_c);
-		check_collection(i_isplpriority_queue_c, o_isplpriority_queue_c);
-		check_collection(i_eserpriority_queue_c, o_eserpriority_queue_c);
-		check_collection(i_esplpriority_queue_c, o_esplpriority_queue_c);
-	}
+/// Elements in pop order; std::priority_queue has no operator==
+template <typename T>
+std::vector<T> drain(std::priority_queue<T> queue) {
+	std::vector<T> elements;
+	for (; !queue.empty(); queue.pop())
+		elements.push_back(queue.top());
+	return elements;
 }
 
+template <typename Ar, typename T>
+void check_priority_queue_roundtrip(const std::priority_queue<T>& queue) {
+	const CallLog calls;
+	const auto loaded = roundtrip<Ar>(queue);
+	CHECK_EQ(drain(loaded), drain(queue));
+	check_once_each(calls, queue);
+}
 
-TEST_SUITE_BEGIN("priority_queue");
+TEST_CASE_TEMPLATE("std::priority_queue", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("priority_queue", test_priority_queue)
+	SUBCASE("arithmetic") {
+		check_priority_queue_roundtrip<Ar>(random_container<std::priority_queue<int>>(gen, element_count));
+	}
 
-TEST_SUITE_END();
+	SUBCASE("structs") {
+		for_each_sample_struct([&]<typename S> {
+			check_priority_queue_roundtrip<Ar>(random_container<std::priority_queue<S>>(gen, element_count));
+		});
+	}
+
+	SUBCASE("empty") {
+		check_priority_queue_roundtrip<Ar>(std::priority_queue<int>{});
+	}
+}

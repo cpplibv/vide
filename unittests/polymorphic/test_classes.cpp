@@ -1,4 +1,4 @@
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
 #include "test_classes.hpp"
 
 // One translation unit instantiates the polymorphic bindings of every archive the tests run against;

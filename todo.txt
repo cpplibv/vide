@@ -10,14 +10,7 @@
 
 
 
-Improve compile times:
-	-ftime-trace
-	-ftime-report
-	Reduce call chains
-	Maybe remove global overload variations in
-			favor of a template specialization
-	Remove NVP, base, bytes, etc tag types and use direct named function calls
-	Move archives into their own namespace (vide::archive) that holds no serializer overloads, so ADL on As finds nothing.
+
 
 Element validation
 	Container serializer functions must accept another
@@ -25,20 +18,18 @@ Element validation
 	the element validation solution
 		OR element substitute serializer
 
-Implementation*
-	implementation_set_save
-	implementation_set_load
-	and any other implementation variant
-	should use qualified lookup to stop ADL overload set
-	to become ambiguous
-
-
-
-
 
 
 - reflection: Rework enum validation to rely more on reflection
   - Replace unbounded_enumerator, end_value_enumerator and max_value_enumerator validation with attribute reflection
+
+
+
+
+Improve compile times:
+	Remove NVP, base, bytes, etc tag types and use direct named function calls
+
+
 
 
 

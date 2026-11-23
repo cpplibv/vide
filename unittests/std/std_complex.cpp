@@ -3,60 +3,30 @@
 #include <vide/types/std_complex.hpp>
 
 #include <complex>
-#include <random>
-#include <sstream>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 
 
-template <class IArchive, class OArchive>
-void test_complex() {
-	std::random_device rd;
-	std::mt19937 gen(rd());
-
-	auto rngF = [&]() { return random_value<float>(gen); };
-	auto rngD = [&]() { return random_value<double>(gen); };
-	auto rngLD = [&]() { return random_value<long double>(gen); };
-
-	for (int ii = 0; ii < 100; ++ii) {
-		std::complex<float> o_float(rngF(), rngF());
-		std::complex<double> o_double(rngD(), rngD());
-		std::complex<long double> o_ldouble(rngLD(), rngLD());
-
-		std::ostringstream os; {
-			OArchive oar(os);
-
-			oar(o_float);
-			oar(o_double);
-			oar(o_ldouble);
-		}
-
-		std::complex<float> i_float;
-		std::complex<double> i_double;
-		std::complex<long double> i_ldouble;
-
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-
-			iar(i_float);
-			iar(i_double);
-			iar(i_ldouble);
-		}
-
-		CHECK_EQ(o_float, i_float);
-		CHECK_EQ(o_double.real(), doctest::Approx(i_double.real()).epsilon(1e-5));
-		CHECK_EQ(o_double.imag(), doctest::Approx(i_double.imag()).epsilon(1e-5));
-		CHECK_EQ(o_ldouble.real(), doctest::Approx(i_ldouble.real()).epsilon(1e-5L));
-		CHECK_EQ(o_ldouble.imag(), doctest::Approx(i_ldouble.imag()).epsilon(1e-5L));
-	}
+template <typename T>
+std::complex<T> random_complex(std::mt19937& gen) {
+	const T real = random_value<T>(gen);
+	return {real, random_value<T>(gen)};
 }
 
+TEST_CASE_TEMPLATE("std::complex", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-TEST_SUITE_BEGIN("complex");
+	check_roundtrip<Ar>(random_complex<float>(gen));
+	check_roundtrip<Ar>(random_complex<double>(gen));
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("complex", test_complex)
-
-TEST_SUITE_END();
+	// Text archives store long double with double precision
+	const auto value = random_complex<long double>(gen);
+	const auto loaded = roundtrip<Ar>(value);
+	CHECK_EQ(loaded.real(), doctest::Approx(value.real()).epsilon(1e-5));
+	CHECK_EQ(loaded.imag(), doctest::Approx(value.imag()).epsilon(1e-5));
+}

@@ -26,203 +26,73 @@
 */
 
 #include <cstdint>
+#include <limits>
 #include <random>
-#include <sstream>
+#include <string>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
+#include "common/for_each_type.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 
 
-template <class IArchive, class OArchive> inline
-void test_pod()
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
+constexpr int values_per_type = 100;
 
-  for(size_t i=0; i<256; ++i)
-  {
-    bool          const o_bool   = random_value<uint8_t>(gen) % 2 ? true : false;
-    char          const o_char   = static_cast<char>(i);
-    unsigned char const o_uchar  = static_cast<unsigned char>(i);
-    uint8_t       const o_uint8  = random_value<uint8_t>(gen);
-    int8_t        const o_int8   = random_value<int8_t>(gen);
-    uint16_t      const o_uint16 = random_value<uint16_t>(gen);
-    int16_t       const o_int16  = random_value<int16_t>(gen);
-    uint32_t      const o_uint32 = random_value<uint32_t>(gen);
-    int32_t       const o_int32  = random_value<int32_t>(gen);
-    uint64_t      const o_uint64 = random_value<uint64_t>(gen);
-    int64_t       const o_int64  = random_value<int64_t>(gen);
-    float         const o_float  = random_value<float>(gen);
-    double        const o_double = random_value<double>(gen);
+TEST_CASE_TEMPLATE("arithmetic types", Ar, VIDE_ALL_ARCHIVES) {
+	auto gen = test_rng();
 
-    long double const o_long_double = random_value<long double>(gen);
-    long const o_long = random_value<long>(gen);
-    unsigned long const o_ulong = random_value<unsigned long>(gen);
-    long long const o_long_long = random_value<long long>(gen);
-    unsigned long long const o_ulong_long = random_value<unsigned long long>(gen);
+	SUBCASE("random values") {
+		for_each_type<bool, char, signed char, unsigned char, short, unsigned short, int, unsigned int, long,
+				unsigned long, long long, unsigned long long, float, double>([&]<typename T> {
+			for (int i = 0; i < values_per_type; ++i)
+				check_roundtrip<Ar>(random_value<T>(gen));
+		});
+	}
 
-    std::ostringstream os;
-    {
-      OArchive oar(os);
-      oar(o_bool);
-      oar(o_char);
-      oar(o_uchar);
-      oar(o_uint8);
-      oar(o_int8);
-      oar(o_uint16);
-      oar(o_int16);
-      oar(o_uint32);
-      oar(o_int32);
-      oar(o_uint64);
-      oar(o_int64);
-      oar(o_float);
-      oar(o_double);
-      oar(o_long_double);
-      oar(o_long);
-      oar(o_ulong);
-      oar(o_long_long);
-      oar(o_ulong_long);
-    }
+	SUBCASE("limits") {
+		for_each_type<signed char, unsigned char, short, unsigned short, int, unsigned int, long, unsigned long,
+				long long, unsigned long long, float, double>([&]<typename T> {
+			check_roundtrip<Ar>(std::numeric_limits<T>::lowest());
+			check_roundtrip<Ar>(std::numeric_limits<T>::max());
+			check_roundtrip<Ar>(T{0});
+		});
+	}
 
-    bool          i_bool                       = false;
-    char          i_char                       = 0;
-    unsigned char i_uchar                      = 0;
-    uint8_t       i_uint8                      = 0;
-    int8_t        i_int8                       = 0;
-    uint16_t      i_uint16                     = 0;
-    int16_t       i_int16                      = 0;
-    uint32_t      i_uint32                     = 0;
-    int32_t       i_int32                      = 0;
-    uint64_t      i_uint64                     = 0;
-    int64_t       i_int64                      = 0;
-    float         i_float                      = 0;
-    double        i_double                     = 0;
+	SUBCASE("every char value") {
+		for (int c = std::numeric_limits<char>::lowest(); c <= std::numeric_limits<char>::max(); ++c)
+			check_roundtrip<Ar>(static_cast<char>(c));
+	}
 
-    long double i_long_double       = 0;
-    long i_long                     = 0;
-    unsigned long i_ulong           = 0;
-    long long i_long_long           = 0;
-    unsigned long long i_ulong_long = 0;
-
-    std::istringstream is(os.str());
-    {
-      IArchive iar(is);
-      iar(i_bool);
-      iar(i_char);
-      iar(i_uchar);
-      iar(i_uint8);
-      iar(i_int8);
-      iar(i_uint16);
-      iar(i_int16);
-      iar(i_uint32);
-      iar(i_int32);
-      iar(i_uint64);
-      iar(i_int64);
-      iar(i_float);
-      iar(i_double);
-      iar(i_long_double);
-      iar(i_long);
-      iar(i_ulong);
-      iar(i_long_long);
-      iar(i_ulong_long);
-    }
-
-    CHECK_EQ(i_bool   , o_bool);
-    CHECK_EQ(i_char   , o_char);
-    CHECK_EQ(i_uchar  , o_uchar);
-    CHECK_EQ(i_uint8  , o_uint8);
-    CHECK_EQ(i_int8   , o_int8);
-    CHECK_EQ(i_uint16 , o_uint16);
-    CHECK_EQ(i_int16  , o_int16);
-    CHECK_EQ(i_uint32 , o_uint32);
-    CHECK_EQ(i_int32  , o_int32);
-    CHECK_EQ(i_uint64 , o_uint64);
-    CHECK_EQ(i_int64  , o_int64);
-    CHECK_EQ(i_float  , doctest::Approx(o_float).epsilon(1e-5F));
-    CHECK_EQ(i_double , doctest::Approx(o_double).epsilon(1e-5));
-
-    CHECK_EQ(i_long_double, doctest::Approx(o_long_double).epsilon(1e-5L));
-    CHECK_EQ(i_long,        o_long);
-    CHECK_EQ(i_ulong,       o_ulong);
-    CHECK_EQ(i_long_long,   o_long_long);
-    CHECK_EQ(i_ulong_long,  o_ulong_long);
-  }
+	SUBCASE("long double") { // Text archives store it with double precision
+		for (int i = 0; i < values_per_type; ++i) {
+			const auto value = random_value<long double>(gen);
+			CHECK_EQ(roundtrip<Ar>(value), doctest::Approx(value).epsilon(1e-5));
+		}
+	}
 }
 
-template <class IArchive, class OArchive, class T1, class T2>
-void test_pod_serialization(std::mt19937& gen)
-{
-  T1 const o_t1 = random_value<T1>(gen);
-  T2 const o_t2 = o_t1;
-
-  std::ostringstream os1;
-  {
-    OArchive oar(os1);
-    oar(o_t1);
-  }
-
-  std::ostringstream os2;
-  {
-    OArchive oar(os2);
-    oar(o_t2);
-  }
-
-  CHECK_EQ(os1.str(), os2.str());
-
-  T1 i_t1 = T1();
-  T2 i_t2 = T2();
-  CHECK_EQ(os1.str(), os2.str());
-  std::istringstream is1(os1.str());
-  {
-    IArchive iar(is1);
-    iar(i_t1);
-  }
-  CHECK_EQ(o_t1, i_t1);
-
-  std::istringstream is2(os2.str());
-  {
-    IArchive iar(is2);
-    iar(i_t2);
-  }
-  CHECK_EQ(o_t2, i_t2);
+/// A Narrow value saved as Narrow and as Wide gives the same text, which loads back as Wide
+template <typename Ar, typename Narrow, typename Wide>
+void check_same_text(std::mt19937& gen) {
+	const Narrow narrow = random_value<Narrow>(gen);
+	const Wide wide = narrow;
+	CHECK_EQ(save<Ar>(narrow), save<Ar>(wide));
+	CHECK_EQ(load<Ar, Wide>(save<Ar>(narrow)), wide);
 }
 
-template <class IArchive, class OArchive>
-void test_pod_serialization()
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  for (size_t i = 0; i < 100; ++i) {
-    test_pod_serialization<IArchive, OArchive, int8_t, int16_t>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, uint16_t>(gen);
+TEST_CASE_TEMPLATE("text archives write a value the same in any integer width", Ar, VIDE_ALL_TEXT_ARCHIVES) {
+	auto gen = test_rng();
 
-    test_pod_serialization<IArchive, OArchive, int8_t, int32_t>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, uint32_t>(gen);
-
-    test_pod_serialization<IArchive, OArchive, int8_t, int64_t>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, uint64_t>(gen);
-
-    test_pod_serialization<IArchive, OArchive, int8_t, long>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, unsigned long>(gen);
-
-    test_pod_serialization<IArchive, OArchive, int8_t, long long>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, unsigned long long>(gen);
-
-    test_pod_serialization<IArchive, OArchive, int8_t, int>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, unsigned int>(gen);
-
-    test_pod_serialization<IArchive, OArchive, int8_t, short>(gen);
-    test_pod_serialization<IArchive, OArchive, uint8_t, unsigned short>(gen);
-  }
+	for (int i = 0; i < values_per_type; ++i) {
+		for_each_type<std::int16_t, std::int32_t, std::int64_t, short, int, long, long long>([&]<typename Wide> {
+			check_same_text<Ar, std::int8_t, Wide>(gen);
+		});
+		for_each_type<std::uint16_t, std::uint32_t, std::uint64_t, unsigned short, unsigned int, unsigned long,
+				unsigned long long>([&]<typename Wide> {
+			check_same_text<Ar, std::uint8_t, Wide>(gen);
+		});
+	}
 }
-
-
-TEST_SUITE_BEGIN("pod");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("pod", test_pod)
-CREATE_TEST_CASES_FOR_TEXT_ARCHIVE("pod_serialization", test_pod_serialization)
-
-
-TEST_SUITE_END();

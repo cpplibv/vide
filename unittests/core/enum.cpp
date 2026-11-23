@@ -2,11 +2,14 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <sstream>
+#include <tuple>
+#include <utility>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
+#include "common/roundtrip.hpp"
 
 
 namespace { // ------------------------------------------------------------------------------------------
@@ -469,294 +472,130 @@ static_assert(vide::enum_value_set::is_unbounded<test_incorrect_multispec_1>);
 
 } // namespace ------------------------------------------------------------------------------------------
 
-TEST_SUITE_BEGIN("enum");
-
-TEST_CASE("test_enum_common") {
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_0{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_0{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_0{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_1{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_1{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_2{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_2{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_3{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_3{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_nospec_unbounded_3{-42}));
-
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_0{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_0{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_0{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_1{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_1{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_2{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_2{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_3{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_3{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_unbounded_3{-42}));
-
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_0{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_0{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_0{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_1{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_1{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_2{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_2{-42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_3{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_3{42}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_unbounded_3{-42}));
-
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_0{-1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_0{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_0{1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_0{-42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_1{-1}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_1{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_1{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_1{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_1{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_2::c));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_2{-1}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_2{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_2{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_2{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_2{-42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_3{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_3{-42}), vide::Exception);
-
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_0{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_0{1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_0{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_0{static_cast<uint32_t>(-42)}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_1{static_cast<uint32_t>(-42)}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_2{static_cast<uint32_t>(-42)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_3{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_3{1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_3{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_end_value_unsigned_3{static_cast<uint32_t>(-42)}), vide::Exception);
-
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_0{-1}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_0{0})); // max_value cannot specify empty enum value set
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_0{1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_0{-42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_1{-1}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_1{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_1{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_1{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_1{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_2::c));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_2{-1}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_2{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_2{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_2{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_2{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_3{0})); // max_value cannot specify empty enum value set
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_3{-42}), vide::Exception);
-
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_0{0})); // max_value cannot specify empty enum value set
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_0{1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_0{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_0{static_cast<uint32_t>(-42)}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_1{static_cast<uint32_t>(-42)}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{0}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{1}));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{2}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{3}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_2{static_cast<uint32_t>(-42)}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_3{0})); // max_value cannot specify empty enum value set
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_3{1}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_3{static_cast<uint32_t>(-1)}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_enumerator_max_value_unsigned_3{static_cast<uint32_t>(-42)}), vide::Exception);
-
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_0{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_0{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_end_value_1{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_1{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_end_value_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_end_value_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_end_value_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_end_value_2{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_2{-42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_3{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_end_value_3{-42}), vide::Exception);
-
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_0{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_0{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_1{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_1{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_2{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_2{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_max_value_3{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_max_value_3{-42}), vide::Exception);
-
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_0{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_0{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_0{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_1{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_1{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_1{-42}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_2::a));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_2::b));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_2::c));
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_2{0}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_2{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_2{-42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_3{0}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_3{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_3{-42}), vide::Exception);
-
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_odd_only{-1}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_odd_only{0}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_odd_only{1}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_odd_only{2}), vide::Exception);
-	CHECK_NOTHROW(vide::enum_value_set::verify(test_free_function_verify_odd_only{3}));
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_odd_only{42}), vide::Exception);
-	CHECK_THROWS_AS(vide::enum_value_set::verify(test_free_function_verify_odd_only{-42}), vide::Exception);
-
-	// CHECK_NOTHROW(vide::enum_value_set::verify(test_incorrect_multispec_0{0})); // Correctly fails to compile
-	// CHECK_NOTHROW(vide::enum_value_set::verify(test_incorrect_multispec_1{0})); // Correctly fails to compile
+/// enum_value_set::verify() accepts each value; values are enumerators or underlying values
+template <typename E>
+void verify_accepts(auto... values) {
+	([&] {
+		const E value = static_cast<E>(values);
+		CAPTURE(std::to_underlying(value));
+		CHECK_NOTHROW(vide::enum_value_set::verify(value));
+	}(), ...);
 }
 
-template <typename IArchive, typename OArchive>
-void test_enum() {
-	enum class enum0 : uint32_t {
+/// enum_value_set::verify() rejects each value
+template <typename E>
+void verify_rejects(auto... values) {
+	([&] {
+		const E value = static_cast<E>(values);
+		CAPTURE(std::to_underlying(value));
+		CHECK_THROWS_AS(vide::enum_value_set::verify(value), vide::Exception);
+	}(), ...);
+}
+
+TEST_CASE("enum value sets") {
+	verify_accepts<test_nospec_unbounded_0>(0, 42, -42);
+	verify_accepts<test_nospec_unbounded_1>(0, 42, -42);
+	verify_accepts<test_nospec_unbounded_2>(test_nospec_unbounded_2::a, test_nospec_unbounded_2::b, test_nospec_unbounded_2::c, 0, 42, -42);
+	verify_accepts<test_nospec_unbounded_3>(0, 42, -42);
+
+	verify_accepts<test_enumerator_unbounded_0>(0, 42, -42);
+	verify_accepts<test_enumerator_unbounded_1>(0, 42, -42);
+	verify_accepts<test_enumerator_unbounded_2>(test_enumerator_unbounded_2::a, test_enumerator_unbounded_2::b, test_enumerator_unbounded_2::c, 0, 42, -42);
+	verify_accepts<test_enumerator_unbounded_3>(0, 42, -42);
+
+	verify_accepts<test_free_function_unbounded_0>(0, 42, -42);
+	verify_accepts<test_free_function_unbounded_1>(0, 42, -42);
+	verify_accepts<test_free_function_unbounded_2>(test_free_function_unbounded_2::a, test_free_function_unbounded_2::b, test_free_function_unbounded_2::c, 0, 42, -42);
+	verify_accepts<test_free_function_unbounded_3>(0, 42, -42);
+
+	verify_rejects<test_enumerator_end_value_0>(-1, 0, 1, 42, -42);
+	verify_accepts<test_enumerator_end_value_1>(0, 1, 2);
+	verify_rejects<test_enumerator_end_value_1>(-1, 3, 42, -42);
+	verify_accepts<test_enumerator_end_value_2>(test_enumerator_end_value_2::a, test_enumerator_end_value_2::b, test_enumerator_end_value_2::c, 0, 1, 2);
+	verify_rejects<test_enumerator_end_value_2>(-1, 3, 42, -42);
+	verify_rejects<test_enumerator_end_value_3>(0, 42, -42);
+
+	verify_rejects<test_enumerator_end_value_unsigned_0>(0, 1, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));
+	verify_accepts<test_enumerator_end_value_unsigned_1>(0, 1, 2);
+	verify_rejects<test_enumerator_end_value_unsigned_1>(3, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));
+	verify_accepts<test_enumerator_end_value_unsigned_2>(test_enumerator_end_value_unsigned_2::a, test_enumerator_end_value_unsigned_2::b, test_enumerator_end_value_unsigned_2::c, 0, 1, 2);
+	verify_rejects<test_enumerator_end_value_unsigned_2>(3, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));
+	verify_rejects<test_enumerator_end_value_unsigned_3>(0, 1, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));
+
+	verify_accepts<test_enumerator_max_value_0>(0);
+	verify_rejects<test_enumerator_max_value_0>(-1, 1, 42, -42);  // max_value cannot specify empty enum value set
+	verify_accepts<test_enumerator_max_value_1>(0, 1, 2);
+	verify_rejects<test_enumerator_max_value_1>(-1, 3, 42, -42);
+	verify_accepts<test_enumerator_max_value_2>(test_enumerator_max_value_2::a, test_enumerator_max_value_2::b, test_enumerator_max_value_2::c, 0, 1, 2);
+	verify_rejects<test_enumerator_max_value_2>(-1, 3, 42, -42);
+	verify_accepts<test_enumerator_max_value_3>(0);
+	verify_rejects<test_enumerator_max_value_3>(42, -42);  // max_value cannot specify empty enum value set
+
+	verify_accepts<test_enumerator_max_value_unsigned_0>(0);
+	verify_rejects<test_enumerator_max_value_unsigned_0>(1, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));  // max_value cannot specify empty enum value set
+	verify_accepts<test_enumerator_max_value_unsigned_1>(0, 1, 2);
+	verify_rejects<test_enumerator_max_value_unsigned_1>(3, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));
+	verify_accepts<test_enumerator_max_value_unsigned_2>(test_enumerator_max_value_unsigned_2::a, test_enumerator_max_value_unsigned_2::b, test_enumerator_max_value_unsigned_2::c, 0, 1, 2);
+	verify_rejects<test_enumerator_max_value_unsigned_2>(3, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));
+	verify_accepts<test_enumerator_max_value_unsigned_3>(0);
+	verify_rejects<test_enumerator_max_value_unsigned_3>(1, 42, static_cast<uint32_t>(-1), static_cast<uint32_t>(-42));  // max_value cannot specify empty enum value set
+
+	verify_rejects<test_free_function_end_value_0>(0, 42, -42);
+	verify_accepts<test_free_function_end_value_1>(0);
+	verify_rejects<test_free_function_end_value_1>(42, -42);
+	verify_accepts<test_free_function_end_value_2>(test_free_function_end_value_2::a, test_free_function_end_value_2::b, test_free_function_end_value_2::c, 0);
+	verify_rejects<test_free_function_end_value_2>(42, -42);
+	verify_rejects<test_free_function_end_value_3>(0, 42, -42);
+
+	verify_accepts<test_free_function_max_value_0>(0);
+	verify_rejects<test_free_function_max_value_0>(42, -42);
+	verify_accepts<test_free_function_max_value_1>(0);
+	verify_rejects<test_free_function_max_value_1>(42, -42);
+	verify_accepts<test_free_function_max_value_2>(test_free_function_max_value_2::a, test_free_function_max_value_2::b, test_free_function_max_value_2::c, 0);
+	verify_rejects<test_free_function_max_value_2>(42, -42);
+	verify_accepts<test_free_function_max_value_3>(0);
+	verify_rejects<test_free_function_max_value_3>(42, -42);
+
+	verify_rejects<test_free_function_verify_0>(0, 42, -42);
+	verify_accepts<test_free_function_verify_1>(0);
+	verify_rejects<test_free_function_verify_1>(42, -42);
+	verify_accepts<test_free_function_verify_2>(test_free_function_verify_2::a, test_free_function_verify_2::b, test_free_function_verify_2::c, 0);
+	verify_rejects<test_free_function_verify_2>(42, -42);
+	verify_rejects<test_free_function_verify_3>(0, 42, -42);
+
+	verify_accepts<test_free_function_verify_odd_only>(-1, 1, 3);
+	verify_rejects<test_free_function_verify_odd_only>(0, 2, 42, -42);
+
+	// test_incorrect_multispec_* declare two value sets; verify() on them must not compile
+}
+
+TEST_CASE_TEMPLATE("enum serialization", Ar, VIDE_ALL_ARCHIVES) {
+	enum class Bounded : std::uint32_t {
 		a,
 		b,
 		c,
 		serialize_end_value,
 	};
 
-	enum class enumUnbounded0 : uint32_t {
+	enum class Unbounded : std::uint32_t {
 		a,
 		b,
 		c,
 		serialize_unbounded,
 	};
 
-	auto output0 = enum0::a;
-	auto output1 = enum0::b;
-	auto output2 = enum0::c;
-	auto output3 = enum0{3};
-	auto outputEnumUnbounded3 = enumUnbounded0{3};
-
-	std::ostringstream osWillFail; {
-		OArchive oar(osWillFail);
-		oar(output0);
-		oar(output1);
-		oar(output2);
-		CHECK_THROWS_AS(oar(output3), vide::Exception);
+	SUBCASE("values in the set") { // A loaded enum starts as 0 (a), so b and c show a load happened
+		check_roundtrip<Ar>(Bounded::a);
+		check_roundtrip<Ar>(Bounded::b);
+		check_roundtrip<Ar>(Bounded::c);
+		check_roundtrip<Ar>(Unbounded{3});
 	}
 
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(output0);
-		oar(output1);
-		oar(output2);
-		oar(outputEnumUnbounded3);
+	SUBCASE("a value outside the set throws on save") {
+		CHECK_FALSE(saves<Ar>(Bounded{3}));
 	}
 
-	enum0 input0;
-	enum0 input1;
-	enum0 input2;
-	enum0 input3;
-	enumUnbounded0 inputEnumUnbounded3;
-
-	std::istringstream isWillFail(os.str()); {
-		IArchive iar(isWillFail);
-
-		iar(input0);
-		iar(input1);
-		iar(input2);
-		CHECK_THROWS_AS(iar(input3), vide::Exception);
+	SUBCASE("a value outside the set throws on load") {
+		CHECK_THROWS_AS((std::ignore = load<Ar, Bounded>(save<Ar>(Unbounded{3}))), vide::Exception);
 	}
-
-	std::istringstream is(os.str()); {
-		IArchive iar(is);
-
-		iar(input0);
-		iar(input1);
-		iar(input2);
-		iar(inputEnumUnbounded3);
-	}
-
-	CHECK_EQ(input0, output0);
-	CHECK_EQ(input1, output1);
-	CHECK_EQ(input2, output2);
-	// CHECK_EQ(input3, output3);
-	CHECK_EQ(inputEnumUnbounded3, outputEnumUnbounded3);
 }
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("enum", test_enum)
-
-TEST_SUITE_END();

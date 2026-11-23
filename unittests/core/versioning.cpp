@@ -25,246 +25,244 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <vide/types/std_vector.hpp>
-
+#include <cstddef>
 #include <cstdint>
 #include <future>
+#include <limits>
 #include <random>
-#include <sstream>
 #include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
+
+/// Versions the serialization functions of a value received; none when not called
+struct SeenVersions {
+	static constexpr std::uint32_t none = std::numeric_limits<std::uint32_t>::max();
+
+	mutable std::uint32_t saved = none;
+	std::uint32_t loaded = none;
+};
+
+/// The version T's serialization functions must receive
+template <typename T>
+constexpr std::uint32_t expected_version = 0;
+
+// One type per versioned shape; x is the value, seen records what the functions received
 
 namespace Nested {
 struct NestedClass {
 	static constexpr std::uint32_t serialize_class_version = 1;
 
-	int x;
+	int x = 0;
+	SeenVersions seen;
 
-	template<class Archive>
-	void serialize(Archive& ar) { ar(x); }
+	template <class Archive>
+	void serialize(Archive& ar, std::uint32_t version) {
+		record_call<Archive>(this);
+		ar(x);
+		(Archive::is_output ? seen.saved : seen.loaded) = version;
+	}
 };
-}
+} // namespace Nested
 
-class VersionStructMS {
-public:
-	bool x;
-	std::uint32_t v;
+template <>
+constexpr std::uint32_t expected_version<Nested::NestedClass> = 1;
 
-private:
+/// Versioned signature without a class version: receives 0
+class MemberSerializeUnversioned {
 	friend class vide::access;
 
-	template<class Archive>
-	void serialize(Archive& ar, const std::uint32_t version) {
+	template <class Archive>
+	void serialize(Archive& ar, std::uint32_t version) {
+		record_call<Archive>(this);
 		ar(x);
-		v = version;
+		(Archive::is_output ? seen.saved : seen.loaded) = version;
 	}
+
+public:
+	bool x = false;
+	SeenVersions seen;
 };
 
-struct VersionStructMSP {
+struct MemberSplit {
 	static constexpr std::uint32_t serialize_class_version = 33;
 
-	uint8_t x;
-	std::uint32_t v;
+	std::uint8_t x = 0;
+	SeenVersions seen;
 
-	template<class Archive>
-	void save(Archive& ar, const std::uint32_t /*version*/) const {
+	template <class Archive>
+	void save(Archive& ar, std::uint32_t version) const {
+		record_call<Archive>(this);
 		ar(x);
+		seen.saved = version;
 	}
 
-	template<class Archive>
-	void load(Archive& ar, const std::uint32_t version) {
+	template <class Archive>
+	void load(Archive& ar, std::uint32_t version) {
+		record_call<Archive>(this);
 		ar(x);
-		v = version;
+		seen.loaded = version;
 	}
-};
-
-struct VersionStructNMS {
-	std::int32_t x;
-	std::uint32_t v;
 };
 
 template <>
-struct vide::serializer<VersionStructNMS> {
+constexpr std::uint32_t expected_version<MemberSplit> = 33;
+
+struct SpecializedSerialize {
+	std::int32_t x = 0;
+	SeenVersions seen;
+};
+
+template <>
+struct vide::serializer<SpecializedSerialize> {
 	static constexpr std::uint32_t serialize_class_version = 66;
 
-	template<class Archive>
-	static void serialize(Archive& ar, VersionStructNMS& vnms, const std::uint32_t version) {
-		ar(vnms.x);
-		vnms.v = version;
+	template <class Archive>
+	static void serialize(Archive& ar, SpecializedSerialize& value, std::uint32_t version) {
+		record_call<Archive>(&value);
+		ar(value.x);
+		(Archive::is_output ? value.seen.saved : value.seen.loaded) = version;
 	}
 };
 
-struct VersionStructNMSP {
-	double x;
-	std::uint32_t v;
+template <>
+constexpr std::uint32_t expected_version<SpecializedSerialize> = 66;
+
+struct SpecializedSplit {
+	double x = 0;
+	SeenVersions seen;
 };
 
 template <>
-struct vide::serializer<VersionStructNMSP> {
+struct vide::serializer<SpecializedSplit> {
 	static constexpr std::uint32_t serialize_class_version = 99;
 
-	template<class Archive>
-	static void serialize(Archive& ar, VersionStructNMSP& vnms, const std::uint32_t version) {
+	template <class Archive>
+	static void serialize(Archive& ar, SpecializedSplit& value, std::uint32_t version) {
+		record_call<Archive>(&value);
 		if constexpr (Archive::is_output) {
-			ar(vnms.x);
+			ar(value.x);
+			value.seen.saved = version;
 		} else {
-			ar(vnms.x);
-			vnms.v = version;
+			ar(value.x);
+			value.seen.loaded = version;
 		}
 	}
 };
 
-class StructStaticMemberClassVersionPub {
-public:
-	double x;
-	std::uint32_t v;
+template <>
+constexpr std::uint32_t expected_version<SpecializedSplit> = 99;
 
+class StaticVersionPublic {
 public:
 	static constexpr std::uint32_t serialize_class_version = 133;
-	template<class Archive>
-	void serialize(Archive& ar, const std::uint32_t version) {
+
+	double x = 0;
+	SeenVersions seen;
+
+	template <class Archive>
+	void serialize(Archive& ar, std::uint32_t version) {
+		record_call<Archive>(this);
 		ar(x);
-		v = version;
+		(Archive::is_output ? seen.saved : seen.loaded) = version;
 	}
 };
 
-class StructStaticMemberClassVersionPriv {
-public:
-	double x;
-	std::uint32_t v;
+template <>
+constexpr std::uint32_t expected_version<StaticVersionPublic> = 133;
 
-private:
+class StaticVersionPrivate {
 	friend class vide::access;
 
 	static constexpr std::uint32_t serialize_class_version = 166;
-	template<class Archive>
-	void serialize(Archive& ar, const std::uint32_t version) {
+
+	template <class Archive>
+	void serialize(Archive& ar, std::uint32_t version) {
+		record_call<Archive>(this);
 		ar(x);
-		v = version;
+		(Archive::is_output ? seen.saved : seen.loaded) = version;
 	}
+
+public:
+	double x = 0;
+	SeenVersions seen;
 };
 
-template<class IArchive, class OArchive>
-inline void test_versioning() {
+template <>
+constexpr std::uint32_t expected_version<StaticVersionPrivate> = 166;
 
-	CHECK(not vide::is_versioned_class<VersionStructMS>);
-	CHECK(vide::is_versioned_class<VersionStructMSP>);
-	CHECK(vide::is_versioned_class<VersionStructNMS>);
-	CHECK(vide::is_versioned_class<VersionStructNMSP>);
+// -------------------------------------------------------------------------------------------------
+
+template <typename T>
+T random_versioned(std::mt19937& gen) {
+	T value;
+	value.x = random_value<decltype(value.x)>(gen);
+	return value;
+}
+
+/// Two T values through one archive. The version is stored once per type, so the second value must still receive it
+template <typename Ar, typename T>
+void check_versioned_roundtrip(std::mt19937& gen) {
+	INFO("type: ", vide::util::demangledName<T>());
+	const T first = random_versioned<T>(gen);
+	const T second = random_versioned<T>(gen);
+
+	const CallLog calls;
+	const auto [loaded_first, loaded_second] = roundtrip<Ar>(first, second);
+
+	CHECK_EQ(loaded_first.x, first.x);
+	CHECK_EQ(loaded_second.x, second.x);
+	CHECK_EQ(first.seen.saved, expected_version<T>);
+	CHECK_EQ(second.seen.saved, expected_version<T>);
+	CHECK_EQ(loaded_first.seen.loaded, expected_version<T>);
+	CHECK_EQ(loaded_second.seen.loaded, expected_version<T>);
+	calls.check<T>(2);
+}
+
+template <typename Ar>
+void check_every_versioned_shape(std::mt19937& gen) {
+	check_versioned_roundtrip<Ar, Nested::NestedClass>(gen);
+	check_versioned_roundtrip<Ar, MemberSerializeUnversioned>(gen);
+	check_versioned_roundtrip<Ar, MemberSplit>(gen);
+	check_versioned_roundtrip<Ar, SpecializedSerialize>(gen);
+	check_versioned_roundtrip<Ar, SpecializedSplit>(gen);
+	check_versioned_roundtrip<Ar, StaticVersionPublic>(gen);
+	check_versioned_roundtrip<Ar, StaticVersionPrivate>(gen);
+}
+
+TEST_CASE("versioning traits") {
+	CHECK_FALSE(vide::is_versioned_class<MemberSerializeUnversioned>);
+	CHECK(vide::is_versioned_class<MemberSplit>);
+	CHECK(vide::is_versioned_class<SpecializedSerialize>);
+	CHECK(vide::is_versioned_class<SpecializedSplit>);
 	CHECK(vide::is_versioned_class<Nested::NestedClass>);
-	CHECK(not vide::access::has_static_member_class_version<VersionStructNMS>);
-	CHECK(vide::access::has_static_member_class_version<StructStaticMemberClassVersionPub>);
-	CHECK_EQ(vide::access::static_member_class_version<StructStaticMemberClassVersionPub>(), 133u);
-	CHECK(vide::access::has_static_member_class_version<StructStaticMemberClassVersionPriv>);
-	CHECK_EQ(vide::access::static_member_class_version<StructStaticMemberClassVersionPriv>(), 166u);
+	CHECK_FALSE(vide::access::has_static_member_class_version<SpecializedSerialize>);
+	CHECK(vide::access::has_static_member_class_version<StaticVersionPublic>);
+	CHECK_EQ(vide::access::static_member_class_version<StaticVersionPublic>(), 133u);
+	CHECK(vide::access::has_static_member_class_version<StaticVersionPrivate>);
+	CHECK_EQ(vide::access::static_member_class_version<StaticVersionPrivate>(), 166u);
+}
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
+TEST_CASE_TEMPLATE("versioning", Ar, VIDE_ALL_ARCHIVES) {
+	SUBCASE("each shape receives its version") {
+		auto gen = test_rng();
+		check_every_versioned_shape<Ar>(gen);
+	}
 
-	for (size_t i = 0; i < 100; ++i) {
-		VersionStructMS o_MS = {random_value<uint8_t>(gen) % 2 ? true : false, 1};
-		VersionStructMSP o_MSP = {random_value<uint8_t>(gen), 1};
-		VersionStructNMS o_NMS = {random_value<int32_t>(gen), 1};
-		VersionStructNMSP o_NMSP = {random_value<double>(gen), 1};
-		VersionStructMS o_MS2 = {random_value<uint8_t>(gen) % 2 ? true : false, 1};
-		VersionStructMSP o_MSP2 = {random_value<uint8_t>(gen), 1};
-		VersionStructNMS o_NMS2 = {random_value<int32_t>(gen), 1};
-		VersionStructNMSP o_NMSP2 = {random_value<double>(gen), 1};
-		StructStaticMemberClassVersionPub o_SMCVPub = {random_value<double>(gen), 1};
-		StructStaticMemberClassVersionPriv o_SMCVPriv = {random_value<double>(gen), 1};
-
-		std::ostringstream os;
-		{
-			OArchive oar(os);
-			oar(o_MS);
-			oar(o_MSP);
-			oar(o_NMS);
-			oar(o_NMSP);
-			oar(o_MS2);
-			oar(o_MSP2);
-			oar(o_NMS2);
-			oar(o_NMSP2);
-			oar(o_SMCVPub);
-			oar(o_SMCVPriv);
-		}
-
-		decltype(o_MS) i_MS;
-		decltype(o_MSP) i_MSP;
-		decltype(o_NMS) i_NMS;
-		decltype(o_NMSP) i_NMSP;
-		decltype(o_MS2) i_MS2;
-		decltype(o_MSP2) i_MSP2;
-		decltype(o_NMS2) i_NMS2;
-		decltype(o_NMSP2) i_NMSP2;
-		decltype(o_SMCVPub) i_SMCVPub;
-		decltype(o_SMCVPriv) i_SMCVPriv;
-
-		std::istringstream is(os.str());
-		{
-			IArchive iar(is);
-			iar(i_MS);
-			iar(i_MSP);
-			iar(i_NMS);
-			iar(i_NMSP);
-			iar(i_MS2);
-			iar(i_MSP2);
-			iar(i_NMS2);
-			iar(i_NMSP2);
-			iar(i_SMCVPub);
-			iar(i_SMCVPriv);
-		}
-
-		CHECK_EQ(o_MS.x, i_MS.x);
-		CHECK_EQ(i_MS.v, 0u);
-		CHECK_EQ(o_MSP.x, i_MSP.x);
-		CHECK_EQ(i_MSP.v, 33u);
-		CHECK_EQ(o_NMS.x, i_NMS.x);
-		CHECK_EQ(i_NMS.v, 66u);
-		CHECK_EQ(o_NMSP.x, doctest::Approx(i_NMSP.x).epsilon(1e-5));
-		CHECK_EQ(i_NMSP.v, 99u);
-
-		CHECK_EQ(o_MS2.x, i_MS2.x);
-		CHECK_EQ(i_MS2.v, 0u);
-		CHECK_EQ(o_MSP2.x, i_MSP2.x);
-		CHECK_EQ(i_MSP2.v, 33u);
-		CHECK_EQ(o_NMS2.x, i_NMS2.x);
-		CHECK_EQ(i_NMS2.v, 66u);
-		CHECK_EQ(o_NMSP2.x, doctest::Approx(i_NMSP2.x).epsilon(1e-5));
-		CHECK_EQ(i_NMSP2.v, 99u);
-
-		CHECK_EQ(o_SMCVPub.x, doctest::Approx(i_SMCVPub.x).epsilon(1e-5));
-		CHECK_EQ(i_SMCVPub.v, 133u);
-		CHECK_EQ(o_SMCVPriv.x, doctest::Approx(i_SMCVPriv.x).epsilon(1e-5));
-		CHECK_EQ(i_SMCVPriv.v, 166u);
+	SUBCASE("concurrent archives") { // The version registry is shared between threads
+		constexpr unsigned thread_count = 32;
+		std::vector<std::future<void>> pool;
+		for (unsigned i = 0; i < thread_count; ++i)
+			pool.push_back(std::async(std::launch::async, [seed = test_rng()() + i] {
+				std::mt19937 gen{seed};
+				check_every_versioned_shape<Ar>(gen);
+			}));
+		for (auto& future : pool)
+			CHECK_NOTHROW(future.get());
 	}
 }
-
-template <class IArchive, class OArchive> inline
-void test_versioning_threading()
-{
-  std::vector<std::future<bool>> pool;
-  for( size_t i = 0; i < 100; ++i )
-    pool.emplace_back( std::async( std::launch::async,
-                                   [](){ test_versioning<IArchive, OArchive>(); return true; } ) );
-
-  for( auto & future : pool )
-    future.wait();
-
-  for( auto & future : pool )
-    CHECK_UNARY( future.get() );
-}
-
-
-TEST_SUITE_BEGIN("versioning");
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning", test_versioning)
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("versioning_threading", test_versioning_threading)
-
-
-TEST_SUITE_END();

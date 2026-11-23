@@ -27,247 +27,138 @@
 
 #include <vide/archives/binary.hpp>
 #include <vide/archives/portable_binary.hpp>
-#include <vide/types/std_vector.hpp>
+#include <vide/binary_data.hpp>
+#include <vide/details/util.hpp>
 
-#include <cmath>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
-#include <random>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/collection_checks.hpp"
+#include "common/for_each_type.hpp"
 #include "common/random.hpp"
 
 
-namespace mynamespace { struct MyCustomClass {}; }
-
-template <class T>
-inline void swapBytes( T & t )
-{
-  vide::portable_binary_detail::swap_bytes<sizeof(T)>( reinterpret_cast<std::uint8_t*>(&t) );
+template <typename T>
+T byte_swapped(T value) {
+	vide::portable_binary_detail::swap_bytes<sizeof(T)>(reinterpret_cast<std::uint8_t*>(&value));
+	return value;
 }
 
-// swaps all output data
-#define VIDE_TEST_SWAP_OUTPUT \
-    swapBytes(o_bool);          \
-    swapBytes(o_uint8);         \
-    swapBytes(o_int8);          \
-    swapBytes(o_uint16);        \
-    swapBytes(o_int16);         \
-    swapBytes(o_uint32);        \
-    swapBytes(o_int32);         \
-    swapBytes(o_uint64);        \
-    swapBytes(o_int64);         \
-    swapBytes(o_float);         \
-    swapBytes(o_double);
-
-#define VIDE_TEST_CHECK_EQUAL                 \
-    CHECK_EQ(i_bool   , o_bool);                \
-    CHECK_EQ(i_uint8  , o_uint8);               \
-    CHECK_EQ(i_int8   , o_int8);                \
-    CHECK_EQ(i_uint16 , o_uint16);              \
-    CHECK_EQ(i_int16  , o_int16);               \
-    CHECK_EQ(i_uint32 , o_uint32);              \
-    CHECK_EQ(i_int32  , o_int32);               \
-    CHECK_EQ(i_uint64 , o_uint64);              \
-    CHECK_EQ(i_int64  , o_int64);               \
-    if( !std::isnan(i_float) && !std::isnan(o_float) ) CHECK_EQ(i_float , doctest::Approx(o_float).epsilon(1e-5F)); \
-    if( !std::isnan(i_double) && !std::isnan(o_double) ) CHECK_EQ(i_double, doctest::Approx(o_double).epsilon(1e-5));
-
-// Last parameter exists to keep everything hidden in options
-template <class IArchive, class OArchive> inline
-void test_endian_serialization( typename IArchive::Options const & iOptions, typename OArchive::Options const & oOptions, const std::uint8_t inputLittleEndian )
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
-
-  for(size_t i=0; i<100; ++i)
-  {
-    bool     o_bool   = random_value<uint8_t>(gen) % 2 ? true : false;
-    uint8_t  o_uint8  = random_value<uint8_t>(gen);
-    int8_t   o_int8   = random_value<int8_t>(gen);
-    uint16_t o_uint16 = random_value<uint16_t>(gen);
-    int16_t  o_int16  = random_value<int16_t>(gen);
-    uint32_t o_uint32 = random_value<uint32_t>(gen);
-    int32_t  o_int32  = random_value<int32_t>(gen);
-    uint64_t o_uint64 = random_value<uint64_t>(gen);
-    int64_t  o_int64  = random_value<int64_t>(gen);
-    float    o_float  = random_value<float>(gen);
-    double   o_double = random_value<double>(gen);
-
-    std::vector<int32_t> o_vector(100);
-    for(auto & elem : o_vector)
-      elem = random_value<uint32_t>(gen);
-
-    std::ostringstream os;
-    {
-      OArchive oar(os, oOptions);
-      oar(o_bool);
-      oar(o_uint8);
-      oar(o_int8);
-      oar(o_uint16);
-      oar(o_int16);
-      oar(o_uint32);
-      oar(o_int32);
-      oar(o_uint64);
-      oar(o_int64);
-      oar(o_float);
-      oar(o_double);
-      // We can't test vector directly here since we are artificially interfering with the endianness,
-      // which can result in the size being incorrect
-      oar(vide::binary_data( o_vector.data(), static_cast<std::size_t>( o_vector.size() * sizeof(int32_t) ) ));
-    }
-
-    bool     i_bool   = false;
-    uint8_t  i_uint8  = 0;
-    int8_t   i_int8   = 0;
-    uint16_t i_uint16 = 0;
-    int16_t  i_int16  = 0;
-    uint32_t i_uint32 = 0;
-    int32_t  i_int32  = 0;
-    uint64_t i_uint64 = 0;
-    int64_t  i_int64  = 0;
-    float    i_float  = 0;
-    double   i_double = 0;
-    std::vector<int32_t> i_vector(100);
-
-    std::istringstream is(os.str());
-    {
-      IArchive iar(is, iOptions);
-      iar(i_bool);
-      iar(i_uint8);
-      iar(i_int8);
-      iar(i_uint16);
-      iar(i_int16);
-      iar(i_uint32);
-      iar(i_int32);
-      iar(i_uint64);
-      iar(i_int64);
-      iar(i_float);
-      iar(i_double);
-      iar(vide::binary_data( i_vector.data(), static_cast<std::size_t>( i_vector.size() * sizeof(int32_t) ) ));
-    }
-
-    // Convert to big endian if we expect to read big and didn't start big
-    if( vide::portable_binary_detail::is_little_endian() ^ inputLittleEndian ) // Convert to little endian if
-    {
-      VIDE_TEST_SWAP_OUTPUT
-      for( auto & val : o_vector )
-        swapBytes(val);
-    }
-
-    VIDE_TEST_CHECK_EQUAL
-
-    check_collection(i_vector, o_vector);
-  }
+/// Bit pattern, so swapped floating point values compare reliably (a swapped float can be NaN)
+template <typename T>
+auto bits(T value) {
+	if constexpr (sizeof(T) == 1)
+		return std::bit_cast<std::uint8_t>(value);
+	else if constexpr (sizeof(T) == 2)
+		return std::bit_cast<std::uint16_t>(value);
+	else if constexpr (sizeof(T) == 4)
+		return std::bit_cast<std::uint32_t>(value);
+	else
+		return std::bit_cast<std::uint64_t>(value);
 }
 
+using InputOptions = vide::PortableBinaryInputArchive::Options;
+using OutputOptions = vide::PortableBinaryOutputArchive::Options;
 
-TEST_SUITE_BEGIN("portable_binary_archive");
+constexpr int values_per_type = 100;
 
+// The stream records the byte order it was written in; the input option chooses the byte order of the loaded values.
+// Loaded values therefore come out byte swapped exactly when the input option differs from the native order
+
+TEST_CASE("portable binary byte order options") {
+	auto gen = test_rng();
+
+	for (const bool output_little : {false, true}) {
+		for (const bool input_little : {false, true}) {
+			CAPTURE(output_little);
+			CAPTURE(input_little);
+			const auto output_options = output_little ? OutputOptions::LittleEndian() : OutputOptions::BigEndian();
+			const auto input_options = input_little ? InputOptions::LittleEndian() : InputOptions::BigEndian();
+			const bool swapped = vide::portable_binary_detail::is_little_endian() != input_little;
+
+			for_each_type<bool, std::uint8_t, std::int8_t, std::uint16_t, std::int16_t, std::uint32_t, std::int32_t,
+					std::uint64_t, std::int64_t, float, double>([&]<typename T> {
+				for (int i = 0; i < values_per_type; ++i) {
+					const T value = random_value<T>(gen);
+
+					std::ostringstream os;
+					{
+						vide::PortableBinaryOutputArchive ar(os, output_options);
+						ar(value);
+					}
+					T loaded{};
+					std::istringstream is(os.str());
+					{
+						vide::PortableBinaryInputArchive ar(is, input_options);
+						ar(loaded);
+					}
+
+					CHECK_EQ(bits(loaded), bits(swapped ? byte_swapped(value) : value));
+				}
+			});
+
+			SUBCASE("binary_data swaps per element") { // A sized container would read a swapped size
+				const auto elements = random_container<std::vector<std::int32_t>>(gen, 100);
+
+				std::ostringstream os;
+				{
+					vide::PortableBinaryOutputArchive ar(os, output_options);
+					ar(vide::binary_data(elements.data(), elements.size() * sizeof(std::int32_t)));
+				}
+				std::vector<std::int32_t> loaded(elements.size());
+				std::istringstream is(os.str());
+				{
+					vide::PortableBinaryInputArchive ar(is, input_options);
+					ar(vide::binary_data(loaded.data(), loaded.size() * sizeof(std::int32_t)));
+				}
+
+				for (std::size_t i = 0; i < elements.size(); ++i)
+					CHECK_EQ(loaded[i], swapped ? byte_swapped(elements[i]) : elements[i]);
+			}
+		}
+	}
+}
+
+TEST_CASE("portable binary loads data of the foreign byte order into native order") {
+	auto gen = test_rng();
+
+	for_each_type<bool, std::uint8_t, std::int8_t, std::uint16_t, std::int16_t, std::uint32_t, std::int32_t,
+			std::uint64_t, std::int64_t, float, double>([&]<typename T> {
+		for (int i = 0; i < values_per_type; ++i) {
+			const T value = random_value<T>(gen);
+
+			// Hand made foreign data: the header claims the other byte order, the value is swapped accordingly
+			std::ostringstream os;
+			{
+				vide::BinaryOutputArchive ar(os);
+				ar(static_cast<std::uint8_t>(!vide::portable_binary_detail::is_little_endian()));
+				ar(byte_swapped(value));
+			}
+			T loaded{};
+			std::istringstream is(os.str());
+			{
+				vide::PortableBinaryInputArchive ar(is);
+				ar(loaded);
+			}
+
+			CHECK_EQ(bits(loaded), bits(value));
+		}
+	});
+}
+
+namespace mynamespace {
+struct MyCustomClass {};
+} // namespace mynamespace
+
+TEST_CASE("demangledName") {
 #ifdef _MSC_VER
-TEST_CASE("util")
-{
-  CHECK_EQ( vide::util::demangledName<mynamespace::MyCustomClass>(), "struct mynamespace::MyCustomClass" );
-}
+	CHECK_EQ(vide::util::demangledName<mynamespace::MyCustomClass>(), "struct mynamespace::MyCustomClass");
 #else
-TEST_CASE("util")
-{
-  CHECK_EQ( vide::util::demangledName<mynamespace::MyCustomClass>(), "mynamespace::MyCustomClass" );
-}
+	CHECK_EQ(vide::util::demangledName<mynamespace::MyCustomClass>(), "mynamespace::MyCustomClass");
 #endif
-
-TEST_CASE("portable_binary_archive_endian_conversions")
-{
-  // (last parameter is whether we load as little endian)
-  test_endian_serialization<vide::PortableBinaryInputArchive, vide::PortableBinaryOutputArchive>(
-      vide::PortableBinaryInputArchive::Options::BigEndian(), vide::PortableBinaryOutputArchive::Options::BigEndian(), false );
-  test_endian_serialization<vide::PortableBinaryInputArchive, vide::PortableBinaryOutputArchive>(
-      vide::PortableBinaryInputArchive::Options::LittleEndian(), vide::PortableBinaryOutputArchive::Options::BigEndian(), true );
-  test_endian_serialization<vide::PortableBinaryInputArchive, vide::PortableBinaryOutputArchive>(
-      vide::PortableBinaryInputArchive::Options::BigEndian(), vide::PortableBinaryOutputArchive::Options::LittleEndian(), false );
-  test_endian_serialization<vide::PortableBinaryInputArchive, vide::PortableBinaryOutputArchive>(
-      vide::PortableBinaryInputArchive::Options::LittleEndian(), vide::PortableBinaryOutputArchive::Options::LittleEndian(), true );
 }
-
-// Tests the default behavior to swap bytes to current machine's endianness
-TEST_CASE("portable_binary_archive_default_behavior")
-{
-  std::random_device rd;
-  std::mt19937 gen(rd());
-
-  for(size_t i=0; i<100; ++i)
-  {
-    bool     o_bool   = random_value<uint8_t>(gen) % 2 ? true : false;
-    uint8_t  o_uint8  = random_value<uint8_t>(gen);
-    int8_t   o_int8   = random_value<int8_t>(gen);
-    uint16_t o_uint16 = random_value<uint16_t>(gen);
-    int16_t  o_int16  = random_value<int16_t>(gen);
-    uint32_t o_uint32 = random_value<uint32_t>(gen);
-    int32_t  o_int32  = random_value<int32_t>(gen);
-    uint64_t o_uint64 = random_value<uint64_t>(gen);
-    int64_t  o_int64  = random_value<int64_t>(gen);
-    float    o_float  = random_value<float>(gen);
-    double   o_double = random_value<double>(gen);
-
-    // swap the bytes on all of the data
-    VIDE_TEST_SWAP_OUTPUT
-
-    std::ostringstream os;
-    {
-      vide::BinaryOutputArchive oar(os);
-      // manually insert incorrect endian encoding
-      oar(!vide::portable_binary_detail::is_little_endian());
-
-      oar(o_bool);
-      oar(o_uint8);
-      oar(o_int8);
-      oar(o_uint16);
-      oar(o_int16);
-      oar(o_uint32);
-      oar(o_int32);
-      oar(o_uint64);
-      oar(o_int64);
-      oar(o_float);
-      oar(o_double);
-    }
-
-    // swap back to original values
-    VIDE_TEST_SWAP_OUTPUT
-
-    bool     i_bool   = false;
-    uint8_t  i_uint8  = 0;
-    int8_t   i_int8   = 0;
-    uint16_t i_uint16 = 0;
-    int16_t  i_int16  = 0;
-    uint32_t i_uint32 = 0;
-    int32_t  i_int32  = 0;
-    uint64_t i_uint64 = 0;
-    int64_t  i_int64  = 0;
-    float    i_float  = 0;
-    double   i_double = 0;
-
-    std::istringstream is(os.str());
-    {
-      vide::PortableBinaryInputArchive iar(is);
-      iar(i_bool);
-      iar(i_uint8);
-      iar(i_int8);
-      iar(i_uint16);
-      iar(i_int16);
-      iar(i_uint32);
-      iar(i_int32);
-      iar(i_uint64);
-      iar(i_int64);
-      iar(i_float);
-      iar(i_double);
-    }
-
-    VIDE_TEST_CHECK_EQUAL
-  }
-}
-
-TEST_SUITE_END();

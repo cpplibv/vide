@@ -1,83 +1,61 @@
 //
 
-#include <sstream>
+#include <tuple>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
-
-TEST_SUITE_BEGIN("direct_load");
 
 namespace { // -------------------------------------------------------------------------------------
 
-struct Test {
-	int v0;
-	int v1;
-	int loadNamed;
-	int v2;
-	int load;
-	int v3;
+/// Two members are loaded by return value (load<T>() and nvp_load<T>()) instead of into a reference
+struct DirectLoaded {
+	int v0 = 0;
+	int v1 = 0;
+	int named = 0;
+	int v2 = 0;
+	int unnamed = 0;
+	int v3 = 0;
 
-	explicit Test(int value) {
-		v0 = value;
-		v1 = value + 1;
-		loadNamed = value + 2;
-		v2 = value + 3;
-		load = value + 4;
-		v3 = value + 5;
-	}
+	DirectLoaded() = default;
+	explicit DirectLoaded(int value) :
+		v0(value),
+		v1(value + 1),
+		named(value + 2),
+		v2(value + 3),
+		unnamed(value + 4),
+		v3(value + 5) {}
 
-	template <class Archive> void serialize(Archive& ar) {
+	template <class Archive>
+	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar.nvp("v0", v0);
 		ar.nvp("v1", v1);
 		if constexpr (Archive::is_output)
-			ar.nvp("loadNamed", loadNamed); // we only save it here, so we can direct load it during load
+			ar.nvp("named", named);
 		else
-			loadNamed = ar.template nvp_load<int>("loadNamed");
+			named = ar.template nvp_load<int>("named");
 		ar.nvp("v2", v2);
 		if constexpr (Archive::is_output)
-			ar(load); // we only save it here, so we can direct load it during load
+			ar(unnamed);
 		else
-			load = ar.template load<int>();
+			unnamed = ar.template load<int>();
 		ar.nvp("v3", v3);
 	}
 
-	[[nodiscard]] constexpr inline bool operator==(const Test&) const = default;
+	bool operator==(const DirectLoaded&) const = default;
 };
 
 } // namespace -------------------------------------------------------------------------------------
 
+TEST_CASE_TEMPLATE("direct load", Ar, VIDE_ALL_ARCHIVES) {
+	check_roundtrip<Ar, DirectLoaded>(DirectLoaded{1});
 
-template <typename IArchive, typename OArchive>
-void test_direct_load() {
-	Test output0{0};
-	Test output1{1};
-	Test output2{2};
-	Test input0{0};
-	Test input1{0};
-	Test input2{0};
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(output0);
-		oar(output1);
-		oar(output2);
-	}
-
-	std::istringstream is(os.str()); {
-		IArchive iar(is);
-
-		iar(input0);
-		iar(input1);
-		iar(input2);
-	}
-
-	CHECK_EQ(input0, output0);
-	CHECK_EQ(input1, output1);
-	CHECK_EQ(input2, output2);
+	// In sequence, so a direct load must leave the archive where the next value starts
+	const auto loaded = roundtrip<Ar>(DirectLoaded{10}, DirectLoaded{20}, DirectLoaded{30});
+	CHECK_EQ(loaded, std::tuple{DirectLoaded{10}, DirectLoaded{20}, DirectLoaded{30}});
 }
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("enum", test_direct_load)
-
-TEST_SUITE_END();

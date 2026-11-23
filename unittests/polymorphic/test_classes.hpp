@@ -4,7 +4,6 @@
 
 // The types are registered in test_classes.cpp, compiled once and linked into every polymorphic/ test
 
-#include <algorithm>
 #include <cstdlib>
 #include <memory>
 #include <random>
@@ -14,6 +13,7 @@
 #include <vide/types/polymorphic.hpp>
 
 #include "common/random.hpp"
+#include "common/serialization_calls.hpp"
 
 
 /// Starts with a random value, each member increments it by 1, each base receives a value incremented by 1000000
@@ -48,23 +48,20 @@ struct Initializer {
 // -------------------------------------------------------------------------------------------------
 
 struct RootRegularEmptyA {
-	mutable int usedSerializeFunction = 0;
 	template <typename Archive> void serialize(Archive&) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 	}
 	[[nodiscard]] bool operator==(const RootRegularEmptyA& other) const noexcept = default;
 };
 struct RootRegularEmptyB {
-	mutable int usedSerializeFunction = 0;
 	template <typename Archive> void serialize(Archive&) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 	}
 	[[nodiscard]] bool operator==(const RootRegularEmptyB& other) const noexcept = default;
 };
 struct RootRegularEmptyC {
-	mutable int usedSerializeFunction = 0;
 	template <typename Archive> void serialize(Archive&) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 	}
 	[[nodiscard]] bool operator==(const RootRegularEmptyC& other) const noexcept = default;
 };
@@ -72,10 +69,9 @@ struct RootRegularEmptyC {
 // -------------------------------------------------------------------------------------------------
 
 struct RootRegularSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataRootRegularSimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataRootRegularSimpleA", dataRootRegularSimpleA);
 	}
 	RootRegularSimpleA() = default;
@@ -84,10 +80,9 @@ struct RootRegularSimpleA {
 	[[nodiscard]] bool operator==(const RootRegularSimpleA& other) const noexcept = default;
 };
 struct RootRegularSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataRootRegularSimpleB = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataRootRegularSimpleB", dataRootRegularSimpleB);
 	}
 	RootRegularSimpleB() = default;
@@ -96,10 +91,9 @@ struct RootRegularSimpleB {
 	[[nodiscard]] bool operator==(const RootRegularSimpleB& other) const noexcept = default;
 };
 struct RootRegularSimpleC {
-	mutable int usedSerializeFunction = 0;
 	int dataRootRegularSimpleC = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataRootRegularSimpleC", dataRootRegularSimpleC);
 	}
 	RootRegularSimpleC() = default;
@@ -111,25 +105,22 @@ struct RootRegularSimpleC {
 // -------------------------------------------------------------------------------------------------
 
 struct RootEmptyA {
-	mutable int usedSerializeFunction = 0;
 	template <typename Archive> void serialize(Archive&) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 	}
 	virtual ~RootEmptyA() = default;
 	[[nodiscard]] bool operator==(const RootEmptyA& other) const noexcept = default;
 };
 struct RootEmptyB {
-	mutable int usedSerializeFunction = 0;
 	template <typename Archive> void serialize(Archive&) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 	}
 	virtual ~RootEmptyB() = default;
 	[[nodiscard]] bool operator==(const RootEmptyB& other) const noexcept = default;
 };
 struct RootEmptyC {
-	mutable int usedSerializeFunction = 0;
 	template <typename Archive> void serialize(Archive&) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 	}
 	virtual ~RootEmptyC() = default;
 	[[nodiscard]] bool operator==(const RootEmptyC& other) const noexcept = default;
@@ -138,10 +129,9 @@ struct RootEmptyC {
 // -------------------------------------------------------------------------------------------------
 
 struct RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataRootSimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataRootSimpleA", dataRootSimpleA);
 	}
 	RootSimpleA() = default;
@@ -150,10 +140,9 @@ struct RootSimpleA {
 	[[nodiscard]] bool operator==(const RootSimpleA& other) const noexcept = default;
 };
 struct RootSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataRootSimpleB = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataRootSimpleB", dataRootSimpleB);
 	}
 	RootSimpleB() = default;
@@ -162,10 +151,9 @@ struct RootSimpleB {
 	[[nodiscard]] bool operator==(const RootSimpleB& other) const noexcept = default;
 };
 struct RootSimpleC {
-	mutable int usedSerializeFunction = 0;
 	int dataRootSimpleC = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataRootSimpleC", dataRootSimpleC);
 	}
 	RootSimpleC() = default;
@@ -177,10 +165,9 @@ struct RootSimpleC {
 // -------------------------------------------------------------------------------------------------
 
 struct LeafFinal_EmptyA final : RootEmptyA {
-	mutable int usedSerializeFunction = 0;
 	int dataLeafFinal_EmptyA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootEmptyA>(this);
 		ar.nvp("dataLeafFinal_EmptyA", dataLeafFinal_EmptyA);
 	}
@@ -191,10 +178,9 @@ struct LeafFinal_EmptyA final : RootEmptyA {
 };
 
 struct LeafFinal_SimpleA final : RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataLeafFinal_SimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleA>(this);
 		ar.nvp("dataLeafFinal_SimpleA", dataLeafFinal_SimpleA);
 	}
@@ -207,10 +193,9 @@ struct LeafFinal_SimpleA final : RootSimpleA {
 // -------------------------------------------------------------------------------------------------
 
 struct LeafNonFinal_EmptyA : RootEmptyA {
-	mutable int usedSerializeFunction = 0;
 	int dataLeafNonFinal_EmptyA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootEmptyA>(this);
 		ar.nvp("dataLeafNonFinal_EmptyA", dataLeafNonFinal_EmptyA);
 	}
@@ -221,10 +206,9 @@ struct LeafNonFinal_EmptyA : RootEmptyA {
 };
 
 struct LeafNonFinalA_SimpleA : RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataLeafNonFinalA_SimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleA>(this);
 		ar.nvp("dataLeafNonFinalA_SimpleA", dataLeafNonFinalA_SimpleA);
 	}
@@ -235,10 +219,9 @@ struct LeafNonFinalA_SimpleA : RootSimpleA {
 };
 
 struct LeafNonFinalB_SimpleA : RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataLeafNonFinalB_SimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleA>(this);
 		ar.nvp("dataLeafNonFinalB_SimpleA", dataLeafNonFinalB_SimpleA);
 	}
@@ -251,17 +234,15 @@ struct LeafNonFinalB_SimpleA : RootSimpleA {
 // -------------------------------------------------------------------------------------------------
 
 struct PreamblePadding {
-	mutable int usedSerializeFunction = 0;
 	int dataPreamblePadding = 42; // This "padding" is not serialized
 	[[nodiscard]] bool operator==(const PreamblePadding& other) const noexcept = default;
 };
 
 // Tests base pointer != object address
 struct BaseAtNonZeroOffset final : PreamblePadding, RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataBaseAtNonZeroOffset = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleA>(this);
 		ar.nvp("dataBaseAtNonZeroOffset", dataBaseAtNonZeroOffset);
 	}
@@ -274,10 +255,9 @@ struct BaseAtNonZeroOffset final : PreamblePadding, RootSimpleA {
 // -------------------------------------------------------------------------------------------------
 
 struct MultipleNonVirtualBases final : RootSimpleA, RootSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataMultipleNonVirtualBases = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleA>(this);
 		ar.template base_class<RootSimpleB>(this);
 		ar.nvp("dataMultipleNonVirtualBases", dataMultipleNonVirtualBases);
@@ -292,10 +272,9 @@ struct MultipleNonVirtualBases final : RootSimpleA, RootSimpleB {
 };
 
 struct MultipleNonVirtualReverseBases final : RootSimpleA, RootSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataMultipleNonVirtualReverseBases = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleB>(this); // < Reversed listing of bases
 		ar.template base_class<RootSimpleA>(this);
 		ar.nvp("dataMultipleNonVirtualReverseBases", dataMultipleNonVirtualReverseBases);
@@ -312,10 +291,9 @@ struct MultipleNonVirtualReverseBases final : RootSimpleA, RootSimpleB {
 // -------------------------------------------------------------------------------------------------
 
 struct SingleVirtualBaseA_SimpleA : virtual RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataSingleVirtualBaseA_SimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<RootSimpleA>(this);
 		ar.nvp("dataSingleVirtualBaseA_SimpleA", dataSingleVirtualBaseA_SimpleA);
 	}
@@ -328,10 +306,9 @@ struct SingleVirtualBaseA_SimpleA : virtual RootSimpleA {
 };
 
 struct SingleVirtualBaseB_SimpleA : virtual RootSimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataSingleVirtualBaseB_SimpleA = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<RootSimpleA>(this);
 		ar.nvp("dataSingleVirtualBaseB_SimpleA", dataSingleVirtualBaseB_SimpleA);
 	}
@@ -346,10 +323,9 @@ struct SingleVirtualBaseB_SimpleA : virtual RootSimpleA {
 // -------------------------------------------------------------------------------------------------
 
 struct MultipleIndependentVirtualBase : virtual RootSimpleA, virtual RootSimpleB, virtual RootSimpleC {
-	mutable int usedSerializeFunction = 0;
 	int dataMultipleIndependentVirtualBase = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<RootSimpleA>(this);
 		ar.template virtual_base_class<RootSimpleB>(this);
 		ar.template virtual_base_class<RootSimpleC>(this);
@@ -368,10 +344,9 @@ struct MultipleIndependentVirtualBase : virtual RootSimpleA, virtual RootSimpleB
 // -------------------------------------------------------------------------------------------------
 
 struct VirtualBaseAfterNonVirtualBase final : RootSimpleA, virtual RootSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataVirtualBaseAfterNonVirtualBase = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<RootSimpleA>(this);
 		ar.template virtual_base_class<RootSimpleB>(this);
 		ar.nvp("dataVirtualBaseAfterNonVirtualBase", dataVirtualBaseAfterNonVirtualBase);
@@ -386,10 +361,9 @@ struct VirtualBaseAfterNonVirtualBase final : RootSimpleA, virtual RootSimpleB {
 };
 
 struct NonVirtualBaseAfterVirtualBase final : virtual RootSimpleA, RootSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataNonVirtualBaseAfterVirtualBase = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<RootSimpleA>(this);
 		ar.template base_class<RootSimpleB>(this);
 		ar.nvp("dataNonVirtualBaseAfterVirtualBase", dataNonVirtualBaseAfterVirtualBase);
@@ -417,10 +391,9 @@ struct NonVirtualBaseAfterVirtualBase final : virtual RootSimpleA, RootSimpleB {
 // -------------------------------------------------------------------------------------------------
 
 struct ClassicVirtualDiamond final : SingleVirtualBaseA_SimpleA, SingleVirtualBaseB_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataClassicVirtualDiamond = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<SingleVirtualBaseA_SimpleA>(this);
 		ar.template base_class<SingleVirtualBaseB_SimpleA>(this);
 		ar.nvp("dataClassicVirtualDiamond", dataClassicVirtualDiamond);
@@ -436,10 +409,9 @@ struct ClassicVirtualDiamond final : SingleVirtualBaseA_SimpleA, SingleVirtualBa
 };
 
 struct LeftVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, SingleVirtualBaseB_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataLeftVirtualVirtualDiamond = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<SingleVirtualBaseA_SimpleA>(this);
 		ar.template base_class<SingleVirtualBaseB_SimpleA>(this);
 		ar.nvp("dataLeftVirtualVirtualDiamond", dataLeftVirtualVirtualDiamond);
@@ -455,10 +427,9 @@ struct LeftVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, Sin
 };
 
 struct RightVirtualVirtualDiamond final : SingleVirtualBaseA_SimpleA, virtual SingleVirtualBaseB_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataRightVirtualVirtualDiamond = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<SingleVirtualBaseA_SimpleA>(this);
 		ar.template virtual_base_class<SingleVirtualBaseB_SimpleA>(this);
 		ar.nvp("dataRightVirtualVirtualDiamond", dataRightVirtualVirtualDiamond);
@@ -474,10 +445,9 @@ struct RightVirtualVirtualDiamond final : SingleVirtualBaseA_SimpleA, virtual Si
 };
 
 struct BothVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, virtual SingleVirtualBaseB_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataBothVirtualVirtualDiamond = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<SingleVirtualBaseA_SimpleA>(this);
 		ar.template virtual_base_class<SingleVirtualBaseB_SimpleA>(this);
 		ar.nvp("dataBothVirtualVirtualDiamond", dataBothVirtualVirtualDiamond);
@@ -495,10 +465,9 @@ struct BothVirtualVirtualDiamond final : virtual SingleVirtualBaseA_SimpleA, vir
 // -------------------------------------------------------------------------------------------------
 
 struct MixedDepth : LeafNonFinalA_SimpleA, RootSimpleB {
-	mutable int usedSerializeFunction = 0;
 	int dataMixedDepth = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<LeafNonFinalA_SimpleA>(this);
 		ar.template base_class<RootSimpleB>(this);
 		ar.nvp("dataMixedDepth", dataMixedDepth);
@@ -515,10 +484,9 @@ struct MixedDepth : LeafNonFinalA_SimpleA, RootSimpleB {
 // -------------------------------------------------------------------------------------------------
 
 struct DuplicateNonVirtualBase final : LeafNonFinalA_SimpleA, LeafNonFinalB_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataDuplicateNonVirtualBase = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<LeafNonFinalA_SimpleA>(this);
 		ar.template base_class<LeafNonFinalB_SimpleA>(this);
 		ar.nvp("dataDuplicateNonVirtualBase", dataDuplicateNonVirtualBase);
@@ -535,10 +503,9 @@ struct DuplicateNonVirtualBase final : LeafNonFinalA_SimpleA, LeafNonFinalB_Simp
 // -------------------------------------------------------------------------------------------------
 
 struct DeepChain1 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepChain1 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataDeepChain1", dataDeepChain1);
 	}
 	DeepChain1() = default;
@@ -549,10 +516,9 @@ struct DeepChain1 {
 };
 
 struct DeepChain2 : DeepChain1 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepChain2 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<DeepChain1>(this);
 		ar.nvp("dataDeepChain2", dataDeepChain2);
 	}
@@ -565,10 +531,9 @@ struct DeepChain2 : DeepChain1 {
 };
 
 struct DeepChain3 : DeepChain2 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepChain3 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<DeepChain2>(this);
 		ar.nvp("dataDeepChain3", dataDeepChain3);
 	}
@@ -581,10 +546,9 @@ struct DeepChain3 : DeepChain2 {
 };
 
 struct DeepChain4 : DeepChain3 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepChain4 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<DeepChain3>(this);
 		ar.nvp("dataDeepChain4", dataDeepChain4);
 	}
@@ -597,10 +561,9 @@ struct DeepChain4 : DeepChain3 {
 };
 
 struct DeepChain5 : DeepChain4 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepChain5 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<DeepChain4>(this);
 		ar.nvp("dataDeepChain5", dataDeepChain5);
 	}
@@ -615,10 +578,9 @@ struct DeepChain5 : DeepChain4 {
 // -------------------------------------------------------------------------------------------------
 
 struct DeepVirtualChain3 : virtual SingleVirtualBaseA_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepVirtualChain3 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<SingleVirtualBaseA_SimpleA>(this);
 		ar.nvp("dataDeepVirtualChain3", dataDeepVirtualChain3);
 	}
@@ -632,10 +594,9 @@ struct DeepVirtualChain3 : virtual SingleVirtualBaseA_SimpleA {
 };
 
 struct DeepVirtualChain4 : virtual DeepVirtualChain3 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepVirtualChain4 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<DeepVirtualChain3>(this);
 		ar.nvp("dataDeepVirtualChain4", dataDeepVirtualChain4);
 	}
@@ -650,10 +611,9 @@ struct DeepVirtualChain4 : virtual DeepVirtualChain3 {
 };
 
 struct DeepVirtualChain5 : virtual DeepVirtualChain4 {
-	mutable int usedSerializeFunction = 0;
 	int dataDeepVirtualChain5 = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<DeepVirtualChain4>(this);
 		ar.nvp("dataDeepVirtualChain5", dataDeepVirtualChain5);
 	}
@@ -674,10 +634,9 @@ struct DeepVirtualChain5 : virtual DeepVirtualChain4 {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Winaccessible-base"
 struct StressAggregate : PreamblePadding, virtual LeafNonFinalA_SimpleA, virtual SingleVirtualBaseA_SimpleA, LeafNonFinalB_SimpleA, SingleVirtualBaseB_SimpleA {
-	mutable int usedSerializeFunction = 0;
 	int dataStressAggregate = 0;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template virtual_base_class<LeafNonFinalA_SimpleA>(this);
 		ar.template virtual_base_class<SingleVirtualBaseA_SimpleA>(this);
 		ar.template base_class<LeafNonFinalB_SimpleA>(this);
@@ -703,12 +662,11 @@ struct WeakHolderBase;
 struct WeakHolderDerived;
 
 struct WeakHolderBase {
-	mutable int usedSerializeFunction = 0;
 	int dataWeakHolderBase = 0;
 	std::weak_ptr<WeakHolderBase> ptrWeakHolderBase_Base;
 	std::weak_ptr<WeakHolderDerived> ptrWeakHolderBase_Derived;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.nvp("dataWeakHolderBase", dataWeakHolderBase);
 		ar.nvp("ptrWeakHolderBase_Base", ptrWeakHolderBase_Base);
 		ar.nvp("ptrWeakHolderBase_Derived", ptrWeakHolderBase_Derived);
@@ -718,19 +676,16 @@ struct WeakHolderBase {
 		dataWeakHolderBase(v) {}
 	virtual ~WeakHolderBase() = default;
 	[[nodiscard]] bool operator==(const WeakHolderBase& other) const noexcept {
-		return
-				usedSerializeFunction == other.usedSerializeFunction &&
-				dataWeakHolderBase == other.dataWeakHolderBase;
+		return dataWeakHolderBase == other.dataWeakHolderBase;
 	}
 };
 
 struct WeakHolderDerived : WeakHolderBase {
-	mutable int usedSerializeFunction = 0;
 	int dataWeakHolderDerived = 0;
 	std::weak_ptr<WeakHolderBase> ptrWeakHolderDerived_Base;
 	std::weak_ptr<WeakHolderDerived> ptrWeakHolderDerived_Derived;
 	template <typename Archive> void serialize(Archive& ar) {
-		usedSerializeFunction = usedSerializeFunction == 0 ? __LINE__ : std::min(usedSerializeFunction, 0) - 1;
+		record_call<Archive>(this);
 		ar.template base_class<WeakHolderBase>(this);
 		ar.nvp("dataWeakHolderDerived", dataWeakHolderDerived);
 		ar.nvp("ptrWeakHolderDerived_Base", ptrWeakHolderDerived_Base);
@@ -744,7 +699,6 @@ struct WeakHolderDerived : WeakHolderBase {
 	[[nodiscard]] bool operator==(const WeakHolderDerived& other) const noexcept {
 		return
 				static_cast<const WeakHolderBase&>(*this) == static_cast<const WeakHolderBase&>(other) &&
-				usedSerializeFunction == other.usedSerializeFunction &&
 				dataWeakHolderDerived == other.dataWeakHolderDerived;
 	}
 };

@@ -12,6 +12,8 @@
 #include <vide/serializer.hpp>
 #include <vide/smart_ptr_tag.hpp>
 
+#include "serialization_calls.hpp"
+
 
 
 namespace my { // ----------------------------------------------------------------------------------
@@ -193,7 +195,9 @@ public:
 	explicit TestRefCounted(int value) : value(value) {
 	}
 
-	template <typename Archive>	void serialize(Archive& ar) {
+	template <typename Archive>
+	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar.nvp("value", value);
 	}
 

@@ -1,87 +1,66 @@
 //
 
-#include <sstream>
+#include <tuple>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
+#include "common/archives.hpp"
+#include "common/check_roundtrip.hpp"
+#include "common/roundtrip.hpp"
+#include "common/serialization_calls.hpp"
 
-
-TEST_SUITE_BEGIN("ignore");
 
 namespace { // -------------------------------------------------------------------------------------
 
-struct Test {
-	int v0;
-	int v1;
-	int ignoreNamed;
-	int v2;
-	int ignore;
-	int v3;
+/// Two members are skipped on load (ignore<T>() and nvp_ignore<T>()) and recomputed from v0, so the values still
+/// compare equal; the members after them only load right if the skip consumed exactly the saved data
+struct Ignoring {
+	int v0 = 0;
+	int v1 = 0;
+	int named = 0;
+	int v2 = 0;
+	int unnamed = 0;
+	int v3 = 0;
 
-	explicit Test(int value) {
-		v0 = value;
-		v1 = value + 1;
-		ignoreNamed = value + 2;
-		v2 = value + 3;
-		ignore = value + 4;
-		v3 = value + 5;
-	}
+	Ignoring() = default;
+	explicit Ignoring(int value) :
+		v0(value),
+		v1(value + 1),
+		named(value + 2),
+		v2(value + 3),
+		unnamed(value + 4),
+		v3(value + 5) {}
 
-	template <class Archive> void serialize(Archive& ar) {
+	template <class Archive>
+	void serialize(Archive& ar) {
+		record_call<Archive>(this);
 		ar.nvp("v0", v0);
 		ar.nvp("v1", v1);
-		if constexpr (Archive::is_output)
-			ar.nvp("ignoreNamed", ignoreNamed); // we only save it here, so we can ignore it during load
-		else {
-			ar.template nvp_ignore<int>("ignoreNamed");
-			ignoreNamed = v0 + 2;
+		if constexpr (Archive::is_output) {
+			ar.nvp("named", named);
+		} else {
+			ar.template nvp_ignore<int>("named");
+			named = v0 + 2;
 		}
 		ar.nvp("v2", v2);
-		if constexpr (Archive::is_output)
-			ar(ignore); // we only save it here, so we can ignore it during load
-		else {
+		if constexpr (Archive::is_output) {
+			ar(unnamed);
+		} else {
 			ar.template ignore<int>();
-			ignore = v0 + 4;
+			unnamed = v0 + 4;
 		}
 		ar.nvp("v3", v3);
 	}
 
-	[[nodiscard]] constexpr inline bool operator==(const Test&) const = default;
+	bool operator==(const Ignoring&) const = default;
 };
 
 } // namespace -------------------------------------------------------------------------------------
 
+TEST_CASE_TEMPLATE("ignore", Ar, VIDE_ALL_ARCHIVES) {
+	check_roundtrip<Ar, Ignoring>(Ignoring{1});
 
-template <typename IArchive, typename OArchive>
-void test_ignore() {
-	Test output0{0};
-	Test output1{1};
-	Test output2{2};
-	Test input0{0};
-	Test input1{0};
-	Test input2{0};
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(output0);
-		oar(output1);
-		oar(output2);
-	}
-
-	std::istringstream is(os.str()); {
-		IArchive iar(is);
-
-		iar(input0);
-		iar(input1);
-		iar(input2);
-	}
-
-	CHECK_EQ(input0, output0);
-	CHECK_EQ(input1, output1);
-	CHECK_EQ(input2, output2);
+	// In sequence, so an ignore must leave the archive where the next value starts
+	const auto loaded = roundtrip<Ar>(Ignoring{10}, Ignoring{20}, Ignoring{30});
+	CHECK_EQ(loaded, std::tuple{Ignoring{10}, Ignoring{20}, Ignoring{30}});
 }
-
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("enum", test_ignore)
-
-TEST_SUITE_END();

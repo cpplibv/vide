@@ -5,17 +5,18 @@
 #include <vide/types/std_optional.hpp>
 #include <vide/types/std_vector.hpp>
 
+#include <initializer_list>
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include <doctest/doctest.h>
 
-#include "common/archive_test_cases.hpp"
-
-
-TEST_SUITE_BEGIN("validation");
+#include "common/archives.hpp"
+#include "common/roundtrip.hpp"
 
 
 template <typename Ar>
@@ -24,209 +25,173 @@ struct NonValidatingProxy : vide::ProxyArchive<NonValidatingProxy<Ar>, Ar> {
 	static constexpr bool enforce_validation = false;
 
 	template <typename Stream>
-	explicit NonValidatingProxy(Stream& stream) : vide::ProxyArchive<NonValidatingProxy<Ar>, Ar>(ar), ar(stream) {}
+	explicit NonValidatingProxy(Stream& stream) :
+		vide::ProxyArchive<NonValidatingProxy<Ar>, Ar>(ar),
+		ar(stream) {}
 };
 
 struct is_odd {
 	template <typename T>
-	static inline void operator()(const T& var) {
+	static void operator()(const T& var) {
 		if (var % 2 == 0)
 			throw vide::Exception("Is-odd validation failed during serialization: object is even.");
 	}
 };
 
-template<typename IArchive, typename OArchive>
-struct Tester {
-	template <typename T>
-	void test_out(const T& varOutput, const auto&... validators) {
-		std::ostringstream os; {
-			OArchive oar(os);
-			oar(varOutput, validators...);
-		}
-	}
+/// Saving and loading value both pass the validators
+template <typename Ar, typename T>
+bool accepts(const T& value, const auto&... validators) {
+	return saves<Ar>(value, validators...) && loads<Ar>(value, validators...);
+}
 
-	template <typename T>
-	auto test_in_(const T& varOutput, const auto&... validators) {
-		std::ostringstream os; {
-			OArchive oar(os);
-			oar(varOutput); // No validation on output so we can write out the invalid, so we can test the input validation
-		}
+/// Saving and loading value both fail the validators
+template <typename Ar, typename T>
+bool rejects(const T& value, const auto&... validators) {
+	return !saves<Ar>(value, validators...) && !loads<Ar>(value, validators...);
+}
 
-		T varInput{};
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-			iar(varInput, validators...);
-		}
-
-		return varInput;
-	}
-
-	template <typename T>
-	void test_out_nvp(const T& varOutput, const auto&... validators) {
-		std::ostringstream os; {
-			OArchive oar(os);
-			oar.nvp("var", varOutput, validators...);
-		}
-	}
-
-	template <typename T>
-	auto test_in__nvp(const T& varOutput, const auto&... validators) {
-		std::ostringstream os; {
-			OArchive oar(os);
-			oar.nvp("var", varOutput); // No validation on output so we can write out the invalid, so we can test the input validation
-		}
-
-		T varInput{};
-		std::istringstream is(os.str()); {
-			IArchive iar(is);
-			iar.nvp("var", varInput, validators...);
-		}
-
-		return varInput;
-	}
-};
-
-
-template <typename IArchive, typename OArchive>
-void test_validation() {
-	// --- Active
-	Tester<IArchive, OArchive> active{};
-	// Not null
-	CHECK_NOTHROW(active.test_out(std::make_unique<int>(42), vide::notnull));
-	CHECK_NOTHROW(active.test_in_(std::make_unique<int>(42), vide::notnull));
-	CHECK_THROWS_AS(active.test_out(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
-
-	// Not null - Range
-	CHECK_NOTHROW(active.test_out(std::vector<std::shared_ptr<int>>{std::make_shared<int>(42)}, vide::notnull));
-	CHECK_NOTHROW(active.test_in_(std::vector<std::shared_ptr<int>>{std::make_shared<int>(42)}, vide::notnull));
-	CHECK_THROWS_AS(active.test_out(std::vector<std::shared_ptr<int>>{nullptr}, vide::notnull), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<std::shared_ptr<int>>{nullptr}, vide::notnull), vide::Exception);
-	CHECK_NOTHROW(active.test_out(std::vector<int>{1, 2, 3}, vide::notnull));
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{1, 2, 3}, vide::notnull));
-	CHECK_THROWS_AS(active.test_out(std::vector<int>{1, 0, 3}, vide::notnull), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<int>{1, 0, 3}, vide::notnull), vide::Exception);
-
-	// Not null range
-	CHECK_NOTHROW(active.test_out(std::vector<std::shared_ptr<int>>{std::make_shared<int>(42)}, vide::notnullrange));
-	CHECK_NOTHROW(active.test_in_(std::vector<std::shared_ptr<int>>{std::make_shared<int>(42)}, vide::notnullrange));
-	CHECK_THROWS_AS(active.test_out(std::vector<std::shared_ptr<int>>{nullptr}, vide::notnullrange), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<std::shared_ptr<int>>{nullptr}, vide::notnullrange), vide::Exception);
-	CHECK_NOTHROW(active.test_out(std::vector<int>{1, 2, 3}, vide::notnullrange));
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{1, 2, 3}, vide::notnullrange));
-	CHECK_THROWS_AS(active.test_out(std::vector<int>{1, 0, 3}, vide::notnullrange), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<int>{1, 0, 3}, vide::notnullrange), vide::Exception);
-
-	// Not empty
-	CHECK_NOTHROW(active.test_out(std::vector<int>{0}, vide::notempty));
-	CHECK_NOTHROW((active.test_in_(std::vector<int>{0}, vide::notempty)));
-	CHECK_THROWS_AS(active.test_out(std::vector<int>{}, vide::notempty), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<int>{}, vide::notempty), vide::Exception);
-
-	// Max size
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{}, vide::maxsize(2)));
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{0}, vide::maxsize(2)));
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{0, 1}, vide::maxsize(2)));
-	CHECK_THROWS_AS(active.test_in_(std::vector<int>{0, 1, 2}, vide::maxsize(2)), vide::Exception);
-
-	// Min size
-	CHECK_THROWS_AS(active.test_in_(std::vector<int>{}, vide::minsize(2)), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<int>{0}, vide::minsize(2)), vide::Exception);
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{0, 1}, vide::minsize(2)));
-	CHECK_NOTHROW(active.test_in_(std::vector<int>{0, 1, 2}, vide::minsize(2)));
-
-	// Not null + custom is odd
-	CHECK_NOTHROW(active.test_out(41, vide::notnull, is_odd{}));
-	CHECK_NOTHROW(active.test_in_(41, vide::notnull, is_odd{}));
-	CHECK_NOTHROW(active.test_out(41, is_odd{}, vide::notnull));
-	CHECK_NOTHROW(active.test_in_(41, is_odd{}, vide::notnull));
-	CHECK_THROWS_AS(active.test_out(42, vide::notnull, is_odd{}), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(42, vide::notnull, is_odd{}), vide::Exception);
-	CHECK_THROWS_AS(active.test_out(42, is_odd{}, vide::notnull), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(42, is_odd{}, vide::notnull), vide::Exception);
-
-	// Test NVP
-	CHECK_NOTHROW(active.test_out_nvp(std::make_unique<int>(42), vide::notnull));
-	CHECK_NOTHROW(active.test_in__nvp(std::make_unique<int>(42), vide::notnull));
-	CHECK_THROWS_AS(active.test_out_nvp(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
-	CHECK_THROWS_AS(active.test_in__nvp(std::unique_ptr<int>{nullptr}, vide::notnull), vide::Exception);
-
-	// Test indirect
-	CHECK_NOTHROW(active.test_out(std::make_unique<int>(41), vide::indirect(vide::notnull), vide::indirect(is_odd{})));
-	CHECK_NOTHROW(active.test_in_(std::make_unique<int>(41), vide::indirect(vide::notnull), vide::indirect(is_odd{})));
-	CHECK_NOTHROW(active.test_out(std::make_unique<int>(41), vide::indirect(is_odd{}), vide::indirect(vide::notnull)));
-	CHECK_NOTHROW(active.test_in_(std::make_unique<int>(41), vide::indirect(is_odd{}), vide::indirect(vide::notnull)));
-	CHECK_THROWS_AS(active.test_out(std::make_unique<int>(42), vide::indirect(vide::notnull), vide::indirect(is_odd{})), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::make_unique<int>(42), vide::indirect(vide::notnull), vide::indirect(is_odd{})), vide::Exception);
-	CHECK_THROWS_AS(active.test_out(std::make_unique<int>(42), vide::indirect(is_odd{}), vide::indirect(vide::notnull)), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::make_unique<int>(42), vide::indirect(is_odd{}), vide::indirect(vide::notnull)), vide::Exception);
-
-	CHECK_NOTHROW(active.test_out(std::optional<int>(42), vide::indirect(vide::notnull)));
-	CHECK_NOTHROW(active.test_in_(std::optional<int>(42), vide::indirect(vide::notnull)));
-
-	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place}, vide::indirect(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::optional<std::vector<int>>{std::in_place}, vide::indirect(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0}}, vide::indirect(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0}}, vide::indirect(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1}}, vide::indirect(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1}}, vide::indirect(vide::maxsize(2))));
-	CHECK_THROWS_AS(active.test_in_(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1, 2}}, vide::indirect(vide::maxsize(2))), vide::Exception);
-	CHECK_THROWS_AS(active.test_out(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1, 2}}, vide::indirect(vide::maxsize(2))), vide::Exception);
-
-	// Test ranged
-	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0}}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0}}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0}, std::vector<int>{1}, std::vector<int>{2}}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0}, std::vector<int>{1}, std::vector<int>{2}}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::maxsize(2))));
-	CHECK_NOTHROW(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{1, 1}}, vide::ranged(vide::notnull)));
-	CHECK_NOTHROW(active.test_out(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{1, 1}}, vide::ranged(vide::notnull)));
-
-	CHECK_THROWS_AS(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{0, 1, 2}}, vide::ranged(vide::maxsize(2))), vide::Exception);
-	CHECK_THROWS_AS(active.test_out(std::vector<std::vector<int>>{std::vector<int>{0, 1, 2}}, vide::ranged(vide::maxsize(2))), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{1, 0}}, vide::ranged(vide::notnull)), vide::Exception);
-	CHECK_THROWS_AS(active.test_out(std::vector<std::vector<int>>{std::vector<int>{1, 0}}, vide::ranged(vide::notnull)), vide::Exception);
-	CHECK_THROWS_AS(active.test_in_(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::notnull)), vide::Exception);
-	CHECK_THROWS_AS(active.test_out(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::notnull)), vide::Exception);
-
-	// --- Inactive
-	Tester<NonValidatingProxy<IArchive>, NonValidatingProxy<OArchive>> inactive{};
-	// Not enforced - Not null
-	CHECK_NOTHROW(inactive.test_out(std::make_unique<int>(42), vide::notnull));
-	CHECK_NOTHROW(inactive.test_in_(std::make_unique<int>(42), vide::notnull));
-	CHECK_NOTHROW(inactive.test_out(std::unique_ptr<int>{nullptr}, vide::notnull));
-	CHECK_NOTHROW(inactive.test_in_(std::unique_ptr<int>{nullptr}, vide::notnull));
-
-	// Not enforced - Not empty
-	CHECK_NOTHROW(inactive.test_out(std::vector<int>{0}, vide::notempty));
-	CHECK_NOTHROW((inactive.test_in_(std::vector<int>{0}, vide::notempty)));
-	CHECK_NOTHROW(inactive.test_out(std::vector<int>{}, vide::notempty));
-	CHECK_NOTHROW(inactive.test_in_(std::vector<int>{}, vide::notempty));
-
-	// Not enforced - Not null + custom is odd
-	CHECK_NOTHROW(inactive.test_out(41, vide::notnull, is_odd{}));
-	CHECK_NOTHROW(inactive.test_in_(41, vide::notnull, is_odd{}));
-	CHECK_NOTHROW(inactive.test_out(41, is_odd{}, vide::notnull));
-	CHECK_NOTHROW(inactive.test_in_(41, is_odd{}, vide::notnull));
-	CHECK_NOTHROW(inactive.test_out(42, vide::notnull, is_odd{}));
-	CHECK_NOTHROW(inactive.test_in_(42, vide::notnull, is_odd{}));
-	CHECK_NOTHROW(inactive.test_out(42, is_odd{}, vide::notnull));
-	CHECK_NOTHROW(inactive.test_in_(42, is_odd{}, vide::notnull));
-
-	std::ostringstream os; {
-		OArchive oar(os);
-		oar(0); // To suppress: rapidjson internal assertion failure: IsObject()
-		CHECK_THROWS_AS(oar.verify(false, "Reason"), vide::Exception);
-	}
-	std::istringstream is(os.str()); {
-		IArchive iar(is);
-		CHECK_THROWS_AS(iar.verify(false, "Reason"), vide::Exception);
+/// saves() / loads() with the value written as ar.nvp("var", value, validators...)
+template <typename Ar, typename T>
+bool saves_nvp(const T& value, const auto&... validators) {
+	try {
+		std::ostringstream os;
+		typename Ar::output ar(os);
+		ar.nvp("var", value, validators...);
+		return true;
+	} catch (const vide::Exception&) {
+		return false;
 	}
 }
 
-CREATE_TEST_CASES_FOR_ALL_ARCHIVE("validation", test_validation)
+template <typename Ar, typename T>
+bool loads_nvp(const T& value, const auto&... validators) {
+	std::ostringstream os;
+	{
+		typename Ar::output ar(os);
+		ar.nvp("var", value);
+	}
 
-TEST_SUITE_END();
+	try {
+		T loaded{};
+		std::istringstream is(os.str());
+		typename Ar::input ar(is);
+		ar.nvp("var", loaded, validators...);
+		return true;
+	} catch (const vide::Exception&) {
+		return false;
+	}
+}
+
+template <typename Ar, typename T>
+bool accepts_nvp(const T& value, const auto&... validators) {
+	return saves_nvp<Ar>(value, validators...) && loads_nvp<Ar>(value, validators...);
+}
+
+template <typename Ar, typename T>
+bool rejects_nvp(const T& value, const auto&... validators) {
+	return !saves_nvp<Ar>(value, validators...) && !loads_nvp<Ar>(value, validators...);
+}
+
+// Validators are given after the value: ar(value, validators...). Saving checks them, so the data for load checks is
+// saved without validators
+
+TEST_CASE_TEMPLATE("validators", Ar, VIDE_ALL_ARCHIVES) {
+	SUBCASE("notnull") {
+		CHECK(accepts<Ar>(std::make_unique<int>(42), vide::notnull));
+		CHECK(rejects<Ar>(std::unique_ptr<int>{nullptr}, vide::notnull));
+	}
+
+	SUBCASE("notnull on a range checks the elements") {
+		CHECK(accepts<Ar>(std::vector<std::shared_ptr<int>>{std::make_shared<int>(42)}, vide::notnull));
+		CHECK(rejects<Ar>(std::vector<std::shared_ptr<int>>{nullptr}, vide::notnull));
+		CHECK(accepts<Ar>(std::vector<int>{1, 2, 3}, vide::notnull));
+		CHECK(rejects<Ar>(std::vector<int>{1, 0, 3}, vide::notnull));
+	}
+
+	SUBCASE("notnullrange") {
+		CHECK(accepts<Ar>(std::vector<std::shared_ptr<int>>{std::make_shared<int>(42)}, vide::notnullrange));
+		CHECK(rejects<Ar>(std::vector<std::shared_ptr<int>>{nullptr}, vide::notnullrange));
+		CHECK(accepts<Ar>(std::vector<int>{1, 2, 3}, vide::notnullrange));
+		CHECK(rejects<Ar>(std::vector<int>{1, 0, 3}, vide::notnullrange));
+	}
+
+	SUBCASE("notempty") {
+		CHECK(accepts<Ar>(std::vector<int>{0}, vide::notempty));
+		CHECK(rejects<Ar>(std::vector<int>{}, vide::notempty));
+	}
+
+	SUBCASE("maxsize") {
+		CHECK(loads<Ar>(std::vector<int>{}, vide::maxsize(2)));
+		CHECK(loads<Ar>(std::vector<int>{0}, vide::maxsize(2)));
+		CHECK(loads<Ar>(std::vector<int>{0, 1}, vide::maxsize(2)));
+		CHECK_FALSE(loads<Ar>(std::vector<int>{0, 1, 2}, vide::maxsize(2)));
+	}
+
+	SUBCASE("minsize") {
+		CHECK_FALSE(loads<Ar>(std::vector<int>{}, vide::minsize(2)));
+		CHECK_FALSE(loads<Ar>(std::vector<int>{0}, vide::minsize(2)));
+		CHECK(loads<Ar>(std::vector<int>{0, 1}, vide::minsize(2)));
+		CHECK(loads<Ar>(std::vector<int>{0, 1, 2}, vide::minsize(2)));
+	}
+
+	SUBCASE("validators combine in any order") {
+		CHECK(accepts<Ar>(41, vide::notnull, is_odd{}));
+		CHECK(accepts<Ar>(41, is_odd{}, vide::notnull));
+		CHECK(rejects<Ar>(42, vide::notnull, is_odd{}));
+		CHECK(rejects<Ar>(42, is_odd{}, vide::notnull));
+	}
+
+	SUBCASE("nvp() takes validators") {
+		CHECK(accepts_nvp<Ar>(std::make_unique<int>(42), vide::notnull));
+		CHECK(rejects_nvp<Ar>(std::unique_ptr<int>{nullptr}, vide::notnull));
+	}
+
+	SUBCASE("indirect") {
+		CHECK(accepts<Ar>(std::make_unique<int>(41), vide::indirect(vide::notnull), vide::indirect(is_odd{})));
+		CHECK(accepts<Ar>(std::make_unique<int>(41), vide::indirect(is_odd{}), vide::indirect(vide::notnull)));
+		CHECK(rejects<Ar>(std::make_unique<int>(42), vide::indirect(vide::notnull), vide::indirect(is_odd{})));
+		CHECK(rejects<Ar>(std::make_unique<int>(42), vide::indirect(is_odd{}), vide::indirect(vide::notnull)));
+		CHECK(accepts<Ar>(std::optional<int>(42), vide::indirect(vide::notnull)));
+		CHECK(accepts<Ar>(std::optional<std::vector<int>>{std::in_place}, vide::indirect(vide::maxsize(2))));
+		CHECK(accepts<Ar>(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0}}, vide::indirect(vide::maxsize(2))));
+		CHECK(accepts<Ar>(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1}}, vide::indirect(vide::maxsize(2))));
+		CHECK(rejects<Ar>(std::optional<std::vector<int>>{std::in_place, std::initializer_list<int>{0, 1, 2}}, vide::indirect(vide::maxsize(2))));
+	}
+
+	SUBCASE("ranged") {
+		CHECK(accepts<Ar>(std::vector<std::vector<int>>{}, vide::ranged(vide::maxsize(2))));
+		CHECK(accepts<Ar>(std::vector<std::vector<int>>{std::vector<int>{0}}, vide::ranged(vide::maxsize(2))));
+		CHECK(accepts<Ar>(std::vector<std::vector<int>>{std::vector<int>{0}, std::vector<int>{1}, std::vector<int>{2}}, vide::ranged(vide::maxsize(2))));
+		CHECK(accepts<Ar>(std::vector<std::vector<int>>{std::vector<int>{0, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::maxsize(2))));
+		CHECK(accepts<Ar>(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{1, 1}}, vide::ranged(vide::notnull)));
+		CHECK(rejects<Ar>(std::vector<std::vector<int>>{std::vector<int>{0, 1, 2}}, vide::ranged(vide::maxsize(2))));
+		CHECK(rejects<Ar>(std::vector<std::vector<int>>{std::vector<int>{1, 0}}, vide::ranged(vide::notnull)));
+		CHECK(rejects<Ar>(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::notnull)));
+	}
+
+	SUBCASE("archives opting out of enforce_validation ignore validators") {
+		using Unenforced = proxied<Ar, NonValidatingProxy>;
+		CHECK(accepts<Unenforced>(std::make_unique<int>(42), vide::notnull));
+		CHECK(accepts<Unenforced>(std::unique_ptr<int>{nullptr}, vide::notnull));
+		CHECK(accepts<Unenforced>(std::vector<int>{0}, vide::notempty));
+		CHECK(accepts<Unenforced>(std::vector<int>{}, vide::notempty));
+		CHECK(accepts<Unenforced>(41, vide::notnull, is_odd{}));
+		CHECK(accepts<Unenforced>(41, is_odd{}, vide::notnull));
+		CHECK(accepts<Unenforced>(42, vide::notnull, is_odd{}));
+		CHECK(accepts<Unenforced>(42, is_odd{}, vide::notnull));
+	}
+
+	SUBCASE("verify() throws on failure") {
+		std::ostringstream os;
+		{
+			typename Ar::output ar(os);
+			ar(0); // A JSON archive asserts (IsObject()) when closed empty
+			CHECK_THROWS_AS(ar.verify(false, "Reason"), vide::Exception);
+		}
+		std::istringstream is(os.str());
+		{
+			typename Ar::input ar(is);
+			CHECK_THROWS_AS(ar.verify(false, "Reason"), vide::Exception);
+		}
+	}
+}

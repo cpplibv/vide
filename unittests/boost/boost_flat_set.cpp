@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <random>
 #include <set>
 #include <string>
 #include <tuple>
@@ -20,6 +19,7 @@
 
 #include "common/archives.hpp"
 #include "common/check_roundtrip.hpp"
+#include "common/order_checker.hpp"
 #include "common/random.hpp"
 #include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
@@ -35,40 +35,6 @@ using flat_multiset = boost::container::flat_multiset<K>;
 
 // Expected values go through ordered_range / ordered_unique_range on purpose: brace initialization instantiates
 // the bulk sort, a large compile time cost
-
-/// Every random element twice, so duplicates are present
-template <typename C>
-C random_with_duplicates(std::mt19937& gen) {
-	C values;
-	for (std::size_t i = 0; i < element_count; ++i) {
-		const auto value = random_value<typename C::key_type>(gen);
-		values.insert(value);
-		values.insert(value);
-	}
-	return values;
-}
-
-/// Equal by order but told apart by value, so a reordering of equal elements shows
-struct OrderChecker {
-	int order = 0;
-	int value = 0;
-
-	template <class Archive>
-	void serialize(Archive& ar) {
-		ar.nvp("order", order);
-		ar.nvp("value", value);
-	}
-
-	friend bool operator<(const OrderChecker& lhs, const OrderChecker& rhs) {
-		return lhs.order < rhs.order;
-	}
-
-	friend bool operator>(const OrderChecker& lhs, const OrderChecker& rhs) {
-		return lhs.order > rhs.order;
-	}
-
-	friend bool operator==(const OrderChecker&, const OrderChecker&) = default;
-};
 
 TEST_CASE_TEMPLATE("boost::container::flat_set", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
@@ -119,10 +85,10 @@ TEST_CASE_TEMPLATE("boost::container::flat_multiset", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
 
 	SUBCASE("duplicate keys") {
-		check_roundtrip<Ar>(random_with_duplicates<flat_multiset<std::string>>(gen));
-		check_roundtrip<Ar>(random_with_duplicates<flat_multiset<std::int8_t>>(gen));
+		check_roundtrip<Ar>(random_with_duplicates<flat_multiset<std::string>>(gen, element_count));
+		check_roundtrip<Ar>(random_with_duplicates<flat_multiset<std::int8_t>>(gen, element_count));
 		for_each_sample_struct([&]<typename S> {
-			check_roundtrip<Ar>(random_with_duplicates<flat_multiset<S>>(gen));
+			check_roundtrip<Ar>(random_with_duplicates<flat_multiset<S>>(gen, element_count));
 		});
 	}
 

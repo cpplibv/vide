@@ -101,3 +101,21 @@ template <typename C>
 [[nodiscard]] inline std::size_t random_index(std::size_t min, std::size_t max, std::mt19937& gen) {
 	return std::uniform_int_distribution<std::size_t>(min, max)(gen);
 }
+
+/// Every random key twice, so duplicates are present; maps get two different values for it:
+/// random_with_duplicates<std::multiset<int>>(gen, 100) -> 200 elements
+template <typename C>
+[[nodiscard]] C random_with_duplicates(std::mt19937& gen, std::size_t key_count) {
+	C container;
+	for (std::size_t i = 0; i < key_count; ++i) {
+		const auto key = random_value<typename C::key_type>(gen);
+		if constexpr (requires { typename C::mapped_type; }) {
+			container.emplace(key, random_value<typename C::mapped_type>(gen));
+			container.emplace(key, random_value<typename C::mapped_type>(gen));
+		} else {
+			container.insert(key);
+			container.insert(key);
+		}
+	}
+	return container;
+}

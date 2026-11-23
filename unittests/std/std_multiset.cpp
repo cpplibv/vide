@@ -1,67 +1,62 @@
 //
 
 #include <vide/types/std_set.hpp>
+#include <vide/types/std_string.hpp>
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <set>
+#include <string>
+#include <vector>
 
 #include <doctest/doctest.h>
 
 #include "common/archives.hpp"
 #include "common/check_roundtrip.hpp"
+#include "common/order_checker.hpp"
 #include "common/random.hpp"
+#include "common/roundtrip.hpp"
 #include "common/sample_structs.hpp"
 
 
 constexpr std::size_t element_count = 100;
 
-/// Every random element twice, so duplicates are present
-template <typename T>
-std::multiset<T> random_multiset_with_duplicates(std::mt19937& gen) {
-	std::multiset<T> values;
-	for (std::size_t i = 0; i < element_count; ++i) {
-		const T value = random_value<T>(gen);
-		values.insert(value);
-		values.insert(value);
-	}
-	return values;
-}
-
-/// Equal by order but told apart by value, so a reordering of equal elements shows
-struct OrderChecker {
-	int order = 0;
-	int value = 0;
-
-	template <class Archive>
-	void serialize(Archive& ar) {
-		ar.nvp("order", order);
-		ar.nvp("value", value);
-	}
-
-	friend bool operator<(const OrderChecker& lhs, const OrderChecker& rhs) {
-		return lhs.order < rhs.order;
-	}
-
-	friend bool operator==(const OrderChecker&, const OrderChecker&) = default;
-};
-
 TEST_CASE_TEMPLATE("std::multiset", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
 
-	SUBCASE("duplicates") {
-		const auto ints = random_multiset_with_duplicates<int>(gen);
-		check_roundtrip<Ar>(ints);
-
+	SUBCASE("duplicate keys") {
+		check_roundtrip<Ar>(random_with_duplicates<std::multiset<std::string>>(gen, element_count));
+		check_roundtrip<Ar>(random_with_duplicates<std::multiset<std::int8_t>>(gen, element_count));
 		for_each_sample_struct([&]<typename S> {
-			const auto structs = random_multiset_with_duplicates<S>(gen);
-			check_roundtrip<Ar>(structs);
+			check_roundtrip<Ar>(random_with_duplicates<std::multiset<S>>(gen, element_count));
 		});
 	}
 
-	SUBCASE("equal elements keep their order") {
+	SUBCASE("equal keys keep their order") {
 		std::multiset<OrderChecker> ordered;
 		for (int value = 1; value <= 9; ++value)
 			ordered.emplace(10, value);
 		check_roundtrip<Ar>(ordered);
+	}
+
+	SUBCASE("out of order input") {
+		CHECK_EQ((roundtrip_as<Ar, std::multiset<int>>(
+				std::multiset<int, std::greater<>>{3, 1, 4, 1, 5, 9, 2, 6, 5})),
+				std::multiset<int>{1, 1, 2, 3, 4, 5, 5, 6, 9});
+
+		// Saved as (20, 1), (20, 2), (20, 3), (10, 1), ...; equal keys keep their order
+		std::multiset<OrderChecker, std::greater<>> descending;
+		for (int value = 1; value <= 3; ++value) {
+			descending.emplace(10, value);
+			descending.emplace(20, value);
+		}
+		const auto loaded = roundtrip_as<Ar, std::multiset<OrderChecker>>(descending);
+		CHECK(std::ranges::equal(loaded, std::vector<OrderChecker>{{10, 1}, {10, 2}, {10, 3}, {20, 1}, {20, 2}, {20, 3}}));
+	}
+
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::multiset<int>{});
 	}
 }

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -32,6 +33,12 @@ TEST_CASE_TEMPLATE("std::map", Ar, VIDE_ALL_ARCHIVES) {
 		check_roundtrip<Ar>(random_container<std::map<std::string, int>>(gen, element_count));
 		check_roundtrip<Ar>(random_container<std::map<std::int8_t, int>>(gen, element_count));
 		check_roundtrip<Ar>(random_container<std::map<std::uint32_t, int>>(gen, element_count));
+	}
+
+	SUBCASE("struct keys") {
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_container<std::map<S, int>>(gen, element_count));
+		});
 	}
 
 	SUBCASE("struct values") {
@@ -61,6 +68,17 @@ TEST_CASE_TEMPLATE("std::map", Ar, VIDE_ALL_ARCHIVES) {
 		};
 		CHECK(same_pointees(loaded_unique, unique));
 		CHECK(same_pointees(loaded_shared, shared));
+	}
+
+	SUBCASE("empty") {
+		check_roundtrip<Ar>(std::map<int, int>{});
+	}
+
+	SUBCASE("out of order input") {
+		// Same format as std::map, saved in descending key order
+		CHECK_EQ((roundtrip_as<Ar, std::map<int, int>>(
+				std::map<int, int, std::greater<>>{{3, 30}, {1, 10}, {4, 40}, {2, 20}})),
+				(std::map<int, int>{{1, 10}, {2, 20}, {3, 30}, {4, 40}}));
 	}
 
 	SUBCASE("duplicate keys") {

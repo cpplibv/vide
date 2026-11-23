@@ -1,10 +1,16 @@
 //
 
 #include <vide/types/std_set.hpp>
+#include <vide/types/std_string.hpp>
+#include <vide/types/std_vector.hpp>
 
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <set>
+#include <string>
 #include <tuple>
+#include <vector>
 
 #include <doctest/doctest.h>
 
@@ -20,18 +26,34 @@ constexpr std::size_t element_count = 100;
 TEST_CASE_TEMPLATE("std::set", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
 
-	SUBCASE("arithmetic") {
-		check_roundtrip<Ar>(random_container<std::set<int>>(gen, element_count));
+	SUBCASE("arithmetic and string keys") {
+		check_roundtrip<Ar>(random_container<std::set<std::string>>(gen, element_count));
+		check_roundtrip<Ar>(random_container<std::set<std::int8_t>>(gen, element_count));
+		check_roundtrip<Ar>(random_container<std::set<std::uint32_t>>(gen, element_count));
 	}
 
-	SUBCASE("structs") {
+	SUBCASE("struct keys") {
 		for_each_sample_struct([&]<typename S> {
 			check_roundtrip<Ar>(random_container<std::set<S>>(gen, element_count));
 		});
 	}
 
+	SUBCASE("nested containers") {
+		std::set<std::vector<StructInternalSerialize>> nested;
+		for (std::size_t i = 0; i < 10; ++i)
+			nested.insert(random_container<std::vector<StructInternalSerialize>>(gen, element_count));
+		check_roundtrip<Ar>(nested);
+	}
+
 	SUBCASE("empty") {
 		check_roundtrip<Ar>(std::set<int>{});
+	}
+
+	SUBCASE("out of order input") {
+		// Same format as std::set, saved in descending order
+		CHECK_EQ((roundtrip_as<Ar, std::set<int>>(
+				std::set<int, std::greater<>>{3, 1, 4, 5, 9, 2, 6})),
+				std::set<int>{1, 2, 3, 4, 5, 6, 9});
 	}
 
 	SUBCASE("duplicate keys") {

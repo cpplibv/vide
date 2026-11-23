@@ -1,13 +1,18 @@
 //
 
+#include <vide/types/memory.hpp>
 #include <vide/types/std_string.hpp>
 #include <vide/types/std_unordered_map.hpp>
+#include <vide/types/std_vector.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <vector>
 
 #include <doctest/doctest.h>
 
@@ -28,16 +33,43 @@ TEST_CASE_TEMPLATE("std::unordered_map", Ar, VIDE_ALL_ARCHIVES) {
 		check_roundtrip<Ar>(random_container<std::unordered_map<std::int8_t, int>>(gen, element_count));
 	}
 
+	SUBCASE("struct keys") {
+		for_each_sample_struct([&]<typename S> {
+			check_roundtrip<Ar>(random_container<std::unordered_map<S, int, StructHash<S>>>(gen, element_count));
+		});
+	}
+
 	SUBCASE("struct values") {
 		for_each_sample_struct([&]<typename S> {
 			check_roundtrip<Ar>(random_container<std::unordered_map<int, S>>(gen, element_count));
 		});
 	}
 
-	SUBCASE("struct keys") {
-		for_each_sample_struct([&]<typename S> {
-			check_roundtrip<Ar>(random_container<std::unordered_map<S, int, StructHash<S>>>(gen, element_count));
-		});
+	SUBCASE("nested containers") {
+		std::unordered_map<std::size_t, std::vector<StructInternalSerialize>> nested;
+		for (std::size_t i = 0; i < 10; ++i)
+			nested[random_value<std::size_t>(gen)] = random_container<std::vector<StructInternalSerialize>>(gen, element_count);
+		check_roundtrip<Ar>(nested);
+	}
+
+	SUBCASE("smart pointer values") {
+		std::unordered_map<int, std::unique_ptr<int>> unique;
+		std::unordered_map<int, std::shared_ptr<int>> shared;
+		for (std::size_t i = 0; i < element_count; ++i) {
+			unique.emplace(random_value<int>(gen), std::make_unique<int>(random_value<int>(gen)));
+			shared.emplace(random_value<int>(gen), std::make_shared<int>(random_value<int>(gen)));
+		}
+
+		const auto [loaded_unique, loaded_shared] = roundtrip<Ar>(unique, shared);
+		// Looked up by key: the loaded container may iterate in a different order
+		const auto same_pointees = [](const auto& a, const auto& b) {
+			return a.size() == b.size() && std::ranges::all_of(a, [&](const auto& x) {
+				const auto it = b.find(x.first);
+				return it != b.end() && *it->second == *x.second;
+			});
+		};
+		CHECK(same_pointees(loaded_unique, unique));
+		CHECK(same_pointees(loaded_shared, shared));
 	}
 
 	SUBCASE("empty") {

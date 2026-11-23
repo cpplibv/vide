@@ -4,6 +4,7 @@
 #include <vide/types/std_unordered_map.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 
@@ -17,25 +18,15 @@
 
 constexpr std::size_t element_count = 100;
 
-/// Every random key twice, with different values
-template <typename C>
-C random_with_duplicate_keys(std::mt19937& gen) {
-	C values;
-	for (std::size_t i = 0; i < element_count; ++i) {
-		const auto key = random_value<typename C::key_type>(gen);
-		values.emplace(key, random_value<typename C::mapped_type>(gen));
-		values.emplace(key, random_value<typename C::mapped_type>(gen));
-	}
-	return values;
-}
-
 TEST_CASE_TEMPLATE("std::unordered_multimap", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
 
 	SUBCASE("duplicate keys") {
-		check_roundtrip<Ar>(random_with_duplicate_keys<std::unordered_multimap<std::string, int>>(gen));
+		check_roundtrip<Ar>(random_with_duplicates<std::unordered_multimap<std::string, int>>(gen, element_count));
+		check_roundtrip<Ar>(random_with_duplicates<std::unordered_multimap<std::int8_t, int>>(gen, element_count));
 		for_each_sample_struct([&]<typename S> {
-			check_roundtrip<Ar>(random_with_duplicate_keys<std::unordered_multimap<int, S>>(gen));
+			check_roundtrip<Ar>(random_with_duplicates<std::unordered_multimap<S, int, StructHash<S>>>(gen, element_count));
+			check_roundtrip<Ar>(random_with_duplicates<std::unordered_multimap<std::int8_t, S>>(gen, element_count));
 		});
 	}
 

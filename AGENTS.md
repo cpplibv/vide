@@ -110,6 +110,8 @@ public:
 
 - LF, UTF-8, final newline (`.editorconfig`)
 - `.idea/` and CLion `build/*` folders are the maintainer's IDE state; don't edit, revert or commit them
+- Commit messages: a single imperative subject line, no body, no trailing period
+  ("Fetch doctest with CPM instead of vendoring it", "Add boost flat_set and flat_map serializers")
 - README change log: one short line per user-visible change, written for library users; no implementation details,
   internal refactors are left out
 - `KNOWN_ISSUES.md` and `todo.txt` track open problems and plans

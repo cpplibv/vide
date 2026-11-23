@@ -12,7 +12,6 @@
 #include <functional>
 #include <map>
 #include <memory>
-#include <random>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -38,18 +37,6 @@ using flat_multimap = boost::container::flat_multimap<K, V>;
 
 // Expected values go through ordered_range / ordered_unique_range on purpose: brace initialization instantiates
 // the bulk sort, a large compile time cost
-
-/// Every random key twice, with different values
-template <typename C>
-C random_with_duplicates(std::mt19937& gen) {
-	C values;
-	for (std::size_t i = 0; i < element_count; ++i) {
-		const auto key = random_value<typename C::key_type>(gen);
-		values.emplace(key, random_value<typename C::mapped_type>(gen));
-		values.emplace(key, random_value<typename C::mapped_type>(gen));
-	}
-	return values;
-}
 
 TEST_CASE_TEMPLATE("boost::container::flat_map", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
@@ -122,11 +109,11 @@ TEST_CASE_TEMPLATE("boost::container::flat_multimap", Ar, VIDE_ALL_ARCHIVES) {
 	auto gen = test_rng();
 
 	SUBCASE("duplicate keys") {
-		check_roundtrip<Ar>(random_with_duplicates<flat_multimap<std::string, int>>(gen));
-		check_roundtrip<Ar>(random_with_duplicates<flat_multimap<std::int8_t, int>>(gen));
+		check_roundtrip<Ar>(random_with_duplicates<flat_multimap<std::string, int>>(gen, element_count));
+		check_roundtrip<Ar>(random_with_duplicates<flat_multimap<std::int8_t, int>>(gen, element_count));
 		for_each_sample_struct([&]<typename S> {
-			check_roundtrip<Ar>(random_with_duplicates<flat_multimap<S, int>>(gen));
-			check_roundtrip<Ar>(random_with_duplicates<flat_multimap<std::int8_t, S>>(gen));
+			check_roundtrip<Ar>(random_with_duplicates<flat_multimap<S, int>>(gen, element_count));
+			check_roundtrip<Ar>(random_with_duplicates<flat_multimap<std::int8_t, S>>(gen, element_count));
 		});
 	}
 

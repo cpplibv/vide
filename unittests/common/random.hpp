@@ -82,6 +82,13 @@ template <typename C>
 		return C(typename C::value_compare{}, random_container<typename C::container_type>(gen, size));
 	} else if constexpr (container_adapter<C>) { // std::queue, std::stack
 		return C(random_container<typename C::container_type>(gen, size));
+	} else if constexpr (requires { typename C::key_type; }) {
+		// One insert at a time on purpose: the range constructor of boost's flat containers instantiates their bulk
+		// sort and merge per element type, a large share of those tests' compile time
+		C container;
+		for (std::size_t i = 0; i < size; ++i)
+			container.insert(random_value<std::remove_const_t<typename C::value_type>>(gen));
+		return container;
 	} else {
 		std::vector<std::remove_const_t<typename C::value_type>> elements;
 		for (std::size_t i = 0; i < size; ++i)

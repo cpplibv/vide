@@ -4,6 +4,22 @@ find_package(Threads REQUIRED)
 find_package(Boost CONFIG QUIET)
 
 include(${PROJECT_SOURCE_DIR}/cmake/CPM.cmake)
+
+# Fetched only as top level project, a parent project's Boost setup is left alone
+if (NOT Boost_FOUND AND PROJECT_IS_TOP_LEVEL)
+	CPMAddPackage(
+			NAME Boost
+			VERSION 1.92.0
+			# Using the b2 archive on purpose: one merged header tree, Smaller than the CMake one (nothing to compile)
+			URL https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-b2-nodocs.tar.xz
+			URL_HASH SHA256=ea7b982002cc9dfbe59b0b217b206f470dc75f3de0bb2973d844118934d82411
+			DOWNLOAD_ONLY YES)
+	if (Boost_ADDED)
+		add_library(Boost::headers INTERFACE IMPORTED)
+		target_include_directories(Boost::headers INTERFACE ${Boost_SOURCE_DIR})
+	endif ()
+endif ()
+
 CPMAddPackage(
 		NAME doctest
 		GITHUB_REPOSITORY doctest/doctest
@@ -94,7 +110,8 @@ foreach (dir IN ITEMS archives core memory polymorphic std)
 	endforeach ()
 endforeach ()
 
-if (Boost_FOUND)
+# Not Boost_FOUND: the CPM fallback leaves it false from the failed find_package; the target exists either way
+if (TARGET Boost::headers)
 	message(STATUS "Found boost: Adding boost related test targets")
 	file(GLOB tests CONFIGURE_DEPENDS boost/*.cpp)
 	foreach (test IN LISTS tests)

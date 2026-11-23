@@ -20,7 +20,8 @@ serialized output are breaking changes.
   - `external/` - bundled rapidjson and rapidxml; third-party code, leave it alone
 - `unittests/` - doctest tests, one executable per `.cpp`, grouped by area: `core/`, `archives/`, `std/`, `memory/`,
   `polymorphic/`, `boost/` (needs boost); `common/` holds the shared test code
-- `cmake/CPM.cmake` - CPM bootstrap; fetches doctest when tests are built (set `CPM_SOURCE_CACHE` to reuse downloads)
+- `cmake/CPM.cmake` - CPM bootstrap; fetches doctest when tests are built, and Boost headers if no installed Boost is
+  found and vide is the top level project (set `CPM_SOURCE_CACHE` to reuse downloads)
 - `sandbox/` - example and experiment programs, also built by default
 - `doc/` - Doxygen setup; built only when Doxygen is found
 - `README.md` - user docs and the change log

@@ -3,7 +3,14 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <type_traits>
+
+#include <vide/access.hpp>
+#include <vide/details/util.hpp>
+#include <vide/exception.hpp>
+#include <vide/serializer.hpp>
+#include <vide/smart_ptr_tag.hpp>
 
 
 

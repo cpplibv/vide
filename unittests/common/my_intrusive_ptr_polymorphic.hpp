@@ -3,7 +3,14 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <type_traits>
+#include <typeindex>
+#include <typeinfo>
+
+#include <vide/details/util.hpp>
+#include <vide/exception.hpp>
+#include <vide/types/polymorphic.hpp>
 
 #include "my_intrusive_ptr.hpp"
 

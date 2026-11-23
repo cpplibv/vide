@@ -1,8 +1,16 @@
 //
 
-#include "../common.hpp"
-
 #include <vide/types/boost_flat_set.hpp>
+
+#include <random>
+#include <sstream>
+
+#include <doctest.h>
+
+#include "common/archive_test_cases.hpp"
+#include "common/collection_checks.hpp"
+#include "common/random.hpp"
+#include "common/sample_structs.hpp"
 
 
 template <class IArchive, class OArchive>

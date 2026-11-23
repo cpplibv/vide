@@ -18,7 +18,8 @@ serialized output are breaking changes.
   - `details/` - internals: traits, validation, polymorphic registry, helpers
   - `macros.hpp` - user-overridable configuration (`VIDE_SIZE_TYPE`, `VIDE_POLYMORPHIC_ID_TYPE`, function names, ...)
   - `external/` - bundled rapidjson and rapidxml; third-party code, leave it alone
-- `unittests/` - doctest tests, one executable per `.cpp`; `unittests/boost/` needs boost
+- `unittests/` - doctest tests, one executable per `.cpp`, grouped by area: `core/`, `archives/`, `std/`, `memory/`,
+  `polymorphic/`, `boost/` (needs boost); `common/` holds the shared test code, `external/` doctest
 - `sandbox/` - example and experiment programs, also built by default
 - `doc/` - Doxygen setup; built only when Doxygen is found
 - `README.md` - user docs and the change log
@@ -43,9 +44,18 @@ ctest --test-dir build/dev -j 8 --output-on-failure
 
 ## Tests
 
-- New test file: drop a `.cpp` in `unittests/`, it is picked up by glob
-- `CREATE_TEST_CASES_FOR_ALL_ARCHIVE(name, fn)` (and the `_BINARY_` / `_TEXT_` / `_PROXY_ARCHIVE_` variants in
-  `unittests/common.hpp`) instantiate a templated test function for every archive pair; prefer them over hand-written cases
+- New test file: drop a `.cpp` into the matching `unittests/<area>/`, it is picked up by glob; the target and test are
+  named after folder and file (`core/pod.cpp` -> `test_core_pod`); files mirroring a `vide/types/` header keep its name
+  (`std/std_vector.cpp` -> `test_std_vector`)
+- Include what the test uses: the `vide/types/*` serializers it exercises, and only the `common/` headers it needs
+- `common/archive_test_cases.hpp`: `CREATE_TEST_CASES_FOR_ALL_ARCHIVE(name, fn)` (and the `_BINARY_` / `_TEXT_` /
+  `_PROXY_ARCHIVE_` variants) instantiate a templated test function for every archive pair; prefer them over
+  hand-written cases
+- Other common headers: `random.hpp` (random values and strings), `sample_structs.hpp` (one struct per serialization
+  shape), `collection_checks.hpp`, `tester.hpp` (batched round trips), `save_load_tester.hpp`, `shared_ptr_helpers.hpp`
+- `polymorphic/test_classes.hpp`: polymorphic class zoo, registered once in `polymorphic/test_classes.cpp`, which every
+  `polymorphic/` test links
+- Common headers are compiled standalone too (`VERIFY_INTERFACE_HEADER_SETS`), so they must include what they use
 - Portability (32 bit) tests are disabled
 
 ## Code style

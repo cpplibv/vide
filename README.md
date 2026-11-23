@@ -322,6 +322,7 @@ Additional nice to have extras may arrive in the future.
   - Breaking: In text archives the name of a deferred value or of an already serialized virtual base class no longer lands
     on the next unnamed value
   - Fix proxy archives preferring their forwarding `process_as` over a derived proxy's overload for a const type
+  - Fix `types/std_queue.hpp` not including the serializer of `std::priority_queue`'s default container (`std::vector`)
 
 
 -------------------------------------------------------------------------------------------------

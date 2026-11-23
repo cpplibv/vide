@@ -2,6 +2,7 @@
 
 #include <vide/types/functional.hpp> // The default comparator for queue is less
 #include <vide/types/std_deque.hpp> // The default container for queue is deque, so let's include that too
+#include <vide/types/std_vector.hpp> // The default container for priority_queue is vector
 
 #include <cstdint>
 #include <queue>

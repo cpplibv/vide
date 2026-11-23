@@ -1,8 +1,23 @@
 //
 
-#include "../common.hpp"
-
 #include <vide/types/boost_flat_map.hpp>
+#include <vide/types/memory.hpp>
+#include <vide/types/std_string.hpp>
+#include <vide/types/std_vector.hpp>
+
+#include <cstdint>
+#include <memory>
+#include <random>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include <doctest.h>
+
+#include "common/archive_test_cases.hpp"
+#include "common/collection_checks.hpp"
+#include "common/random.hpp"
+#include "common/sample_structs.hpp"
 
 
 template <class IArchive, class OArchive>

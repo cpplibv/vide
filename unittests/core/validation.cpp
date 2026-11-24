@@ -92,6 +92,22 @@ bool rejects_nvp(const T& value, const auto&... validators) {
 	return !saves_nvp<Ar>(value, validators...) && !loads_nvp<Ar>(value, validators...);
 }
 
+/// Reaches every validator through the archive's dependent names, so they must exist on both directions
+struct DependentNameValidated {
+	std::unique_ptr<int> pointer = std::make_unique<int>(1);
+	std::vector<int> values{1, 2};
+	std::optional<std::vector<int>> optional{std::in_place, std::initializer_list<int>{1}};
+	std::vector<std::vector<int>> nested{{1}, {2, 3}};
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar.nvp("pointer", pointer, ar.notnull);
+		ar.nvp("values", values, ar.notnullrange, ar.notempty, ar.minsize(1), ar.maxsize(2));
+		ar.nvp("optional", optional, ar.indirect(ar.notempty), ar.indirect_maxsize(1));
+		ar.nvp("nested", nested, ar.ranged(ar.maxsize(2)));
+	}
+};
+
 // Validators are given after the value: ar(value, validators...). Saving checks them, so the data for load checks is
 // saved without validators
 
@@ -167,6 +183,13 @@ TEST_CASE_TEMPLATE("validators", Ar, VIDE_ALL_ARCHIVES) {
 		CHECK(rejects<Ar>(std::vector<std::vector<int>>{std::vector<int>{0, 1, 2}}, vide::ranged(vide::maxsize(2))));
 		CHECK(rejects<Ar>(std::vector<std::vector<int>>{std::vector<int>{1, 0}}, vide::ranged(vide::notnull)));
 		CHECK(rejects<Ar>(std::vector<std::vector<int>>{std::vector<int>{1, 1}, std::vector<int>{0, 1}}, vide::ranged(vide::notnull)));
+	}
+
+	SUBCASE("archive dependent names") {
+		CHECK(accepts<Ar>(DependentNameValidated{}));
+		DependentNameValidated invalid;
+		invalid.nested.push_back({1, 2, 3});
+		CHECK_FALSE(saves<Ar>(invalid));
 	}
 
 	SUBCASE("archives opting out of enforce_validation ignore validators") {

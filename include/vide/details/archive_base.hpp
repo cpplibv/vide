@@ -90,6 +90,10 @@ public:
 	[[nodiscard]] constexpr inline auto indirect_maxsize(std::size_t limit) {
 		return indirect_t<maxsize_t>{limit};
 	}
+	template <typename Base>
+	[[nodiscard]] constexpr inline auto ranged(Base&& baseValidator) {
+		return ranged_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
+	}
 
 public:
 	/// Serializes the data wrapped in DeferredData so far
@@ -218,12 +222,6 @@ protected:
 	/// purpose: one malicious size tag could claim all memory. Archives set it, 2-8x the raw
 	/// data size recommended
 	std::size_t reserveMemoryBudget = defaultReserveMemoryBudget;
-
-public:
-	template <typename Base>
-	[[nodiscard]] constexpr inline auto ranged(Base&& baseValidator) {
-		return ranged_t<std::remove_cvref_t<Base>>{std::forward<Base>(baseValidator)};
-	}
 
 public:
 	struct RegisterSmartPointerResult {

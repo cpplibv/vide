@@ -3,9 +3,9 @@
 #pragma once
 
 /// The major version
-#define VIDE_VERSION_MAJOR 3
+#define VIDE_VERSION_MAJOR 4
 /// The minor version
-#define VIDE_VERSION_MINOR 1
+#define VIDE_VERSION_MINOR 0
 /// The patch version
 #define VIDE_VERSION_PATCH 0
 

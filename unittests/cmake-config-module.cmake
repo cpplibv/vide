@@ -19,7 +19,7 @@ run_checked(${CMAKE_COMMAND} --install ${WORK_DIR}/vide)
 file(WRITE ${consumer_source_dir}/CMakeLists.txt [=[
 cmake_minimum_required(VERSION 3.24)
 project(vide_config_module_consumer LANGUAGES CXX)
-find_package(vide 3 REQUIRED)
+find_package(vide 4 REQUIRED)
 add_executable(consumer main.cpp)
 target_link_libraries(consumer PRIVATE vide::vide)
 ]=])

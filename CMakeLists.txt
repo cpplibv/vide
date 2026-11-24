@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(vide VERSION 3.1.0 LANGUAGES CXX)
+project(vide VERSION 4.0.0 LANGUAGES CXX)
 
 option(VIDE_BUILD_DOC "Build documentation" ${PROJECT_IS_TOP_LEVEL})
 option(VIDE_BUILD_SANDBOX "Build sandbox examples" ${PROJECT_IS_TOP_LEVEL})

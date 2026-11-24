@@ -1,336 +1,554 @@
-**cpplibv/vide** - A C++26 serialization library
-==========================================
+# vide
 
-Vide is a header-only C++11 serialization library.
+**A header-only C++26 serialization library.**
 
-Vide takes arbitrary data types and reversibly turns them into different representations,
-such as compact binary encodings, XML, or JSON. Vide was designed to be fast, light-weight,
-and easy to extend - it has no external dependencies and can be easily bundled with other
-code or used standalone.
+Turn arbitrary C++ types into JSON, XML, compact binary or portable binary and back again.
+Fast, hardened against malicious input, easy to extend and free of external dependencies.
 
-### Vide is easy to use
+![C++26](https://img.shields.io/badge/C%2B%2B-26-blue)
+![header-only](https://img.shields.io/badge/header--only-yes-brightgreen)
+![version](https://img.shields.io/badge/version-4.0.0--experimental-orange)
+![license](https://img.shields.io/badge/license-BSD--3--Clause-lightgrey)
 
-Installation and use of Vide is easy, but this is a quick and dirty version:
+> [!WARNING]
+> **v4.0.0 is experimental.** It reworks the serialization entry point and the archive internals.
+> The API may still change before v4 is final, and data written by some versioned serializers
+> changed (see [Release notes](#release-notes)). The latest non-experimental release is **v3.1.0**.
 
-* Download Vide and place the headers somewhere your code can see them
-* Write serialization functions for your custom types or use the built-in support for the standard library Vide provides
-* Use the serialization archives to save and load data
+## Features
+
+- **Header-only, no dependencies** - RapidJSON and RapidXML are bundled
+- **Four archive formats** - JSON, XML, binary and endian aware portable binary
+- **Standard library coverage** - containers, smart pointers, `optional`, `variant`, `chrono` and more, plus boost flat containers
+- **Secure by design** - bounded allocations, read size checks, enum value sets, smart pointer type checks
+- **Validators** - `ar.nvp("items", items, ar.notempty, ar.maxsize(64))`
+- **Proxy archives** - intercept, rewrite or annotate values anywhere in the serialization tree
+- **Reflection** - serialize aggregates without boilerplate using C++26 static reflection
+- **Versioning** - per class versions, with helpers to skip or convert data written by older versions
+- **Polymorphism** - smart pointers to polymorphic bases, also across shared libraries
+
+## Requirements
+
+- A C++26 compiler; `types/reflection.hpp` additionally needs static reflection support
+- CMake 3.24+ (only for the CMake integration)
+
+## Getting started
 
 ```cpp
-#include <vide/archives/binary.hpp>
-#include <vide/types/memory.hpp>
-#include <vide/types/std_unordered_map.hpp>
-#include <fstream>
+#include <vide/archives/json.hpp>
+#include <vide/types/std_string.hpp>
+#include <vide/types/std_vector.hpp>
 
-struct MyRecord {
-	uint8_t x;
-	float y;
+#include <iostream>
+
+struct Monster {
+	std::string name;
+	int health = 0;
+	std::vector<std::string> loot;
 
 	template <class Archive> void serialize(Archive& ar) {
-		ar(x);
-		ar(y);
-	}
-};
-
-class SomeData {
-	std::shared_ptr<std::unordered_map<uint32_t, MyRecord>> data;
-	int cachedSize = 0;
-
-public:
-	template <class Archive> void save(Archive& ar) const {
-		ar(data);
-	}
-
-	template <class Archive> void load(Archive& ar) {
-		ar(data);
-		cachedSize = data ? data->size() : 0;
-	}
-};
-
-// Types that cannot be changed are serialized by specializing vide::serializer
-struct Point {
-	int x;
-	int y;
-};
-
-template <>
-struct vide::serializer<Point> {
-	template <class Archive>
-	static void serialize(Archive& ar, Point& point, std::uint32_t /*version*/) {
-		ar.nvp("x", point.x);
-		ar.nvp("y", point.y);
+		ar.nvp("name", name);
+		ar.nvp("health", health);
+		ar.nvp("loot", loot);
 	}
 };
 
 int main() {
-	std::ofstream os("out.bin", std::ios::binary | std::ios::out);
+	Monster goblin{"Goblin", 30, {"dagger", "coin"}};
 
-	SomeData myData;
-	{
-		vide::BinaryOutputArchive archive(os);
-		archive(myData);
-	}
+	vide::JSONOutputArchive ar(std::cout);
+	ar.nvp("monster", goblin);
+} // The archive completes its output when destroyed
+```
 
-	return 0;
+```json
+{
+    "monster": {
+        "name": "Goblin",
+        "health": 30,
+        "loot": [
+            "dagger",
+            "coin"
+        ]
+    }
 }
 ```
 
-## Forked from Cereal:
+Loading is the same call on an input archive:
 
-Originally started as a fork from [USCiLab/cereal](https://github.com/USCiLab/cereal)
+```cpp
+Monster monster;
+vide::JSONInputArchive ar(stream);
+ar.nvp("monster", monster);
+```
 
-Compared to the original project the most notable changes are:
-  - Fixed numerous security vulnerabilities
-  - New features and utilities: ProxyArchives, Validations, Reflection
-  - Improved API flexibility and composability
-  - Significantly improved compile time
-  - Modernized and simplify the codebase
+Swap in `BinaryOutputArchive` / `BinaryInputArchive` from `vide/archives/binary.hpp` for compact binary
+output; the serializers stay the same.
 
-Since compared to [USCiLab/cereal](https://github.com/USCiLab/cereal) multiple core functionality has been changed and therefore the two are **not compatible**!
-Bugfixes from the upstream are manually ported (and currently in sync with 2026.07.24 22a1b369).
+### Adding vide to a project
 
-Since v3.0.0 the data representation is considered STABLE! Hurray!
+```cmake
+# CPM
+CPMAddPackage("gh:cpplibv/vide@4.0.0")
 
-## Planned / Upcoming new features:
-The library is considered production ready and almost feature complete.
-Additional nice to have extras may arrive in the future.
+# or as a subdirectory
+add_subdirectory(vide)
 
-- reflection: Comprehensive reflection based serialization
-- reflection: Comprehensive rework of metaprogramming to utilize reflection
-- reflection: Rework enum validation to rely more on reflection
-  - Replace unbounded_enumerator, end_value_enumerator and max_value_enumerator validation with attribute reflection
-- Comprehensive serialization error reporting. Additional stack information and archive position in error
-  - Both during normal serialization and during validation
-- Foreach iteration/visitor algorithms
-- Archive level global version: `const auto version_guard = ar.archive_version(config_version);` and `ar.archive_version()`
-- Scoped versions and version guards: `const auto version_guard = ar.scope_version(config_version);` and `ar.scope_version()`
-- Maybe: Context variables passed as additional function arguments
-- Maybe: Versioned<->type selector
+# or as an installed package
+find_package(vide 4 REQUIRED)
 
+target_link_libraries(my_app PRIVATE vide::vide)
+```
 
-## Change log:
-- Change name to `vide` to indicate the incompatibility with upstream
-  - `vide` comes from the latin word serial
-  - Name change was necessary due to incompatibilities
-- Remove some legacy compiler support
-- Bump required versions to C++23, GCC 11.2, CMake 3.20
-- Fixes and breaks some minor stuff
-- Remove `VIDE_SETUP_ARCHIVE_TRAITS` (Input and output archives are no longer linked)
-  - Pro: Enables archives to be template types
-  - Pro: One less macro that has to be called
-  - Pro: Allows single in or out direction archives or type supports
-  - Con: load_minimal type deduction is now done with the input archives on the save_minimal function (never called, only instantiated for type deduction)
-  - Con: No check if save_minimal and load_minimal are correctly using different types
-  - Note: Cons could be negated with a single typedef inside the input archive to the output archive
-- New archive flag `vide::IgnoreNVP`: Add support for specifying if archives ignores name from NVPs (previously this was hardcoded for the built-in binary archive only)
-- Move NVP into its own header
-- Move `vide::access` into its own header and add access_fwd.hpp header for forward declaration only
-- Move `BinaryData`, `SizeTag`, `MapItem` and `construct` into their own header
-- Rework type serializers to only include what is required
-- Remove `load_and_construct`
-- Remove pointer to derived in archive bases (just use this with CRTP)
-- Make archives movable
-- Remove the experimental UserDataAdapter (A better solution will come)
-- Remove the ability to call the archives with multiple member at the same times as `ar(member0, member1, member2)`. Chaining is still possible prefer that syntax `ar(member0)(member1)(member2)` or just use multiple calls
-  - Pro: Enables some future shenanigans
-  - Pro: Alternative syntax are more clear and has same number of character, and has better auto formatting
-  - Pro: More clear evaluation order, less variadic template
-  - Con: More breakage
-- Add proxy archives (A way to inject context information into the serialization chain)
-  - NOTE: polymorphic serialization will fall back to the underlying archives and not use the proxy
-- Add process_as customization point for archives to handle special types
-- Remove prologue and epilogue function support (process_as can take care of it)
-- Add `ar.nvp("var", var)` syntax to allow option to not include any header file and rely on dependent names only
-- Bump version to 2.1.0 and start versioning Vide
-- Version 2.2.0:
-  - Remove specialize/specialization feature that could disambiguate in duplicate serialization methods.
-    (For now serialization methods consistency is required in inheritance hierarchies)
-  - Remove string/arithmetic type restriction from `load_minimal`/`save_minimal`
-  - Add support for const reference return type during `minimal` serialization
-  - Add support for recursive `minimal` serialization (But it is recommended to only use it with primitive/trivial types)
-- Version 2.2.1:
-  - Add support for move reference parameter type for `load_minimal` function
-- Version 2.3.0:
-  - Breaking change: Serialized data format changed breaking compatibility with data generated before this version
-  - Sync with upstream 2024.05.02 d1fcec807
-  - Security: Fix vulnerability where invalid data could allocate unbounded amount of memory during deserialization
-    - Add `ar.safe_to_reserve<T>()` to check and clamp the amount of memory reserved
-    - Add `ar.validate_read_size<T>()` to check if the archive has enough data for binary deserialization
-  	- Add `ar.maximumBinaryReadSize()` to report how much data could be extracted during binary deserialization
-  - Refactor and modernize type traits
-  - Add `ar.size_tag()` as a dependent name for vide::make_size_tag
-  - Add `Archive::is_binary`_archive
-  - Add `Archive::size_type` as a dependent name for vide::size_type
-  - Add `Archive::supports_binary<T>` to test if the archive can binary serialize T
-  - Remove `Archive::could_serialize<T>`
-  - Improve compile time performance
-  - Improve and modernize meta programming practices and techniques
-  - Improve `ar.nvp()` to respect IgnoreNVP flag
-  - Cleanup compiler warnings
-- Version 2.4.0:
-  - Security: Fix vulnerability where binary bool would allow loading non 0 or 1 as value which could result in UB
-  - Add support for static member serialize_class_version-ing which is serialized regardless if it is used in serializers or not
-  - Add `VIDE_CLASS_VERSION_TAG_NAME` as a customization macro for vide_class_version
-  - Improve CMAKE_BUILD_TYPE to be case-insensitive
-  - Rename `VIDE_XML_STRING_VALUE` to `VIDE_XML_ROOT_TAG_NAME`
-  - Move out exception.hpp header from details
-  - Remove compatibility operator>>, operator<< and operator&
-- Version 2.5.0:
-  - Add enum value verifications system: If an 'enum value set' is specified it will be verified during
-  serialization and deserialization. This feature resolves the last known security concern.
-  The 'enum value set' can be specified for EnumType by:
-    - Defining an enumerator `serialize_unbounded` inside the EnumType with any value. Valid values: every underlying representation.
-    - Defining an enumerator `serialize_end_value` inside the EnumType with the max value. Valid values: [0..end_value).
-    - Defining an enumerator `serialize_max_value` inside the EnumType with the max value. Valid values: \[0..max_value].
-    - Defining a free function `serialize_enum_unbounded(EnumType) : void` reachable by ADL. Valid values every underlying representation.
-    - Defining a free function `serialize_enum_end_value(EnumType) : EnumType` reachable by ADL returning the max value. Valid values: [0..end_value).
-    - Defining a free function `serialize_enum_end_value(EnumType) : Underlying` reachable by ADL returning the max value. Valid values: [0..end_value).
-    - Defining a free function `serialize_enum_max_value(EnumType) : EnumType` reachable by ADL returning with the max value. Valid values: \[0..max_value].
-    - Defining a free function `serialize_enum_max_value(EnumType) : Underlying` reachable by ADL returning with the max value. Valid values: \[0..max_value].
-    - Defining a free function `serialize_enum_verify(EnumType) : bool` reachable by ADL returning the value's validity. Valid values will those which return true.
-    - As soon as C++ reflection are implemented additional (better) definition ways will be added
-  - Add `VIDE_STRICT_ENUM_VALUE_SET` macro to specify whether vide should enforce enum value set specification. Should be defined to 0 or 1. Defaults to (0) disabled.
-  - Add static_assert message for incomplete types
-  - Add `ar.ignore<T>()` and `ar.nvp_ignore<T>(name)` to load and discard a value from an input archive. Does nothing for output archives.
-  Useful for ignoring variables from data serialized by old versions.
-    ```c++
-    template <class Archive> void serialize(Archive& ar, uint32_t version) {
-        if (version < 2) {
-            ar.template nvp_ignore<int>("removedVarNamed");
-            ar.template nvp_ignore<int>(); // removedVarUnnamed
-        }
-    }
-    ```
-  - Add `ar.load<T>() : T` and `ar.nvp_load<T>(name) : T` to direct load a value from an input archive. Does not exist for output archives.
-  Useful shorthand if the deserialized value is not directly assigned to a final object.
-    ```c++
-    template <class Archive> void serialize(Archive& ar, uint32_t version) {
-        if constexpr (Archive::is_input) {
-            var0 = ar.template nvp_load<int>("var0") * 100;
-            var1 = ar.template nvp_load<int>() * 100;
-        } else {
-            ar(var0 / 100);
-            ar(var1 / 100);
-        }
-    }
-    ```
-  - Add API for value validations:
-  ```c++
-    ar.nvp("pointer", pointer, ar.notnull);
-    ar.nvp("vector", vector, ar.notempty, ar.maxsize(10));
-  ```
-    - `ar.operator()`, `ar.nvp`, `ar.load`, `ar.nvp_load`, `ar.ignore`, `ar.nvp_ignore` now accepts
-    a variadic set of validation objects.
-    - `ar.verify(bool, string)` can be used to throw exception if the is enforcing validation.
-    - `vide::notnull` or `ar.notnull`: A `var` bool testing validation object.
-    - `vide::notempty` or `ar.notempty`: A `!var.empty()` testing validation object.
-    - `vide::maxsize(limit)` or `ar.maxsize(limit)`: A `var.size() <= limit` testing validation object.
-    - Proxy archives can opt-out of validation tests with declaring a `static constexpr bool enforce_validation = false;` member.
-  - Sync with upstream 2025.01.20 a56bad8bb
-  - Sync, review and merge most upstream PRs up until 2025.09.14 872
-    - Merge https://github.com/USCiLab/cereal/pull/835
-    - Merge https://github.com/USCiLab/cereal/pull/826
-    - Merge https://github.com/USCiLab/cereal/pull/812
-    - Merge https://github.com/USCiLab/cereal/pull/807
-    - Merge https://github.com/USCiLab/cereal/pull/761
-  - Update RapidJSON and RapidXML
-- Version 3.0.0:
-  - Breaking changes in the serialized archive data format. These changes are expected to be the last and final breaking changes:
-  	- Change shared_ptr representation
-  	- Change polymorphic representation
-  	- Remove unnecessary empty node in text archives when serializing the same virtual base multiple times
-  - Rework polymorphic serialization logic
-  - Security: Fix vulnerability where shared_ptrs could be manipulated to point to an incorrect type after loading.
-    Type mismatches are now detected for both polymorphic and non-polymorphic shared_ptrs.
-  - Implement support for generic smart_ptr serialization
-  - Overhaul test and types code structure. Most std type's serializer file now received std_ prefix.
-  - Move set and unordered_set serializer implementations into a separate file
-  - Extend validator support for NVPs
-  - Add element check for notnull when used with non-bool convertible ranges
-  - Add notnullrange validator (which can be used if the range is bool convertible)
-  - Add validation check for duplicate key loading for types with unique key constraints
-  - Add `T& serialize_minimal()` customization point as an alternative shorthand for `load_minimal`/`save_minimal` syntax
-    ```c++
-    struct StructMemberSerializeMinimal {
-      std::int32_t x;
+Being header-only, copying `include/vide` into a project works too.
 
-      template <typename Archive>
-      std::int32_t& serialize_minimal(Archive&) {
-        return x;
-      }
-    };
-    ```
-    The new customization point is available as usual in global/member and versioned/non-versioned format.
-  - Add boost flat_set and flat_map serializers
-  - Add dependent name accessors for: `ar.template base_class<Base>(this)` and `ar.template virtual_base_class<Base>(this)`
-  - Add `VIDE_POLYMORPHIC_ID_TYPE` macro that determines the data type used for polymorphic_id. Defaults to uint16_t.
-- Version 3.0.1:
-  - Add base_class/virtual_base_class dependent names to ProxyArchives
-- Version 3.0.2:
-  - Move vide/types/base_class.hpp to vide/base_class.hpp
-  - Fix missing base_class include
-- Version 3.1.0:
-  - Bump required CMake version to 3.24
-  - Remove pkgconfig file generation
-  - Remove AllowEmptyClassElision
-  - Remove the `THREAD_SAFE` option and the mutexes (Threading was not needed)
-  - Replace the internal `StaticObject` with function static registries and `StartupInstance` for registrations
-  - Change duration and time_point serialization to be minimal
-  - Rework and modernize the CMake scripts
-    - Replace `VIDE_FORCE_COLORED_OUTPUT` with the built-in `CMAKE_COLOR_DIAGNOSTICS`
-    - Replace `VIDE_ALTERNATIVE_LINKER` with the built-in `CMAKE_LINKER_TYPE` (uppercase, e.g. `-DCMAKE_LINKER_TYPE=LLD`)
-    - Replace `VIDE_SKIP_PERFORMANCE_COMPARISON` with the opt-in `VIDE_BUILD_PERFORMANCE_COMPARISON`
-    - Add opt-in `VIDE_BUILD_PORTABILITY_TEST` for the 32 bit test variants and the 32/64 bit portability test
-    - Install the CMake package files to `share/cmake/vide` (header-only, arch independent)
-    - Release builds link executables statically
-    - The default build type is only set when vide is the top level project
-  - Enable and cleanup additional warnings and VERIFY_INTERFACE_HEADER_SETS
-  - Add `vide::indirect(base_validator)` or `ar.indirect(base_validator)` as a validator for `!var || base_validator(*var)` testing.
-  - Add `vide::indirect_maxsize(limit)` or `ar.indirect_maxsize(limit)` as a validator for `!var || var->size() <= limit` testing.
-  - Add `vide::ranged(base_validator)` or `ar.ranged(base_validator)` as a validator for `for (item : var) base_validator(var)` testing.
-  - Add `types/reflection.hpp` to support initial reflection based serialization
-    - Enabled by defining `using T::serialize_enable_reflection = void` inside the target type.
-    - Member validators can be assigned with annotations on the member
-    - Example:
-      ```
-       struct MyType {
-         using serialize_enable_reflection = void;
-         static constexpr std::uint32_t serialize_class_version = 166;
-         [[=vide::notnull]]
-         int a = 1;
-      };
-      ```
-  - Add `vide::minsize(limit)` or `ar.minsize(limit)`: A `var.size() >= limit` testing validation object.
-  - Fix multi-container deserialization order for equal keys (Upstream PR https://github.com/USCiLab/cereal/pull/874
-  - Fix Linux build
-  - Fix `long long` and `unsigned long long` JSON deserialization on Linux
-  - Sync, review and resolve upstream commits, PRs, and issues up to and including 2026.07.24 22a1b369
-  - `vide.hpp` and the archive headers no longer include `types/polymorphic.hpp`; polymorphic pointers or use of `VIDE_REGISTER_TYPE` now requires that include explicitly
-  - Faster compilation of polymorphic type registration and serialization
-  - Fix possible hash collision between registered class versions
-  - Breaking: `vide::serializer<T>` is the only serialization entry point; free `serialize`, `save`, `load` and `*_minimal`
-    functions are no longer used, specialize `vide::serializer<T>` with a static `serialize(Archive&, T&, std::uint32_t version)` instead.
-    Member serialization functions work as before
-  - A `vide::serializer<T>` specialization declares minimal serialization with `static constexpr bool minimal = true`
-  - Breaking: Remove `VIDE_CLASS_VERSION`; `serialize_class_version` on the type or on its `vide::serializer<T>` is the only
-    class version. Versioned serializers without it no longer store a version, which changes their serialized data
-  - Breaking: Map serialization covers the std and boost map types only, not every type with a `mapped_type`
-  - Faster compilation of the serializer lookup
-  - Shallower call stacks through the archives, easier to step through in a debugger
-  - Breaking: Text archives now have to provide public `setNextName`, `startNode` and `finishNode` for the base archive
-  - Breaking: `nvp()` names its value through `setNextName`; archives no longer receive a `NameValuePair` for it
-  - Breaking: In text archives the name of a deferred value or of an already serialized virtual base class no longer lands
-    on the next unnamed value
-  - Fix proxy archives preferring their forwarding `process_as` over a derived proxy's overload for a const type
-  - Fix `types/std_queue.hpp` not including the serializer of `std::priority_queue`'s default container (`std::vector`)
-  - Add boost flat_multiset serializer
+## Writing serializers
 
+### Member functions
 
--------------------------------------------------------------------------------------------------
+```cpp
+struct Player {
+	std::string name;
+	int score;
 
-## Known Issues:
-[KNOWN_ISSUES.md](KNOWN_ISSUES.md)
+	template <class Archive> void serialize(Archive& ar) {
+		ar.nvp("name", name);
+		ar.nvp("score", score);
+	}
+};
+```
+
+When saving and loading differ, split it into `save` and `load`:
+
+```cpp
+struct Inventory {
+	std::vector<Item> items;
+	std::size_t totalWeight = 0; // Derived, not stored
+
+	template <class Archive> void save(Archive& ar) const {
+		ar.nvp("items", items);
+	}
+
+	template <class Archive> void load(Archive& ar) {
+		ar.nvp("items", items);
+		totalWeight = computeWeight(items);
+	}
+};
+```
+
+Private serializers work too, with `friend class vide::access;`.
+
+### Types you cannot modify
+
+Specialize `vide::serializer<T>`:
+
+```cpp
+template <>
+struct vide::serializer<Point> {
+	template <class Archive>
+	static void serialize(Archive& ar, Point& p, std::uint32_t /*version*/) {
+		ar.nvp("x", p.x);
+		ar.nvp("y", p.y);
+	}
+};
+```
+
+### Versioning
+
+```cpp
+struct Config {
+	static constexpr std::uint32_t serialize_class_version = 2;
+
+	int threads;
+	int timeoutMs;
+
+	template <class Archive> void serialize(Archive& ar, std::uint32_t version) {
+		ar.nvp("threads", threads);
+		if constexpr (Archive::is_input) {
+			if (version < 2) {
+				ar.template nvp_ignore<int>("legacyFlag"); // Removed in version 2
+				timeoutMs = ar.template nvp_load<int>("timeoutSec") * 1000;
+				return;
+			}
+		}
+		ar.nvp("timeoutMs", timeoutMs);
+	}
+};
+```
+
+The version is stored once per type per archive. `serialize_class_version` can also be declared on a
+`vide::serializer<T>` specialization.
+
+### Archive API
+
+| Call | Meaning |
+|---|---|
+| `ar.nvp("name", value)` | Serialize a named value; binary archives skip the name |
+| `ar(value)` | Serialize an unnamed value; chainable: `ar(a)(b)(c)` |
+| `ar.template base_class<B>(this)` | Serialize a base class |
+| `ar.template virtual_base_class<B>(this)` | Serialize a virtual base class, once per object |
+| `ar.template load<T>()`, `ar.template nvp_load<T>(name)` | Load and return a value; input archives only |
+| `ar.template ignore<T>()`, `ar.template nvp_ignore<T>(name)` | Load and discard a value; no-op when saving |
+| `Archive::is_input`, `Archive::is_output` | Direction, for `if constexpr` |
+
+## Archives
+
+| Header | Archives | |
+|---|---|---|
+| `vide/archives/json.hpp` | `JSONOutputArchive`, `JSONInputArchive` | Human readable (RapidJSON) |
+| `vide/archives/xml.hpp` | `XMLOutputArchive`, `XMLInputArchive` | Human readable (RapidXML) |
+| `vide/archives/binary.hpp` | `BinaryOutputArchive`, `BinaryInputArchive` | Fastest and most compact; same endianness only |
+| `vide/archives/portable_binary.hpp` | `PortableBinaryOutputArchive`, `PortableBinaryInputArchive` | Binary, portable across endianness |
+| `vide/archives/proxy_archive.hpp` | `ProxyArchive<CRTP, Ar>` | Base for [proxy archives](#proxy-archives) |
+
+Text archives complete their output on destruction, so keep them in a scope.
+
+## Supported types
+
+Arithmetic types, enums and C arrays work out of the box. Everything else needs its header; nothing
+is pulled in implicitly.
+
+| Header in `vide/types/` | Types |
+|---|---|
+| `std_vector`, `std_array`, `std_deque`, `std_list`, `std_forward_list`, `std_valarray` | Sequence containers |
+| `std_map`, `std_set`, `std_unordered_map`, `std_unordered_set` | Associative containers, `multi` variants included |
+| `std_queue`, `std_stack` | Container adaptors, `priority_queue` included |
+| `std_string`, `std_pair`, `std_tuple`, `std_optional`, `std_variant` | Utilities |
+| `std_atomic`, `std_bitset`, `std_chrono`, `std_complex`, `functional` | Other std types |
+| `memory` | `unique_ptr`, `shared_ptr`, `weak_ptr`, custom smart pointers |
+| `polymorphic` | Smart pointers to polymorphic types |
+| `boost_flat_map`, `boost_flat_set` | `boost::container::flat_(multi)map`, `flat_(multi)set` |
+| `reflection` | Reflection based serialization |
+
+## Validation and security
+
+vide treats input data as untrusted:
+
+- Allocations are bounded by the size of the input, so a forged size cannot exhaust memory
+- Binary `bool` values other than `0` and `1` are rejected
+- Shared pointers are checked against the type they were first loaded as, polymorphic or not
+- Containers with unique keys reject duplicate keys
+- Enums can declare their valid values, checked on both save and load
+- Built-in validators check individual values, such as sizes, null pointers or empty containers
+- User defined validators can enforce any further rule of the data model
+
+### Validators
+
+```cpp
+template <class Archive> void serialize(Archive& ar) {
+	ar.nvp("owner", owner, ar.notnull);
+	ar.nvp("tags", tags, ar.notempty, ar.maxsize(16));
+	ar.nvp("children", children, ar.ranged(ar.notnull));
+	ar.nvp("cache", cache, ar.indirect_maxsize(1024));
+}
+```
+
+| Validator | Passes when |
+|---|---|
+| `notnull` | `var` converts to `true`; for a range, every element does |
+| `notnullrange` | The range itself converts to `true` |
+| `notempty` | `!var.empty()` |
+| `maxsize(n)`, `minsize(n)` | `var.size() <= n`, `var.size() >= n` |
+| `indirect(v)` | `!var \|\| v(*var)` |
+| `indirect_maxsize(n)` | `!var \|\| var->size() <= n` |
+| `ranged(v)` | `v(item)` for every item |
+
+Validators are available on every archive (`ar.notnull`) and in the `vide` namespace (`vide::notnull`).
+They run before saving and after loading, a failure throws `vide::Exception`.
+
+A custom validator is any callable taking the value that throws `vide::Exception` on failure:
+
+```cpp
+struct is_odd {
+	static void operator()(int value) {
+		if (value % 2 == 0)
+			throw vide::Exception("Value must be odd");
+	}
+};
+
+ar.nvp("seed", seed, is_odd{});
+```
+
+`ar.verify(condition, message)` throws in place for one-off checks.
+
+### Enum value sets
+
+```cpp
+enum class Color { red, green, blue, serialize_end_value }; // Valid: red, green, blue
+```
+
+An enum declares its valid values with one of the enumerators `serialize_end_value`,
+`serialize_max_value` or `serialize_unbounded`, or with an ADL found free function
+`serialize_enum_end_value`, `serialize_enum_max_value`, `serialize_enum_unbounded` or `serialize_enum_verify`.
+Define `VIDE_STRICT_ENUM_VALUE_SET=1` to require a value set on every serialized enum.
+
+## Proxy archives
+
+A proxy wraps an archive and can intercept any type at any depth. Serializers see the proxy type, so
+they can also read context from it.
+
+```cpp
+template <typename Ar>
+struct RedactingProxy : vide::ProxyArchive<RedactingProxy<Ar>, Ar> {
+	using Base = vide::ProxyArchive<RedactingProxy<Ar>, Ar>;
+	using Base::Base;
+	using Base::process_as;
+
+	template <class As>
+	void process_as(As& as, const Password&) {
+		as.process_as(as, std::string("***"));
+	}
+};
+
+vide::JSONOutputArchive ar(os);
+RedactingProxy<vide::JSONOutputArchive> proxy(ar);
+proxy.nvp("login", login); // Every Password is written as "***"
+```
+
+Polymorphic serialization falls back to the underlying archive. A proxy can opt out of validation with
+`static constexpr bool enforce_validation = false;`.
+
+## Reflection
+
+> [!NOTE]
+> Reflection support is early and needs a compiler with C++26 static reflection.
+
+```cpp
+#include <vide/types/reflection.hpp>
+
+struct Settings {
+	using serialize_enable_reflection = void;
+	static constexpr std::uint32_t serialize_class_version = 1;
+
+	[[=vide::notnull]] std::shared_ptr<Theme> theme;
+	int fontSize = 12;
+	std::string language;
+};
+```
+
+Every non-static data member is serialized by name. Validators attach as annotations.
+
+## Polymorphism
+
+```cpp
+#include <vide/types/polymorphic.hpp>
+
+struct Shape {
+	virtual ~Shape() = default;
+	template <class Archive> void serialize(Archive&) {}
+};
+
+struct Circle : Shape {
+	float radius;
+
+	template <class Archive> void serialize(Archive& ar) {
+		ar.template base_class<Shape>(this);
+		ar.nvp("radius", radius);
+	}
+};
+
+VIDE_REGISTER_TYPE(Circle);
+```
+
+A `std::unique_ptr<Shape>` or `std::shared_ptr<Shape>` holding a `Circle` now round trips as a `Circle`.
+`VIDE_REGISTER_TYPE_WITH_NAME` sets a stable name; `VIDE_REGISTER_DYNAMIC_INIT` covers types in shared libraries.
+
+## Minimal serialization
+
+A minimal type is stored as one bare value: text archives write `"id": 5` instead of `"id": {"value0": 5}`.
+
+```cpp
+struct Id {
+	std::int32_t value;
+
+	template <class Archive> std::int32_t& serialize_minimal(Archive&) {
+		return value;
+	}
+};
+```
+
+`save_minimal` / `load_minimal` pairs cover asymmetric cases. A `vide::serializer<T>` specialization opts in
+with `static constexpr bool minimal = true;`:
+
+```cpp
+template <>
+struct vide::serializer<Id> {
+	static constexpr bool minimal = true;
+
+	template <class Archive>
+	static void serialize(Archive& ar, Id& id, std::uint32_t) {
+		ar(id.value); // Exactly one unnamed value
+	}
+};
+```
+
+> [!IMPORTANT]
+> A minimal `serialize` must make **exactly one unnamed `ar(value)` call**. No node is opened for a minimal
+> type, so a second value, or a named one, ends up in the enclosing object and corrupts its layout.
+
+## Configuration
+
+Define these before including vide, or project wide.
+
+| Macro | Default | |
+|---|---|---|
+| `VIDE_SIZE_TYPE` | `std::uint32_t` | Type of stored container sizes |
+| `VIDE_POLYMORPHIC_ID_TYPE` | `std::uint16_t` | Type of stored polymorphic ids |
+| `VIDE_STRICT_ENUM_VALUE_SET` | `0` | Require a value set on every enum |
+| `VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER` | `8` | Reservation budget as a multiple of the input size; beyond it containers grow element wise |
+| `VIDE_XML_ROOT_TAG_NAME` | `"root"` | Root element of XML archives |
+| `VIDE_CLASS_VERSION_TAG_NAME` | `"vide_class_version"` | Name of stored class versions in text archives |
+| `VIDE_FUNCTION_NAME_*` | `serialize`, `save`, ... | Names of the member serialization functions |
+
+CMake options, all on by default when vide is the top level project:
+`VIDE_BUILD_TESTS`, `VIDE_BUILD_SANDBOX`, `VIDE_BUILD_DOC`, `VIDE_INSTALL`.
+
+## Relation to cereal
+
+vide started as a fork of [USCiLab/cereal](https://github.com/USCiLab/cereal). It keeps cereal's overall
+model, and with it most of cereal's caveats, but it is **not compatible** with cereal: neither the API nor
+the data format. The new name makes that explicit.
+
+Compared to cereal, vide:
+
+- fixes a number of security vulnerabilities in deserialization
+- adds proxy archives, validators, enum value sets and reflection
+- has a single serialization entry point (`vide::serializer<T>`) and a dependent name archive API (`ar.nvp(...)`)
+- compiles significantly faster
+- targets modern C++ only
+
+Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` (2026-07-24).
+
+## Migration guide
+
+### From cereal
+
+1. Rename: `cereal` namespace, `<cereal/...>` includes and `CEREAL_*` macros become `vide`, `<vide/...>` and `VIDE_*`.
+   Std type headers gained an `std_` prefix: `types/vector.hpp` -> `types/std_vector.hpp`.
+2. Free `serialize` / `save` / `load` functions become `vide::serializer<T>` specializations.
+3. `ar(a, b, c)` becomes `ar(a)(b)(c)`; `CEREAL_NVP(x)` becomes `ar.nvp("x", x)`.
+4. `CEREAL_CLASS_VERSION(T, n)` becomes `static constexpr std::uint32_t serialize_class_version = n;`.
+5. `load_and_construct` is gone; types are default constructed (`vide::access` can reach private constructors).
+6. Data written by cereal cannot be read by vide.
+
+### From vide 3.x
+
+- Free serialization functions become `vide::serializer<T>` specializations
+- `VIDE_CLASS_VERSION` becomes `serialize_class_version`; versioned serializers without one no longer store a version, so their data has to be re-saved
+- Code using polymorphic pointers or `VIDE_REGISTER_TYPE` includes `vide/types/polymorphic.hpp` explicitly
+- Custom text archives provide public `setNextName`, `startNode` and `finishNode`
+
+## Roadmap
+
+- Reflection: comprehensive reflection based serialization and metaprogramming
+- Reflection: enum value sets through annotations instead of special enumerators
+- Detailed error reports with serialization stack and archive position, also for validation
+- Visitor / foreach algorithms over serializable types
+- Archive wide and scoped versions: `ar.archive_version(...)`, `ar.scope_version(...)`
+- Maybe: context variables passed as additional serializer arguments
+
+## Release notes
+
+### 4.0.0 (experimental)
+
+- Breaking: `vide::serializer<T>` is the only serialization entry point; free `serialize`, `save`, `load` and `*_minimal` functions are no longer used. Member functions work as before
+- Breaking: Remove `VIDE_CLASS_VERSION`; `serialize_class_version` on the type or on its `vide::serializer<T>` is the only class version
+- Breaking: Versioned serializers without `serialize_class_version` no longer store a version, which changes their data
+- Breaking: `vide.hpp` and the archive headers no longer include `types/polymorphic.hpp`
+- Breaking: Map serialization covers the std and boost map types only, not every type with a `mapped_type`
+- Breaking: Text archives provide public `setNextName`, `startNode` and `finishNode`; `nvp()` names values through `setNextName`
+- Breaking: In text archives the name of a deferred value or of an already serialized virtual base no longer lands on the next unnamed value
+- Breaking: Remove the `THREAD_SAFE` option
+- Add: `static constexpr bool minimal = true` for `vide::serializer<T>` specializations
+- Add: boost `flat_multiset` serializer
+- Improve: Much faster compilation of serializer lookup and polymorphic registration
+- Improve: Shallower call stacks, easier to step through in a debugger
+- Fix: `ar.ranged()` is available on output archives
+- Fix: Possible hash collision between registered class versions
+- Fix: `long long` and `unsigned long long` JSON deserialization on Linux
+- Fix: Linux build
+- Fix: Proxy archives preferring their forwarding `process_as` over a derived proxy's overload for a const type
+- Fix: `types/std_queue.hpp` missing the serializer of `std::priority_queue`'s default container
+- Fix: Missing RapidJSON headers in the installed package
+- Build: `CMAKE_COLOR_DIAGNOSTICS` replaces `VIDE_FORCE_COLORED_OUTPUT`, `CMAKE_LINKER_TYPE` replaces `VIDE_ALTERNATIVE_LINKER`
+- Build: `VIDE_SKIP_PERFORMANCE_COMPARISON` becomes the opt-in `VIDE_BUILD_PERFORMANCE_COMPARISON`; new opt-in `VIDE_BUILD_PORTABILITY_TEST`
+- Build: Package files install to `share/cmake/vide`; the default build type is only set when vide is the top level project
+
+### 3.1.0
+
+- Breaking: Require C++26 and CMake 3.24
+- Breaking: Duration and time_point serialization is minimal
+- Breaking: Remove `AllowEmptyClassElision` and pkg-config file generation
+- Add: Reflection based serialization in `types/reflection.hpp`, with validator annotations on members
+- Add: Validators `indirect`, `indirect_maxsize`, `ranged` and `minsize`
+- Fix: Multi-container deserialization order for equal keys
+- Build: Improved CMake scripts, stricter warnings, every public header compiles standalone
+- Sync: Upstream cereal up to `22a1b369` (2026-07-24)
+
+### 3.0.2
+
+- Breaking: Move `vide/types/base_class.hpp` to `vide/base_class.hpp`
+- Fix: Missing `base_class` include
+
+### 3.0.1
+
+- Add: `base_class` / `virtual_base_class` dependent names on proxy archives
+
+### 3.0.0
+
+- Breaking: New `shared_ptr` and polymorphic data representation
+- Breaking: No empty node for a repeated virtual base in text archives
+- Breaking: Std type serializer headers gain an `std_` prefix
+- Security: Shared pointers can no longer be manipulated into pointing at a different type after loading
+- Add: Generic smart pointer support
+- Add: `serialize_minimal()` as a shorthand for `save_minimal` / `load_minimal`
+- Add: `notnullrange` validator, element checks for `notnull`, validators on NVPs
+- Add: Duplicate key detection when loading containers with unique keys
+- Add: boost `flat_set` and `flat_map` serializers
+- Add: `ar.base_class<B>(this)` and `ar.virtual_base_class<B>(this)` dependent names
+- Add: `VIDE_POLYMORPHIC_ID_TYPE`, defaults to `std::uint16_t`
+- Improve: Reworked polymorphic serialization
+
+### 2.5.0
+
+- Security: Enum value sets, verified on save and load; `VIDE_STRICT_ENUM_VALUE_SET`
+- Add: Validators `notnull`, `notempty`, `maxsize` and `ar.verify(condition, message)`
+- Add: `ar.ignore<T>()`, `ar.nvp_ignore<T>(name)`, `ar.load<T>()` and `ar.nvp_load<T>(name)`
+- Sync: Upstream cereal and several upstream PRs; updated RapidJSON and RapidXML
+
+### 2.4.0
+
+- Breaking: Rename `VIDE_XML_STRING_VALUE` to `VIDE_XML_ROOT_TAG_NAME`
+- Breaking: Remove `operator<<`, `operator>>` and `operator&`
+- Security: Binary `bool` rejects values other than `0` and `1`
+- Add: Static `serialize_class_version` member and `VIDE_CLASS_VERSION_TAG_NAME`
+
+### 2.3.0
+
+- Breaking: Serialized data format changed
+- Security: Bounded memory reservation during deserialization: `ar.safe_to_reserve<T>()`, `ar.validate_read_size<T>()`
+- Add: Archive traits `is_binary_archive`, `size_type`, `supports_binary<T>`, and `ar.size_tag()`
+- Improve: Faster compilation, modernized type traits
+
+### 2.2.x
+
+- Breaking: Remove specialization based disambiguation of duplicate serializers
+- Add: `*_minimal` for any type, const reference returns, recursive minimal and rvalue `load_minimal` parameters
+
+### 2.1.0 and earlier
+
+- Fork from cereal and rename to vide
+- Breaking: Remove `load_and_construct`, prologue / epilogue functions, multi-value `ar(a, b, c)` and `UserDataAdapter`
+- Add: Proxy archives and the `process_as` customization point
+- Add: Dependent name API `ar.nvp("name", value)` and the `IgnoreNVP` archive flag
+- Improve: Movable archives, archive templates, no more `VIDE_SETUP_ARCHIVE_TRAITS`
+- Improve: Finer grained headers: `nvp.hpp`, `access.hpp`, `binary_data.hpp`, `size_tag.hpp`, ...
+
+## Known issues
+
+See [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
 
 ## License
 
-Vide is licensed under the permissive [BSD license](http://opensource.org/licenses/BSD-3-Clause).
+vide is licensed under the [BSD 3-Clause license](LICENSE). Bundled third-party code keeps its own license
+(see `include/vide/external`).

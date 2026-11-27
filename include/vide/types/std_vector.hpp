@@ -26,12 +26,14 @@ struct serializer<std::vector<T, A>> {
 				ar.template validate_read_size<T>(size);
 				vector.resize(size);
 				ar(binary_data(vector.data(), vector.size() * sizeof(T)));
+
 			} else {
 				const auto reservable = ar.template safe_to_reserve<T>(size);
 				if (reservable == size) {
 					vector.resize(reservable);
 					for (T& element : vector)
 						ar(element);
+
 				} else {
 					vector.clear();
 					vector.reserve(reservable);

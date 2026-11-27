@@ -119,6 +119,8 @@ if (TARGET Boost::headers)
 	endforeach ()
 endif ()
 
+add_subdirectory(compile_fail)
+
 if (VIDE_BUILD_PORTABILITY_TEST)
 	add_executable(portability_test32 portability/portability.cpp)
 	target_link_libraries(portability_test32 PRIVATE vide::vide)

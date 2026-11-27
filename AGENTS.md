@@ -19,7 +19,8 @@ serialized output are breaking changes.
   - `macros.hpp` - user-overridable configuration (`VIDE_SIZE_TYPE`, `VIDE_POLYMORPHIC_ID_TYPE`, function names, ...)
   - `external/` - bundled rapidjson and rapidxml; third-party code, leave it alone
 - `unittests/` - doctest tests, one executable per `.cpp`, grouped by area: `core/`, `archives/`, `std/`, `memory/`,
-  `polymorphic/`, `boost/` (needs boost); `common/` holds the shared test code
+  `polymorphic/`, `boost/` (needs boost); `common/` holds the shared test code; `compile_fail/` has its own
+  `CMakeLists.txt`
 - `cmake/CPM.cmake` - CPM bootstrap; fetches doctest when tests are built, and Boost headers if no installed Boost is
   found and vide is the top level project (set `CPM_SOURCE_CACHE` to reuse downloads)
 - `sandbox/` - example and experiment programs, also built by default
@@ -76,6 +77,9 @@ ctest --test-dir build/dev -j 8 --output-on-failure
   serialized through `base_class` shows up there) and that loads mirror saves per type
 - Common headers are compiled standalone too (`VERIFY_INTERFACE_HEADER_SETS`), so they must include what they use
 - Portability (32 bit) tests are disabled
+- Compile-fail tests: a `.cpp` in `unittests/compile_fail/` with a `// Expected: <regex>` line; the test builds it and
+  passes only if the build output matches and holds a single `error:` (`missing_save.cpp` ->
+  `test_compile_fail_missing_save`). One failure per file, kept out of the normal build
 
 ## Code style
 

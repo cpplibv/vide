@@ -52,6 +52,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <meta>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -143,17 +144,50 @@ enum Flags {
 
 namespace detail {
 
-inline constexpr std::string_view incomplete_type_message =
-		"Attempted to serialize an incomplete type T. Ensure the type is included and complete before serialization attempts.";
+template <class T>
+consteval std::string_view incomplete_type_message() {
+	return std::define_static_string("\n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"\n"
+			"    ERROR: Vide cannot serialize the incomplete type [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + std::string(display_string_of(^^T)) + VIDE_DIAGNOSTIC_HIGHLIGHT_END "].\n"
+			"    Include its definition before serializing it.\n"
+			"\n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+}
 
-inline constexpr std::string_view missing_serializer_message = "\n"
-		"Vide could not find a serializer for the provided type and archive combination.\n\n"
-		"Give the type a member serialize function or specialize vide::serializer<T>:\n\n"
-		"  template <class Archive>\n"
-		"  void serialize(Archive& ar) {\n"
-		"    ar.nvp(\"member1\", member1);\n"
-		"    ar.nvp(\"member2\", member2);\n"
-		"  }\n\n";
+/// Names T and Archive: the instantiation context that would tell them is often dozens of lines up
+template <class Archive, class T>
+consteval std::string_view missing_serializer_message() {
+	const auto type = std::string{display_string_of(^^T)};
+	std::string message = "\n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"\n"
+			"    ERROR: Vide could not find a serializer for [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + type + VIDE_DIAGNOSTIC_HIGHLIGHT_END "] with archive [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + std::string(display_string_of(^^Archive)) + VIDE_DIAGNOSTIC_HIGHLIGHT_END "].\n";
+	if (type.starts_with("std::") || type.starts_with("boost::"))
+		message += "    Most library types are covered by the vide/types/* headers, is the matching one missing?\n";
+
+	message += "    Specialize vide::serializer<T> OR add one of the member serializers: serialize, save/load, save_minimal/load_minimal.\n"
+			"\n"
+			"    As member serialize:\n"
+			"\n"
+			"        template <typename Archive>\n"
+			"        void serialize(Archive& ar) {\n"
+			"            ar.nvp(\"member1\", member1);\n"
+			"        }\n"
+			"\n"
+			"    As global vide::serializer<T>:\n"
+			"\n"
+			"        template <>\n"
+			"        struct vide::serializer<" + type + "> {\n"
+			"            template <typename Archive>\n"
+			"            static void serialize(Archive& ar, " + type + "& var, std::uint32_t) {\n"
+			"                ar.nvp(\"member1\", var.member1);\n"
+			"            }\n"
+			"        };\n"
+			"\n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+	return std::define_static_string(message);
+}
 
 /// True when text archives open a node for T; minimal types are written as a bare value.
 /// A variable template on purpose: binary archives never evaluate minimal_with
@@ -288,35 +322,37 @@ public:
 	// As is the archive the serializers see: the archive itself or a proxy over it
 	template <class As, class T>
 	inline void process_as(As& as, const T& var) {
-		static_assert(Complete<T>, detail::incomplete_type_message);
-		auto& self = static_cast<ArchiveType&>(*this);
-		static constexpr bool node = detail::uses_node<ArchiveType::is_text_archive, As, T>;
-		if constexpr (node) {
-			self.startNode();
-			if constexpr (ArchiveType::inserts_type_attribute)
-				self.template insertType<T>();
-		}
-
-		std::uint32_t version = 0;
-		if constexpr (is_versioned_class<T>) {
-			version = serializer<T>::serialize_class_version;
-			if (registerVersionedType(typeid(T)))
-				self.nvp(VIDE_CLASS_VERSION_TAG_NAME, version);
-		}
-
-		if constexpr (std::is_same_v<As, ArchiveType>) {
-			static_assert(serializable_with<ArchiveType, T>, detail::missing_serializer_message);
-			serializer<T>::serialize(as, const_cast<T&>(var), version);
-		} else if constexpr (serializable_with<As, T>) {
-			serializer<T>::serialize(as, const_cast<T&>(var), version);
+		// Failed checks are branches of their own: the serialization code stays uninstantiated, so a mistake
+		// gives one error and no follow-ups from the call that cannot compile
+		if constexpr (!std::meta::is_complete_type(^^T)) {
+			static_assert(false, detail::incomplete_type_message<T>());
+		} else if constexpr (!serializable_with<As, T> && !serializable_with<ArchiveType, T>) {
+			static_assert(false, detail::missing_serializer_message<ArchiveType, T>());
 		} else {
-			// T cannot be serialized with the proxy type: the archive itself serializes it
-			static_assert(serializable_with<ArchiveType, T>, detail::missing_serializer_message);
-			serializer<T>::serialize(self, const_cast<T&>(var), version);
-		}
+			auto& self = static_cast<ArchiveType&>(*this);
+			static constexpr bool node = detail::uses_node<ArchiveType::is_text_archive, As, T>;
+			if constexpr (node) {
+				self.startNode();
+				if constexpr (ArchiveType::inserts_type_attribute)
+					self.template insertType<T>();
+			}
 
-		if constexpr (node)
-			self.finishNode();
+			std::uint32_t version = 0;
+			if constexpr (is_versioned_class<T>) {
+				version = serializer<T>::serialize_class_version;
+				if (registerVersionedType(typeid(T)))
+					self.nvp(VIDE_CLASS_VERSION_TAG_NAME, version);
+			}
+
+			if constexpr (serializable_with<As, T>)
+				serializer<T>::serialize(as, const_cast<T&>(var), version);
+			else
+				// T cannot be serialized with the proxy type: the archive itself serializes it
+				serializer<T>::serialize(self, const_cast<T&>(var), version);
+
+			if constexpr (node)
+				self.finishNode();
+		}
 	}
 
 	// The node of the wrapper is the node of the base: both are opened by the generic process_as
@@ -329,7 +365,7 @@ public:
 	template <class As, class T>
 	inline void process_as(As&, const DeferredData<T>& d) {
 		discardNextName();
-		std::function<void()> deferment([this, d]() {
+		std::function<void()> deferment([this, d] {
 			auto& self = static_cast<ArchiveType&>(*this);
 			self.process_as(self, d.value);
 		});
@@ -514,29 +550,31 @@ public:
 	// As is the archive the serializers see: the archive itself or a proxy over it
 	template <class As, class T>
 	inline void process_as(As& as, T& var) {
-		static_assert(Complete<T>, detail::incomplete_type_message);
-		auto& self = static_cast<ArchiveType&>(*this);
-		static constexpr bool node = detail::uses_node<ArchiveType::is_text_archive, As, T>;
-		if constexpr (node)
-			self.startNode();
-
-		std::uint32_t version = 0;
-		if constexpr (is_versioned_class<T>)
-			version = loadClassVersion<T>();
-
-		if constexpr (std::is_same_v<As, ArchiveType>) {
-			static_assert(serializable_with<ArchiveType, T>, detail::missing_serializer_message);
-			serializer<T>::serialize(as, var, version);
-		} else if constexpr (serializable_with<As, T>) {
-			serializer<T>::serialize(as, var, version);
+		// Failed checks are branches of their own: the serialization code stays uninstantiated, so a mistake
+		// gives one error and no follow-ups from the call that cannot compile
+		if constexpr (!std::meta::is_complete_type(^^T)) {
+			static_assert(false, detail::incomplete_type_message<T>());
+		} else if constexpr (!serializable_with<As, T> && !serializable_with<ArchiveType, T>) {
+			static_assert(false, detail::missing_serializer_message<ArchiveType, T>());
 		} else {
-			// T cannot be serialized with the proxy type: the archive itself serializes it
-			static_assert(serializable_with<ArchiveType, T>, detail::missing_serializer_message);
-			serializer<T>::serialize(self, var, version);
-		}
+			auto& self = static_cast<ArchiveType&>(*this);
+			static constexpr bool node = detail::uses_node<ArchiveType::is_text_archive, As, T>;
+			if constexpr (node)
+				self.startNode();
 
-		if constexpr (node)
-			self.finishNode();
+			std::uint32_t version = 0;
+			if constexpr (is_versioned_class<T>)
+				version = loadClassVersion<T>();
+
+			if constexpr (serializable_with<As, T>)
+				serializer<T>::serialize(as, var, version);
+			else
+				// T cannot be serialized with the proxy type: the archive itself serializes it
+				serializer<T>::serialize(self, var, version);
+
+			if constexpr (node)
+				self.finishNode();
+		}
 	}
 
 	// The node of the wrapper is the node of the base: both are opened by the generic process_as
@@ -549,7 +587,7 @@ public:
 	template <class As, class T>
 	inline void process_as(As&, DeferredData<T>& d) {
 		discardNextName();
-		std::function<void()> deferment([this, d]() {
+		std::function<void()> deferment([this, d] {
 			auto& self = static_cast<ArchiveType&>(*this);
 			self.process_as(self, d.value);
 		});

@@ -48,7 +48,7 @@ struct serializer<T> : detail::class_version_of<T> {
 				}
 				return result;
 			}());
-			[[maybe_unused]] // maybe_unused as GCC 16.1 has a false positive warning for unused pack with splice
+			[[maybe_unused]] // maybe_unused as GCC 16.2 has a false positive warning for unused pack with splice
 			static constexpr auto [...validatorsIndices] = detail::make_index_array<validators.size()>();
 
 			ar.nvp(identifier_of(member).data(), var.[:member:], [:constant_of(validators[validatorsIndices]):]...);

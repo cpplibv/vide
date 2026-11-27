@@ -180,4 +180,20 @@
 #define VIDE_STRICT_ENUM_VALUE_SET 0
 #endif // VIDE_STRICT_ENUM_VALUE_SET
 
+#ifndef VIDE_DIAGNOSTIC_COLORS
+/// Specifies whether vide's own compile errors highlight type names with ANSI color escapes. Defaults to disabled.
+/// Off by default as the escapes end up in the output even when the compiler's own coloring is off: build logs,
+/// CI or IDEs without ANSI support show "[[1;31mFoo[0m]" instead of a red "[Foo]".
+#define VIDE_DIAGNOSTIC_COLORS 0
+#endif // VIDE_DIAGNOSTIC_COLORS
+
+// String literals on purpose: they concatenate with the surrounding message literals
+#if VIDE_DIAGNOSTIC_COLORS
+#   define VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN "\033[1;31m"
+#   define VIDE_DIAGNOSTIC_HIGHLIGHT_END "\033[0m"
+#else
+#   define VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN ""
+#   define VIDE_DIAGNOSTIC_HIGHLIGHT_END ""
+#endif
+
 // =================================================================================================

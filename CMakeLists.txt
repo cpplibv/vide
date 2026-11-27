@@ -21,6 +21,8 @@ file(GLOB_RECURSE vide_external_files CONFIGURE_DEPENDS include/vide/external/*)
 list(FILTER vide_external_files EXCLUDE REGEX "\\.hpp$")
 target_sources(vide INTERFACE FILE_SET external TYPE HEADERS BASE_DIRS include FILES ${vide_external_files})
 target_compile_features(vide INTERFACE cxx_std_26)
+# Every header relies on static reflection, so consumers need the flag as well
+target_compile_options(vide INTERFACE -freflection)
 
 # --- Install --------------------------------------------------------------------------------------
 
@@ -54,7 +56,6 @@ if (PROJECT_IS_TOP_LEVEL)
 	set_target_properties(vide PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON INTERFACE_HEADER_SETS_TO_VERIFY HEADERS)
 
 	add_compile_options(
-			-freflection
 			-ftemplate-backtrace-limit=100
 			$<$<CONFIG:Debug>:-ggdb3>
 			$<$<CONFIG:Dev>:-O3>

@@ -29,7 +29,7 @@ Fast, hardened against malicious input, easy to extend and free of external depe
 
 ## Requirements
 
-- A C++26 compiler; `types/reflection.hpp` additionally needs static reflection support
+- A C++26 compiler with static reflection (GCC 16+ with `-freflection`; the CMake target adds the flag)
 - CMake 3.24+ (only for the CMake integration)
 
 ## Getting started
@@ -100,7 +100,7 @@ find_package(vide 4 REQUIRED)
 target_link_libraries(my_app PRIVATE vide::vide)
 ```
 
-Being header-only, copying `include/vide` into a project works too.
+Being header-only, copying `include/vide` into a project works too; compile with `-freflection`.
 
 ## Writing serializers
 
@@ -395,6 +395,7 @@ Define these before including vide, or project wide.
 | `VIDE_SIZE_TYPE` | `std::uint32_t` | Type of stored container sizes |
 | `VIDE_POLYMORPHIC_ID_TYPE` | `std::uint16_t` | Type of stored polymorphic ids |
 | `VIDE_STRICT_ENUM_VALUE_SET` | `0` | Require a value set on every enum |
+| `VIDE_DIAGNOSTIC_COLORS` | `0` | Highlight type names in vide's compile errors with ANSI colors; logs without ANSI support show the escapes as text |
 | `VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER` | `8` | Reservation budget as a multiple of the input size; beyond it containers grow element wise |
 | `VIDE_XML_ROOT_TAG_NAME` | `"root"` | Root element of XML archives |
 | `VIDE_CLASS_VERSION_TAG_NAME` | `"vide_class_version"` | Name of stored class versions in text archives |
@@ -459,10 +460,13 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - Breaking: Text archives provide public `setNextName`, `startNode` and `finishNode`; `nvp()` names values through `setNextName`
 - Breaking: In text archives the name of a deferred value or of an already serialized virtual base no longer lands on the next unnamed value
 - Breaking: Remove the `THREAD_SAFE` option
+- Breaking: Every header requires static reflection (`-freflection`), not only `types/reflection.hpp`
 - Add: `static constexpr bool minimal = true` for `vide::serializer<T>` specializations
 - Add: boost `flat_multiset` serializer
-- Improve: Much faster compilation of serializer lookup and polymorphic registration
+- Improve: Faster compilation of serializer lookup and polymorphic registration
 - Improve: Shallower call stacks, easier to step through in a debugger
+- Improve: A missing serializer or an incomplete type is a single compile error that names the type and the archive
+- Add: `VIDE_DIAGNOSTIC_COLORS=1` colors the type names in compile errors
 - Fix: `ar.ranged()` is available on output archives
 - Fix: Possible hash collision between registered class versions
 - Fix: `long long` and `unsigned long long` JSON deserialization on Linux

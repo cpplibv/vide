@@ -7,11 +7,29 @@
 
 #include <concepts>
 #include <cstdint>
+#include <meta>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
 
 namespace vide { // --------------------------------------------------------------------------------
+
+namespace detail {
+
+template <class T>
+consteval std::string_view opaque_enum_message() {
+	return std::define_static_string("\n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
+			"\n"
+			"    ERROR: Vide cannot serialize the enum [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + std::string(std::meta::display_string_of(^^T)) + VIDE_DIAGNOSTIC_HIGHLIGHT_END "] from an opaque declaration.\n"
+			"    Include its definition (with the enumerator list) before serializing it.\n"
+			"\n"
+			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+}
+
+} // namespace detail
 
 struct enum_value_set {
 	template <typename T>
@@ -76,17 +94,19 @@ struct enum_value_set {
 
 	template <typename T>
 	static constexpr bool is_binary_serializable =
+			// Opaque enums take the checked path: verify() rejects them
+			std::meta::is_enumerable_type(^^T) && (
 			(VIDE_STRICT_ENUM_VALUE_SET == 0 && count_specifiers<T> == 0) || // If we are not in strict mode and it has no specifier
-			(count_specifiers<T> == 1 && is_unbounded<T>); // Or if it is properly specified as unbounded
+			(count_specifiers<T> == 1 && is_unbounded<T>)); // Or if it is properly specified as unbounded
 
 	template <typename T>
 	static constexpr void verify(const T& var) {
-		// Unfortunately there is no way to detect enum class Completeness
-		// static_assert(Complete<T>,
-		// 		"Attempted to serialize an incomplete enum type T. Ensure the type is included and complete before serialization attempts.");
-
 		static constexpr int specifiers_count = count_specifiers<T>;
-		if constexpr (specifiers_count > 0 || (VIDE_STRICT_ENUM_VALUE_SET)) {
+		// An opaque `enum class E;` is already complete (fixed underlying type), only its enumerators are
+		// missing; is_complete_type cannot tell it apart, and the enumerator based specifiers read as absent
+		if constexpr (!std::meta::is_enumerable_type(^^T)) {
+			static_assert(false, detail::opaque_enum_message<T>());
+		} else if constexpr (specifiers_count > 0 || (VIDE_STRICT_ENUM_VALUE_SET)) {
 			static_assert(specifiers_count != 0,
 					"Vide could not find any 'enum value set' specification for enum type T. The 'enum value set' must be specified with one and only one of the following:\n"
 					"	- Defining an enumerator `serialize_unbounded` inside the EnumType with any value. Valid values will be every underlying representation.\n"

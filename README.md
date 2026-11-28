@@ -467,6 +467,7 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - Improve: Faster compilation of serializer lookup and polymorphic registration
 - Improve: Shallower call stacks, easier to step through in a debugger
 - Improve: A missing serializer or an incomplete type is a single compile error that names the type and the archive
+- Improve: Serializing an enum known only from an opaque declaration (`enum class E;`) is a compile error instead of skipping its value set validation
 - Add: `VIDE_DIAGNOSTIC_COLORS=1` colors the type names in compile errors
 - Fix: `ar.ranged()` is available on output archives
 - Fix: Possible hash collision between registered class versions

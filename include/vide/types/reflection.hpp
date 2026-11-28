@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vide/access.hpp>
 #include <vide/macros.hpp>
 #include <vide/serializer.hpp>
 
@@ -33,7 +34,7 @@ consteval std::array<int, N> make_index_array() {
 
 template <class T>
 	requires requires { typename T::serialize_enable_reflection; }
-struct serializer<T> : detail::class_version_of<T> {
+struct serializer<T> : copy_class_version_of<T> {
 	template <class Archive>
 	static void serialize(Archive& ar, T& var, std::uint32_t) {
 		static constexpr auto members = define_static_array(nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));

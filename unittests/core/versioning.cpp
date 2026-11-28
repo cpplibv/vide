@@ -196,6 +196,29 @@ public:
 template <>
 constexpr std::uint32_t expected_version<StaticVersionPrivate> = 166;
 
+class SpecializedCopiedVersion {
+	friend class vide::access;
+
+	static constexpr std::uint32_t serialize_class_version = 177;
+
+public:
+	std::int16_t x = 0;
+	SeenVersions seen;
+};
+
+template <>
+struct vide::serializer<SpecializedCopiedVersion> : vide::copy_class_version_of<SpecializedCopiedVersion> {
+	template <class Archive>
+	static void serialize(Archive& ar, SpecializedCopiedVersion& value, std::uint32_t version) {
+		record_call<Archive>(&value);
+		ar(value.x);
+		(Archive::is_output ? value.seen.saved : value.seen.loaded) = version;
+	}
+};
+
+template <>
+constexpr std::uint32_t expected_version<SpecializedCopiedVersion> = 177;
+
 // -------------------------------------------------------------------------------------------------
 
 template <typename T>
@@ -233,6 +256,7 @@ void check_every_versioned_shape(std::mt19937& gen) {
 	check_versioned_roundtrip<Ar, SpecializedSplit>(gen);
 	check_versioned_roundtrip<Ar, StaticVersionPublic>(gen);
 	check_versioned_roundtrip<Ar, StaticVersionPrivate>(gen);
+	check_versioned_roundtrip<Ar, SpecializedCopiedVersion>(gen);
 }
 
 TEST_CASE("versioning traits") {
@@ -243,9 +267,11 @@ TEST_CASE("versioning traits") {
 	CHECK(vide::is_versioned_class<Nested::NestedClass>);
 	CHECK_FALSE(vide::access::has_static_member_class_version<SpecializedSerialize>);
 	CHECK(vide::access::has_static_member_class_version<StaticVersionPublic>);
-	CHECK_EQ(vide::access::static_member_class_version<StaticVersionPublic>(), 133u);
+	CHECK_EQ(vide::access::static_member_class_version<StaticVersionPublic>, 133u);
 	CHECK(vide::access::has_static_member_class_version<StaticVersionPrivate>);
-	CHECK_EQ(vide::access::static_member_class_version<StaticVersionPrivate>(), 166u);
+	CHECK_EQ(vide::access::static_member_class_version<StaticVersionPrivate>, 166u);
+	CHECK(vide::is_versioned_class<SpecializedCopiedVersion>);
+	CHECK_EQ(vide::serializer<SpecializedCopiedVersion>::serialize_class_version, 177u);
 }
 
 TEST_CASE_TEMPLATE("versioning", Ar, VIDE_ALL_ARCHIVES) {

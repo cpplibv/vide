@@ -26,19 +26,22 @@ Element validation
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Improve compile times:
 	Remove NVP, base, bytes, etc tag types and use direct named function calls
-
-
-
-
-
-
-
-
-
-
-
 
 vide: polymorphic with proxy archives?
 	\ only if proxy opt-ins for it

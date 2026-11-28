@@ -453,6 +453,7 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 ### 4.0.0 (experimental)
 
 - Breaking: `vide::serializer<T>` is the only serialization entry point; free `serialize`, `save`, `load` and `*_minimal` functions are no longer used. Member functions work as before
+- Breaking: The unspecialized `vide::serializer<T>` is empty; types with member functions have no `serializer<T>::serialize`
 - Breaking: Remove `VIDE_CLASS_VERSION`; `serialize_class_version` on the type or on its `vide::serializer<T>` is the only class version
 - Breaking: Versioned serializers without `serialize_class_version` no longer store a version, which changes their data
 - Breaking: `vide.hpp` and the archive headers no longer include `types/polymorphic.hpp`

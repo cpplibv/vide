@@ -344,11 +344,18 @@ public:
 					self.nvp(VIDE_CLASS_VERSION_TAG_NAME, version);
 			}
 
-			if constexpr (serializable_with<As, T>)
-				serializer<T>::serialize(as, const_cast<T&>(var), version);
-			else
+			if constexpr (serializable_with<As, T>) {
+				if constexpr (uses_default_serializer<T>)
+					access::serialize_members(as, const_cast<T&>(var), version);
+				else
+					serializer<T>::serialize(as, const_cast<T&>(var), version);
+			} else {
 				// T cannot be serialized with the proxy type: the archive itself serializes it
-				serializer<T>::serialize(self, const_cast<T&>(var), version);
+				if constexpr (uses_default_serializer<T>)
+					access::serialize_members(self, const_cast<T&>(var), version);
+				else
+					serializer<T>::serialize(self, const_cast<T&>(var), version);
+			}
 
 			if constexpr (node)
 				self.finishNode();
@@ -566,11 +573,18 @@ public:
 			if constexpr (is_versioned_class<T>)
 				version = loadClassVersion<T>();
 
-			if constexpr (serializable_with<As, T>)
-				serializer<T>::serialize(as, var, version);
-			else
+			if constexpr (serializable_with<As, T>) {
+				if constexpr (uses_default_serializer<T>)
+					access::serialize_members(as, var, version);
+				else
+					serializer<T>::serialize(as, var, version);
+			} else {
 				// T cannot be serialized with the proxy type: the archive itself serializes it
-				serializer<T>::serialize(self, var, version);
+				if constexpr (uses_default_serializer<T>)
+					access::serialize_members(self, var, version);
+				else
+					serializer<T>::serialize(self, var, version);
+			}
 
 			if constexpr (node)
 				self.finishNode();

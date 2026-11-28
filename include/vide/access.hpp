@@ -35,9 +35,7 @@ struct access {
 	};
 
 	template <class T>
-	static constexpr std::uint32_t static_member_class_version() {
-		return T::serialize_class_version;
-	}
+	static constexpr std::uint32_t static_member_class_version = T::serialize_class_version;
 
 	template <typename Archive, typename T>
 	using get_member_save_minimal_t = std::remove_cvref_t<decltype(
@@ -185,6 +183,17 @@ struct access {
 	[[nodiscard]] static constexpr inline T* construct() {
 		return new T();
 	}
+};
+
+/// Base for a serializer<T> specialization that keeps the class version of T: exposes
+/// T::serialize_class_version, private ones included, and is empty when T declares none
+template <typename T>
+struct copy_class_version_of {};
+
+template <typename T>
+	requires access::has_static_member_class_version<T>
+struct copy_class_version_of<T> {
+	static constexpr std::uint32_t serialize_class_version = access::static_member_class_version<T>;
 };
 
 } // namespace vide --------------------------------------------------------------------------------

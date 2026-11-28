@@ -17,6 +17,6 @@ namespace vide {
 template <typename T>
 concept binary_serializable_type =
 		(std::is_arithmetic_v<T> && !std::is_same_v<std::remove_cvref_t<T>, bool>) ||
-		(std::is_enum_v<T> && enum_value_set::is_binary_serializable<T>);
+		(std::is_enum_v<T> && enum_domain::is_binary_serializable<T>);
 
 } // namespace vide --------------------------------------------------------------------------------

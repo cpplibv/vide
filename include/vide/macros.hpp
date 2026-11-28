@@ -165,20 +165,20 @@
 
 // =================================================================================================
 
-#ifndef VIDE_STRICT_ENUM_VALUE_SET
-/// Specifies whether vide should enforce enum value set specification. Defaults to disable
-/// When enabled, enums which 'enum value set' is unspecified will fail to compile.
-/// When disabled, enums which 'enum value set' is unspecified are serialized as unbounded underlying type without
+#ifndef VIDE_STRICT_ENUM_DOMAIN
+/// Specifies whether vide should require an enum domain on every serialized enum. Defaults to disabled
+/// When enabled, enums without a specified domain fail to compile.
+/// When disabled, enums without a specified domain are serialized as unbounded underlying type without
 /// any check during serialization/deserialization.
 ///
-/// The 'enum value set' can be specified for EnumType by:
+/// The enum domain can be specified for EnumType by:
 ///		- Defining an enumerator @c serialize_unbounded inside the EnumType with any value. Valid values will be every underlying representation.
 ///		- Defining an enumerator @c serialize_end_value inside the EnumType with the max value. Valid values will be: [0..end_value).
 ///		- Defining a free function @c serialize_enum_unbounded(EnumType) returning void. Valid values will be every underlying representation.
 ///		- Defining a free function @c serialize_enum_end_value(EnumType) returning underlying with the max value. Valid values will be: [0..end_value).
 ///		- Defining a free function @c serialize_enum_verify(EnumType) returning bool that determines if the value is valid. Valid values will those which return true.
-#define VIDE_STRICT_ENUM_VALUE_SET 0
-#endif // VIDE_STRICT_ENUM_VALUE_SET
+#define VIDE_STRICT_ENUM_DOMAIN 0
+#endif // VIDE_STRICT_ENUM_DOMAIN
 
 #ifndef VIDE_DIAGNOSTIC_COLORS
 /// Specifies whether vide's own compile errors highlight type names with ANSI color escapes. Defaults to disabled.

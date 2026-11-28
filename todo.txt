@@ -12,11 +12,22 @@
 
 
 
-Element validation
-	Container serializer functions must accept another
-			validation function (TYPE ERASED! To not permutate)
-	the element validation solution
-		OR element substitute serializer
+
+Improve static assert messages where it makes sense:
+Copy the new pattern with consteval messages.
+
+Improve the tests so multiple // Expected: ... can be specified
+
+Update the current tests so their expected messages passes even if the diag colors are enabled
+
+Enable the diag colors if project is top level
+
+
+
+
+
+
+Use more reflection
 
 
 
@@ -26,8 +37,11 @@ Element validation
 
 
 
-
-
+Element validation
+	Container serializer functions must accept another
+			validation function (TYPE ERASED! To not permutate)
+	the element validation solution
+		OR element substitute serializer
 
 
 

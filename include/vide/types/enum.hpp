@@ -31,7 +31,7 @@ consteval std::string_view opaque_enum_message() {
 
 } // namespace detail
 
-struct enum_value_set {
+struct enum_domain {
 	template <typename T>
 	static constexpr bool has_unbounded_enumerator = requires {
 		T::serialize_unbounded;
@@ -96,7 +96,7 @@ struct enum_value_set {
 	static constexpr bool is_binary_serializable =
 			// Opaque enums take the checked path: verify() rejects them
 			std::meta::is_enumerable_type(^^T) && (
-			(VIDE_STRICT_ENUM_VALUE_SET == 0 && count_specifiers<T> == 0) || // If we are not in strict mode and it has no specifier
+			(VIDE_STRICT_ENUM_DOMAIN == 0 && count_specifiers<T> == 0) || // If we are not in strict mode and it has no specifier
 			(count_specifiers<T> == 1 && is_unbounded<T>)); // Or if it is properly specified as unbounded
 
 	template <typename T>
@@ -106,9 +106,9 @@ struct enum_value_set {
 		// missing; is_complete_type cannot tell it apart, and the enumerator based specifiers read as absent
 		if constexpr (!std::meta::is_enumerable_type(^^T)) {
 			static_assert(false, detail::opaque_enum_message<T>());
-		} else if constexpr (specifiers_count > 0 || (VIDE_STRICT_ENUM_VALUE_SET)) {
+		} else if constexpr (specifiers_count > 0 || (VIDE_STRICT_ENUM_DOMAIN)) {
 			static_assert(specifiers_count != 0,
-					"Vide could not find any 'enum value set' specification for enum type T. The 'enum value set' must be specified with one and only one of the following:\n"
+					"Vide could not find any 'enum domain' specification for enum type T. The 'enum domain' must be specified with one and only one of the following:\n"
 					"	- Defining an enumerator `serialize_unbounded` inside the EnumType with any value. Valid values will be every underlying representation.\n"
 					"	- Defining an enumerator `serialize_end_value` inside the EnumType with the max value. Valid values will be: [0..end_value).\n"
 					"	- Defining an enumerator `serialize_max_value` inside the EnumType with the max value. Valid values will be: [0..end_value].\n"
@@ -120,7 +120,7 @@ struct enum_value_set {
 					"	- Defining a free function `serialize_enum_verify(EnumType)` reachable by ADL returning `bool` that determines if the value is valid. Valid values will those which return true.\n");
 
 			static_assert(specifiers_count == 1,
-					"Enum type T valid 'enum value set' is not correctly specified. The 'enum value set' must be specified with one and only one of the following:\n"
+					"Enum type T 'enum domain' is not correctly specified. The 'enum domain' must be specified with one and only one of the following:\n"
 					"	- Defining an enumerator `serialize_unbounded` inside the EnumType with any value. Valid values will be every underlying representation.\n"
 					"	- Defining an enumerator `serialize_end_value` inside the EnumType with the max value. Valid values will be: [0..end_value).\n"
 					"	- Defining an enumerator `serialize_max_value` inside the EnumType with the max value. Valid values will be: [0..end_value].\n"
@@ -153,7 +153,7 @@ struct enum_value_set {
 			}
 
 			if (fail)
-				throw Exception("Invalid '" + util::demangledName<T>() + "' enum value '" + std::to_string(std::to_underlying(var)) + "'. The specified enum value set validation failed.");
+				throw Exception("Invalid '" + util::demangledName<T>() + "' enum value '" + std::to_string(std::to_underlying(var)) + "'. The value is outside the enum domain.");
 		}
 	}
 };
@@ -168,13 +168,13 @@ struct serializer<T> {
 	template <typename Archive>
 	static void serialize(Archive& ar, T& var, std::uint32_t) {
 		if constexpr (Archive::is_output) {
-			enum_value_set::verify(var);
+			enum_domain::verify(var);
 			ar(std::to_underlying(var));
 		} else {
 			std::underlying_type_t<T> value;
 			ar(value);
 			var = T{value};
-			enum_value_set::verify(var);
+			enum_domain::verify(var);
 		}
 	}
 };

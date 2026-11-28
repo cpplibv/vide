@@ -20,7 +20,7 @@ Fast, hardened against malicious input, easy to extend and free of external depe
 - **Header-only, no dependencies** - RapidJSON and RapidXML are bundled
 - **Four archive formats** - JSON, XML, binary and endian aware portable binary
 - **Standard library coverage** - containers, smart pointers, `optional`, `variant`, `chrono` and more, plus boost flat containers
-- **Secure by design** - bounded allocations, read size checks, enum value sets, smart pointer type checks
+- **Secure by design** - bounded allocations, read size checks, enum domains, smart pointer type checks
 - **Validators** - `ar.nvp("items", items, ar.notempty, ar.maxsize(64))`
 - **Proxy archives** - intercept, rewrite or annotate values anywhere in the serialization tree
 - **Reflection** - serialize aggregates without boilerplate using C++26 static reflection
@@ -271,7 +271,7 @@ ar.nvp("seed", seed, is_odd{});
 
 `ar.verify(condition, message)` throws in place for one-off checks.
 
-### Enum value sets
+### Enum domains
 
 ```cpp
 enum class Color { red, green, blue, serialize_end_value }; // Valid: red, green, blue
@@ -280,7 +280,7 @@ enum class Color { red, green, blue, serialize_end_value }; // Valid: red, green
 An enum declares its valid values with one of the enumerators `serialize_end_value`,
 `serialize_max_value` or `serialize_unbounded`, or with an ADL found free function
 `serialize_enum_end_value`, `serialize_enum_max_value`, `serialize_enum_unbounded` or `serialize_enum_verify`.
-Define `VIDE_STRICT_ENUM_VALUE_SET=1` to require a value set on every serialized enum.
+Define `VIDE_STRICT_ENUM_DOMAIN=1` to require a domain on every serialized enum.
 
 ## Proxy archives
 
@@ -394,7 +394,7 @@ Define these before including vide, or project wide.
 |---|---|---|
 | `VIDE_SIZE_TYPE` | `std::uint32_t` | Type of stored container sizes |
 | `VIDE_POLYMORPHIC_ID_TYPE` | `std::uint16_t` | Type of stored polymorphic ids |
-| `VIDE_STRICT_ENUM_VALUE_SET` | `0` | Require a value set on every enum |
+| `VIDE_STRICT_ENUM_DOMAIN` | `0` | Require a domain on every enum |
 | `VIDE_DIAGNOSTIC_COLORS` | `0` | Highlight type names in vide's compile errors with ANSI colors; logs without ANSI support show the escapes as text |
 | `VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER` | `8` | Reservation budget as a multiple of the input size; beyond it containers grow element wise |
 | `VIDE_XML_ROOT_TAG_NAME` | `"root"` | Root element of XML archives |
@@ -413,7 +413,7 @@ the data format. The new name makes that explicit.
 Compared to cereal, vide:
 
 - fixes a number of security vulnerabilities in deserialization
-- adds proxy archives, validators, enum value sets and reflection
+- adds proxy archives, validators, enum domains and reflection
 - has a single serialization entry point (`vide::serializer<T>`) and a dependent name archive API (`ar.nvp(...)`)
 - compiles significantly faster
 - targets modern C++ only
@@ -442,7 +442,7 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 ## Roadmap
 
 - Reflection: comprehensive reflection based serialization and metaprogramming
-- Reflection: enum value sets through annotations instead of special enumerators
+- Reflection: enum domains through annotations instead of special enumerators
 - Detailed error reports with serialization stack and archive position, also for validation
 - Visitor / foreach algorithms over serializable types
 - Archive wide and scoped versions: `ar.archive_version(...)`, `ar.scope_version(...)`
@@ -462,12 +462,13 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - Breaking: In text archives the name of a deferred value or of an already serialized virtual base no longer lands on the next unnamed value
 - Breaking: Remove the `THREAD_SAFE` option
 - Breaking: Every header requires static reflection (`-freflection`), not only `types/reflection.hpp`
+- Breaking: Enum value sets are called enum domains; `VIDE_STRICT_ENUM_VALUE_SET` is renamed to `VIDE_STRICT_ENUM_DOMAIN`
 - Add: `static constexpr bool minimal = true` for `vide::serializer<T>` specializations
 - Add: boost `flat_multiset` serializer
 - Improve: Faster compilation of serializer lookup and polymorphic registration
 - Improve: Shallower call stacks, easier to step through in a debugger
 - Improve: A missing serializer or an incomplete type is a single compile error that names the type and the archive
-- Improve: Serializing an enum known only from an opaque declaration (`enum class E;`) is a compile error instead of skipping its value set validation
+- Improve: Serializing an enum known only from an opaque declaration (`enum class E;`) is a compile error instead of skipping its domain validation
 - Add: `VIDE_DIAGNOSTIC_COLORS=1` colors the type names in compile errors
 - Fix: `ar.ranged()` is available on output archives
 - Fix: Possible hash collision between registered class versions

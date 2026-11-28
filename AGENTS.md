@@ -77,9 +77,13 @@ ctest --test-dir build/dev -j 8 --output-on-failure
   serialized through `base_class` shows up there) and that loads mirror saves per type
 - Common headers are compiled standalone too (`VERIFY_INTERFACE_HEADER_SETS`), so they must include what they use
 - Portability (32 bit) tests are disabled
-- Compile-fail tests: a `.cpp` in `unittests/compile_fail/` with a `// Expected: <regex>` line; the test builds it and
-  passes only if the build output matches and holds a single `error:` (`missing_save.cpp` ->
-  `test_compile_fail_missing_save`). One failure per file, kept out of the normal build
+- Compile-fail tests: a `.cpp` in `unittests/compile_fail/` with one or more `// Expected: <regex>` lines; the test
+  builds it and passes only if every line matches the build output and it holds a single `error:` (`missing_save.cpp`
+  -> `test_compile_fail_missing_save`). One failure per file, kept out of the normal build
+  - `// Expected:` matches with ANSI color escapes removed, `// Expected raw:` the output as is; top level builds
+    define `VIDE_DIAGNOSTIC_COLORS=1`, so plain expectations must not depend on the colors
+  - vide's own compile errors: a `detail::*_message<T>()` consteval function built with `details/diagnostic.hpp`,
+    usually asserted as `static_assert(false, message)` in an `if constexpr` branch of its own: no follow-up errors
 
 ## Code style
 

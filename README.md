@@ -469,6 +469,7 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - Improve: Shallower call stacks, easier to step through in a debugger
 - Improve: A missing serializer or an incomplete type is a single compile error that names the type and the archive
 - Improve: Serializing an enum known only from an opaque declaration (`enum class E;`) is a compile error instead of skipping its domain validation
+- Improve: Compile errors name the types involved for clashing member serializers, clashing or (strict mode) missing enum domains, raw pointers and smart pointers over `VIDE_SMART_PTR_MAX_SIZE`
 - Add: `VIDE_DIAGNOSTIC_COLORS=1` colors the type names in compile errors
 - Fix: `ar.ranged()` is available on output archives
 - Fix: Possible hash collision between registered class versions

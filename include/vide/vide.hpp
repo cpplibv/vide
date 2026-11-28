@@ -34,6 +34,7 @@
 #include <vide/binary_serializable_type.hpp>
 #include <vide/concept.hpp>
 #include <vide/details/archive_base.hpp>
+#include <vide/details/diagnostic.hpp>
 #include <vide/details/helpers.hpp>
 #include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/stored_smart_ptr.hpp>
@@ -146,27 +147,20 @@ namespace detail {
 
 template <class T>
 consteval std::string_view incomplete_type_message() {
-	return std::define_static_string("\n"
-			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-			"\n"
-			"    ERROR: Vide cannot serialize the incomplete type [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + std::string(display_string_of(^^T)) + VIDE_DIAGNOSTIC_HIGHLIGHT_END "].\n"
-			"    Include its definition before serializing it.\n"
-			"\n"
-			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	return diagnostic_message(
+			"    ERROR: Vide cannot serialize the incomplete type [" + diagnostic_name<T>() + "].\n"
+			"    Include its definition before serializing it.\n");
 }
 
 /// Names T and Archive: the instantiation context that would tell them is often dozens of lines up
 template <class Archive, class T>
 consteval std::string_view missing_serializer_message() {
-	const auto type = std::string{display_string_of(^^T)};
-	std::string message = "\n"
-			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-			"\n"
-			"    ERROR: Vide could not find a serializer for [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + type + VIDE_DIAGNOSTIC_HIGHLIGHT_END "] with archive [" VIDE_DIAGNOSTIC_HIGHLIGHT_BEGIN + std::string(display_string_of(^^Archive)) + VIDE_DIAGNOSTIC_HIGHLIGHT_END "].\n";
+	const auto type = std::string{std::meta::display_string_of(^^T)};
+	std::string text = "    ERROR: Vide could not find a serializer for [" + diagnostic_name<T>() + "] with archive [" + diagnostic_name<Archive>() + "].\n";
 	if (type.starts_with("std::") || type.starts_with("boost::"))
-		message += "    Most library types are covered by the vide/types/* headers, is the matching one missing?\n";
+		text += "    Most library types are covered by the vide/types/* headers, is the matching one missing?\n";
 
-	message += "    Specialize vide::serializer<T> OR add one of the member serializers: serialize, save/load, save_minimal/load_minimal.\n"
+	text += "    Specialize vide::serializer<T> OR add one of the member serializers: serialize, save/load, save_minimal/load_minimal.\n"
 			"\n"
 			"    As member serialize:\n"
 			"\n"
@@ -183,10 +177,8 @@ consteval std::string_view missing_serializer_message() {
 			"            static void serialize(Archive& ar, " + type + "& var, std::uint32_t) {\n"
 			"                ar.nvp(\"member1\", var.member1);\n"
 			"            }\n"
-			"        };\n"
-			"\n"
-			"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-	return std::define_static_string(message);
+			"        };\n";
+	return diagnostic_message(text);
 }
 
 /// True when text archives open a node for T; minimal types are written as a bare value.

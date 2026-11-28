@@ -55,6 +55,9 @@ if (PROJECT_IS_TOP_LEVEL)
 
 	set_target_properties(vide PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON INTERFACE_HEADER_SETS_TO_VERIFY HEADERS)
 
+	# Directory scoped on purpose: the exported target stays uncolored for consumers
+	add_compile_definitions(VIDE_DIAGNOSTIC_COLORS=1)
+
 	add_compile_options(
 			-ftemplate-backtrace-limit=100
 			$<$<CONFIG:Debug>:-ggdb3>

@@ -1,5 +1,5 @@
 //
-// Expected: could not find a serializer for \[.\[1;31mNoSerializer.\[0m\] with archive \[.\[1;31mvide::BinaryOutputArchive.\[0m\]
+// Expected raw: could not find a serializer for \[.\[1;31mNoSerializer.\[0m\] with archive \[.\[1;31mvide::BinaryOutputArchive.\[0m\]
 
 #define VIDE_DIAGNOSTIC_COLORS 1
 

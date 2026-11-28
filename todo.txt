@@ -13,26 +13,31 @@
 
 
 
-Improve static assert messages where it makes sense:
-Copy the new pattern with consteval messages.
-
-Improve the tests so multiple // Expected: ... can be specified
-
-Update the current tests so their expected messages passes even if the diag colors are enabled
-
-Enable the diag colors if project is top level
+There were a lot of recent changes in the project,
+some legacy helper/tag types remained their legacy form:
+Improve, make consistent, cleanup, remove: NVP, base, bytes, and any other small tag types
+Improve documentation around them
+Generic improvements
 
 
 
 
+Reflection was recently introduced
+Review where could it be used more?
+What old patterns could be replaced with better options?
 
 
-Use more reflection
 
 
 
 - reflection: Rework enum validation to rely more on reflection
   - Replace unbounded_enumerator, end_value_enumerator and max_value_enumerator validation with attribute reflection
+
+
+
+
+
+
 
 
 
@@ -43,19 +48,9 @@ Element validation
 	the element validation solution
 		OR element substitute serializer
 
+	maybe also collapse the validators chain to a single composition (maybe even add operator && support)
 
 
-
-
-
-
-
-
-
-
-
-Improve compile times:
-	Remove NVP, base, bytes, etc tag types and use direct named function calls
 
 vide: polymorphic with proxy archives?
 	\ only if proxy opt-ins for it

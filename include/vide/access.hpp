@@ -2,10 +2,13 @@
 
 #include <vide/access_fwd.hpp>
 #include <vide/concept.hpp>
+#include <vide/details/diagnostic.hpp>
 #include <vide/macros.hpp>
 
 #include <concepts>
 #include <cstdint>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -127,17 +130,46 @@ struct access {
 			has_member_load_minimal<Archive, T> || has_member_load_minimal_versioned<Archive, T> ||
 			has_member_serialize_minimal<Archive, T> || has_member_serialize_minimal_versioned<Archive, T>;
 
+	/// Lists the shapes found, "serialize(ar), save(ar, version)": inherited ones are easy to overlook
+	template <class Archive, class T>
+	static consteval std::string_view ambiguous_member_shapes_message() {
+		std::string found;
+		const auto add = [&found](bool has, std::string_view name) {
+			if (!has)
+				return;
+			if (!found.empty())
+				found += ", ";
+			found += name;
+		};
+		add(has_member_serialize<Archive, T>, "serialize(ar)");
+		add(has_member_serialize_versioned<Archive, T>, "serialize(ar, version)");
+		add(has_member_serialize_minimal<Archive, T>, "serialize_minimal(ar)");
+		add(has_member_serialize_minimal_versioned<Archive, T>, "serialize_minimal(ar, version)");
+		if constexpr (Archive::is_output) {
+			add(has_member_save<Archive, T>, "save(ar)");
+			add(has_member_save_versioned<Archive, T>, "save(ar, version)");
+			add(has_member_save_minimal<Archive, T>, "save_minimal(ar)");
+			add(has_member_save_minimal_versioned<Archive, T>, "save_minimal(ar, version)");
+		} else {
+			add(has_member_load<Archive, T>, "load(ar)");
+			add(has_member_load_versioned<Archive, T>, "load(ar, version)");
+			add(has_member_load_minimal<Archive, T>, "load_minimal(ar, value)");
+			add(has_member_load_minimal_versioned<Archive, T>, "load_minimal(ar, value, version)");
+		}
+
+		return detail::diagnostic_message(
+				"    ERROR: Vide found more than one member serializer for [" + detail::diagnostic_name<T>() + "] with archive [" + detail::diagnostic_name<Archive>() + "]: " + found + ".\n"
+				"    Keep exactly one of: serialize, save/load, save_minimal/load_minimal or serialize_minimal, either\n"
+				"    versioned or not. Inherited ones count too; specialize vide::serializer<T> to pick one explicitly.\n");
+	}
+
 	/// Calls the member shape of T: serialize, save/load, save_minimal/load_minimal or
 	/// serialize_minimal, each with or without the version parameter
 	template <class Archive, class T>
 	static void serialize_members(Archive& ar, T& var, std::uint32_t version) {
-		static_assert(count_member_shapes<Archive, T> == 1, "\n"
-				"Vide found more than one member serialization function for the provided type and archive combination.\n\n"
-				"Types must either have a serialize function, load/save pair, load_minimal/save_minimal pair or serialize_minimal\n"
-				"(you may not mix these, nor versioned and non-versioned forms). Inherited serialization functions count too.\n"
-				"Specialize vide::serializer<T> to pick one explicitly.\n\n");
-
-		if constexpr (has_member_serialize<Archive, T>) {
+		if constexpr (count_member_shapes<Archive, T> > 1) {
+			static_assert(false, ambiguous_member_shapes_message<Archive, T>());
+		} else if constexpr (has_member_serialize<Archive, T>) {
 			var.VIDE_FUNCTION_NAME_SERIALIZE(ar);
 		} else if constexpr (has_member_serialize_versioned<Archive, T>) {
 			var.VIDE_FUNCTION_NAME_SERIALIZE(ar, version);

@@ -2,21 +2,33 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <type_traits>
 
 #include <vide/binary_data.hpp>
+#include <vide/details/diagnostic.hpp>
 #include <vide/serializer.hpp>
 
 
 namespace vide { // --------------------------------------------------------------------------------
 
-/// Serialization for raw pointers
-/*! This exists only to throw a static_assert to let users know we don't support raw pointers. */
+namespace detail {
+
+template <class T>
+consteval std::string_view raw_pointer_message() {
+	return diagnostic_message(
+			"    ERROR: Vide cannot serialize the raw pointer [" + diagnostic_name<T>() + "].\n"
+			"    Raw pointers carry no ownership: use a smart pointer (std::unique_ptr, std::shared_ptr) instead.\n");
+}
+
+} // namespace detail
+
+/// Rejects raw pointers with a compile error, a missing serializer would hide the reason
 template <class T>
 struct serializer<T*> {
 	template <class Archive>
 	static void serialize(Archive&, T*&, std::uint32_t) {
-		static_assert(false, "Vide does not support serializing raw pointers - please use a smart pointer");
+		static_assert(false, detail::raw_pointer_message<T*>());
 	}
 };
 

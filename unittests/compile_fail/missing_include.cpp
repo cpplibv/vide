@@ -1,5 +1,6 @@
 //
-// Expected: could not find a serializer for \[std::map<int, int>\].*is the matching one missing
+// Expected: could not find a serializer for \[std::map<int, int>\] with archive \[vide::BinaryOutputArchive\]
+// Expected: Most library types are covered by the vide/types/\* headers, is the matching one missing\?
 
 #include <vide/archives/binary.hpp>
 

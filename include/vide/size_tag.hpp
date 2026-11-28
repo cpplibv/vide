@@ -1,52 +1,35 @@
 #pragma once
 
-#include <type_traits>
-#include <utility>
+#include <vide/exception.hpp>
 
-#include <vide/details/vide_types.hpp>
+#include <cstdint>
+#include <limits>
+#include <string>
 
 
-namespace vide {
+namespace vide { // --------------------------------------------------------------------------------
 
-// -------------------------------------------------------------------------------------------------
-
-//! A wrapper around size metadata
-/*! This class provides a way for archives to have more flexibility over how
-	they choose to serialize size metadata for containers.  For some archive
-	types, the size may be implicitly encoded in the output (e.g. JSON) and
-	not need an explicit entry.  Specializing serialize or load/save for
-	your archive and SizeTags allows you to choose what happens.
-
-	@internal */
-template <class T>
-class SizeTag {
-	// Store a reference if passed an lvalue reference, otherwise
-	// make a copy of the data
-	using Type = std::conditional_t<std::is_lvalue_reference_v<T>, T, std::decay_t<T>>;
-
-public:
-	Type size;
-	SizeTag(Type sz) : size(std::forward<Type>(sz)) {}
-
-private:
-	SizeTag& operator=(SizeTag const&) = delete;
+/// Tag of a container size, created by ar.size_tag(). Binary archives store the size; JSON and XML store
+/// none and count the children of the node on load, so a hand edited array stays loadable.
+/// Size is size_type when saving, size_type& when loading
+template <class Size>
+struct SizeTag {
+	Size size;
 };
 
-// -------------------------------------------------------------------------------------------------
+namespace detail {
 
-//! Creates a size tag from some variable.
-/*! Will normally be used to serialize size (e.g. size()) information for
-variable size containers.  If you have a variable sized container,
-the very first thing it serializes should be its size, wrapped in
-a SizeTag.
+/// Throws when size does not fit Size: a truncated size would silently corrupt the data
+template <class Size>
+[[nodiscard]] constexpr Size checked_size(std::uint64_t size) {
+	if constexpr (std::numeric_limits<Size>::max() < std::numeric_limits<std::uint64_t>::max())
+		if (size > std::numeric_limits<Size>::max())
+			throw Exception("Container size " + std::to_string(size) + " exceeds the maximum of the archive size type " +
+					std::to_string(std::numeric_limits<Size>::max()) + ".");
 
-	@relates SizeTag
-	@ingroup Utility */
-template <class T>
-inline SizeTag<T> make_size_tag(T&& sz) {
-	return {std::forward<T>(sz)};
+	return static_cast<Size>(size);
 }
 
-// -------------------------------------------------------------------------------------------------
+} // namespace detail
 
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

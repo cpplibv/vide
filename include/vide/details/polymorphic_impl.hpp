@@ -129,7 +129,7 @@ struct PolymorphicCasters {
 #define UNREGISTERED_POLYMORPHIC_CAST_EXCEPTION(LoadSave)                                                                                                                \
         throw vide::Exception("Trying to " #LoadSave " a registered polymorphic type with an unregistered polymorphic cast.\n"                                               \
                                 "Could not find a path to a base class '" + util::demangle(baseInfo.name()) + "' for type: '" + util::demangle(derivedInfo.name()) + "'\n"   \
-                                "Make sure you either serialize the base class at some point via vide::base_class or vide::virtual_base_class.\n"                          \
+                                "Make sure you either serialize the base class at some point via ar.base_class or ar.virtual_base_class.\n"                                  \
                                 "Alternatively, manually register the association with VIDE_REGISTER_POLYMORPHIC_RELATION.");
 
 	//! Checks if the mapping object that can perform the upcast or downcast exists, and returns it if so
@@ -383,9 +383,8 @@ struct PolymorphicVirtualCaster : PolymorphicCaster {
 /*! Registering a relation allows vide to properly cast between the two types
 	given runtime type information and void pointers.
 
-	Registration happens automatically via vide::base_class and vide::virtual_base_class
-	instantiations. For cases where neither is called, see the VIDE_REGISTER_POLYMORPHIC_RELATION
-	macro */
+	Registration happens automatically through ar.base_class and ar.virtual_base_class.
+	For cases where neither is called, see the VIDE_REGISTER_POLYMORPHIC_RELATION macro */
 template <class Base, class Derived>
 struct RegisterPolymorphicCaster {
 	static PolymorphicCaster const* bind(std::true_type /* is_polymorphic<Base> */) {

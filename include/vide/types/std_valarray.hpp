@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vide/binary_data.hpp>
 #include <vide/serializer.hpp>
 
 #include <cstdint>
@@ -18,7 +17,7 @@ struct serializer<std::valarray<T>> {
 			ar.size_tag(valarray.size()); // number of elements
 
 			if constexpr (Archive::template supports_binary<T>)
-				ar(binary_data(&valarray[0], valarray.size() * sizeof(T)));
+				ar.binary_data(std::begin(valarray), valarray.size());
 			else
 				for (const auto& i : valarray)
 					ar(i);
@@ -28,7 +27,7 @@ struct serializer<std::valarray<T>> {
 			if constexpr (Archive::template supports_binary<T>) {
 				ar.template validate_read_size<T>(size);
 				valarray.resize(size);
-				ar(binary_data(&valarray[0], valarray.size() * sizeof(T)));
+				ar.binary_data(std::begin(valarray), valarray.size());
 
 			} else {
 				const auto reservable = ar.template safe_to_reserve<T>(size);

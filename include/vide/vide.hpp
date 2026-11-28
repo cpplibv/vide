@@ -33,16 +33,15 @@
 #include <vide/binary_data.hpp>
 #include <vide/binary_serializable_type.hpp>
 #include <vide/concept.hpp>
+#include <vide/deferred_data.hpp>
 #include <vide/details/archive_base.hpp>
 #include <vide/details/diagnostic.hpp>
-#include <vide/details/helpers.hpp>
 #include <vide/details/polymorphic_helper.hpp>
+#include <vide/details/polymorphic_impl_fwd.hpp>
 #include <vide/details/stored_smart_ptr.hpp>
-#include <vide/details/value_if_nvp.hpp>
 #include <vide/details/vide_types.hpp>
 #include <vide/exception.hpp>
 #include <vide/macros.hpp>
-#include <vide/nvp.hpp>
 #include <vide/serializer.hpp>
 #include <vide/size_tag.hpp>
 #include <vide/types/common.hpp>
@@ -64,68 +63,10 @@
 
 namespace vide {
 
-// ######################################################################
-//! Marks data for deferred serialization
-/*! vide performs a recursive depth-first traversal of data it serializes. When
-	serializing smart pointers to large, nested, or cyclical data structures, it
-	is possible to encounter a stack overflow from excessive recursion when following
-	a chain of pointers.
-
-	Deferment can help in these situations if the data can be serialized separately from
-	the pointers used to traverse the structure. For example, a graph structure can have its
-	nodes serialized before its edges:
-
-	@code{.cpp}
-	struct MyEdge
-	{
-	  std::shared_ptr<MyNode> connection;
-	  int some_value;
-
-	  template<class Archive>
-	  void serialize(Archive & archive)
-	  {
-		// when we serialize an edge, we'll defer serializing the associated node
-		archive( vide::defer( connection ),
-				 some_value );
-	  }
-	};
-
-	struct MyGraphStructure
-	{
-	  std::vector<MyEdge> edges;
-	  std::vector<MyNodes> nodes;
-
-	  template<class Archive>
-	  void serialize(Archive & archive)
-	  {
-		// because of the deferment, we ensure all nodes are fully serialized
-		// before any connection pointers to those nodes are serialized
-		archive( edges, nodes );
-
-		// we have to explicitly inform the archive when it is safe to serialize
-		// the deferred data
-		archive.serializeDeferments();
-	  }
-	};
-	@endcode
-
-	@relates DeferredData
-	@ingroup Utility */
-template <class T>
-inline DeferredData<T> defer(T&& value) {
-	return DeferredData<T>{std::forward<T>(value)};
-}
-
-// ######################################################################
-//! Special flags for archives
+/// Archive traits, passed as the Flags of OutputArchive and InputArchive: is_text_archive, is_binary_archive
 enum Flags {
-	//	____ = 1u << 0u,
-	IgnoreNVP = 1u << 1u,
-	TextArchive = 1u << 2u,
-	BinaryArchive = 1u << 3u,
-	//	____ = 1u << 3u,
-	//	____ = 1u << 4u,
-	//	____ = 1u << 5u,
+	TextArchive = 1u << 0u,
+	BinaryArchive = 1u << 1u,
 };
 
 // ######################################################################
@@ -191,11 +132,6 @@ inline constexpr bool uses_node<true, As, T> = !minimal_with<As, T>;
 
 } // namespace detail
 
-// -------------------------------------------------------------------------------------------------
-// Base Class Support
-
-// -------------------------------------------------------------------------------------------------
-
 // ######################################################################
 //! The base output archive class
 /*! This is the base output archive for all output archives.  If you create
@@ -216,17 +152,19 @@ inline constexpr bool uses_node<true, As, T> = !minimal_with<As, T>;
 template <class ArchiveType, std::uint32_t Flags = 0>
 class OutputArchive : public detail::OutputArchiveBase {
 public:
-	static constexpr bool ignores_nvp = (Flags & vide::IgnoreNVP) != 0;
 	static constexpr bool enforce_validation = true;
 	static constexpr bool is_proxy = false;
 	static constexpr bool is_output = true;
 	static constexpr bool is_input = false;
+	/// Names values and opens a node per object: JSON, XML
 	static constexpr bool is_text_archive = (Flags & vide::TextArchive) != 0;
+	/// Ignores names and has binary_data(): binary, portable binary
 	static constexpr bool is_binary_archive = (Flags & vide::BinaryArchive) != 0;
 
 	// XMLOutputArchive writes the type attribute of every node
 	static constexpr bool inserts_type_attribute = false;
 
+	/// True when binary_data() can serialize a run of T in one block
 	template <typename T>
 	static constexpr bool supports_binary = is_binary_archive && binary_serializable_type<T>;
 
@@ -248,12 +186,12 @@ public:
 	inline ArchiveType& operator()(T&& var, const Validators&... validators) {
 		auto& self = static_cast<ArchiveType&>(*this);
 		if constexpr (enforce_validation)
-			(validators(value_if_nvp(var)), ...); // Output archive check before save
+			(validators(var), ...); // Output archive check before save
 		self.process_as(self, var);
 		return self;
 	}
 
-	// Sets the name directly instead of a NameValuePair round trip through operator()
+	/// Serializes a named value; binary archives ignore the name
 	template <typename T, typename... Validators>
 	inline ArchiveType& nvp(const char* name, T&& var, const Validators&... validators) {
 		auto& self = static_cast<ArchiveType&>(*this);
@@ -264,17 +202,35 @@ public:
 		return self;
 	}
 
+	/// Serializes the Base subobject of derivedThis
 	template <typename Base, typename Derived>
 	inline ArchiveType& base_class(const Derived* derivedThis) {
 		auto& self = static_cast<ArchiveType&>(*this);
-		self.process_as(self, ::vide::base_class<Base>(derivedThis));
+		self.process_as(self, BaseClass<Base>(derivedThis));
 		return self;
 	}
 
+	/// Serializes the virtual Base subobject of derivedThis, once per object
 	template <typename Base, typename Derived>
 	inline ArchiveType& virtual_base_class(const Derived* derivedThis) {
 		auto& self = static_cast<ArchiveType&>(*this);
-		self.process_as(self, ::vide::virtual_base_class<Base>(derivedThis));
+		self.process_as(self, VirtualBaseClass<Base>(derivedThis));
+		return self;
+	}
+
+	/// Serializes var at the next serializeDeferments() instead of here. A saved rvalue is copied until then
+	template <typename T>
+	inline ArchiveType& defer(T&& var) {
+		auto& self = static_cast<ArchiveType&>(*this);
+		self.process_as(self, DeferredData<T>{std::forward<T>(var)});
+		return self;
+	}
+
+	/// Serializes size elements starting at data as one block of raw memory
+	template <binary_serializable_type T>
+	inline ArchiveType& binary_data(const T* data, std::size_t size) requires is_binary_archive {
+		auto& self = static_cast<ArchiveType&>(*this);
+		self.process_as(self, BinaryData<sizeof(T)>{const_cast<T*>(data), size});
 		return self;
 	}
 
@@ -291,15 +247,11 @@ public:
 		return static_cast<ArchiveType&>(*this);
 	}
 
-	inline ArchiveType& size_tag(uint32_t size) {
+	/// Serializes the number of elements of a container, ahead of the elements.
+	/// Throws when size does not fit size_type
+	inline ArchiveType& size_tag(std::uint64_t size) {
 		auto& self = static_cast<ArchiveType&>(*this);
-		self.process_as(self, ::vide::SizeTag<size_type>(static_cast<size_type>(size)));
-		return self;
-	}
-
-	inline ArchiveType& size_tag(uint64_t size) {
-		auto& self = static_cast<ArchiveType&>(*this);
-		self.process_as(self, ::vide::SizeTag<size_type>(static_cast<size_type>(size)));
+		self.process_as(self, SizeTag<size_type>{detail::checked_size<size_type>(size)});
 		return self;
 	}
 
@@ -354,19 +306,19 @@ public:
 		}
 	}
 
-	// The node of the wrapper is the node of the base: both are opened by the generic process_as
+	// The node of the tag is the node of the base: both are opened by the generic process_as
 	template <class As, class T>
-	inline void process_as(As& as, const vide::base_class<T>& wrapper) {
-		as.process_as(as, *wrapper.base_ptr);
+	inline void process_as(As& as, const BaseClass<T>& tag) {
+		as.process_as(as, *tag.base_ptr);
 	}
 
 	// Serialized later, out of place: a name given here has no node to land on
 	template <class As, class T>
-	inline void process_as(As&, const DeferredData<T>& d) {
+	inline void process_as(As&, const DeferredData<T>& tag) {
 		discardNextName();
-		std::function<void()> deferment([this, d] {
+		std::function<void()> deferment([this, tag] {
 			auto& self = static_cast<ArchiveType&>(*this);
-			self.process_as(self, d.value);
+			self.process_as(self, tag.value);
 		});
 		addDeferment(std::move(deferment));
 	}
@@ -374,9 +326,9 @@ public:
 	// Once per object: a diamond reaches the same virtual base on every path. A skipped one writes
 	// nothing, not even its name
 	template <class As, class T>
-	inline void process_as(As& as, const vide::virtual_base_class<T>& wrapper) {
-		if (registerVirtualBaseClass(detail::base_class_id(wrapper.base_ptr)))
-			as.process_as(as, *wrapper.base_ptr);
+	inline void process_as(As& as, const VirtualBaseClass<T>& tag) {
+		if (registerVirtualBaseClass(detail::base_class_id(tag.base_ptr)))
+			as.process_as(as, *tag.base_ptr);
 		else
 			discardNextName();
 	}
@@ -407,14 +359,16 @@ private:
 template <class ArchiveType, std::uint32_t Flags = 0>
 class InputArchive : public detail::InputArchiveBase {
 public:
-	static constexpr bool ignores_nvp = (Flags & vide::IgnoreNVP) != 0;
 	static constexpr bool enforce_validation = true;
 	static constexpr bool is_proxy = false;
 	static constexpr bool is_output = false;
 	static constexpr bool is_input = true;
+	/// Names values and opens a node per object: JSON, XML
 	static constexpr bool is_text_archive = (Flags & vide::TextArchive) != 0;
+	/// Ignores names and has binary_data(): binary, portable binary
 	static constexpr bool is_binary_archive = (Flags & vide::BinaryArchive) != 0;
 
+	/// True when binary_data() can serialize a run of T in one block
 	template <typename T>
 	static constexpr bool supports_binary = is_binary_archive && binary_serializable_type<T>;
 
@@ -437,11 +391,11 @@ public:
 		auto& self = static_cast<ArchiveType&>(*this);
 		self.process_as(self, var);
 		if constexpr (enforce_validation)
-			(validators(value_if_nvp(var)), ...); // Input archive validate after load
+			(validators(var), ...); // Input archive validate after load
 		return self;
 	}
 
-	// Sets the name directly instead of a NameValuePair round trip through operator()
+	/// Serializes a named value; binary archives ignore the name
 	template <typename T, typename... Validators>
 	inline ArchiveType& nvp(const char* name, T&& var, const Validators&... validators) {
 		auto& self = static_cast<ArchiveType&>(*this);
@@ -452,19 +406,39 @@ public:
 		return self;
 	}
 
+	/// Serializes the Base subobject of derivedThis
 	template <typename Base, typename Derived>
 	inline ArchiveType& base_class(const Derived* derivedThis) {
 		auto& self = static_cast<ArchiveType&>(*this);
-		::vide::base_class<Base> wrapper(derivedThis);
-		self.process_as(self, wrapper);
+		BaseClass<Base> tag(derivedThis);
+		self.process_as(self, tag);
 		return self;
 	}
 
+	/// Serializes the virtual Base subobject of derivedThis, once per object
 	template <typename Base, typename Derived>
 	inline ArchiveType& virtual_base_class(const Derived* derivedThis) {
 		auto& self = static_cast<ArchiveType&>(*this);
-		::vide::virtual_base_class<Base> wrapper(derivedThis);
-		self.process_as(self, wrapper);
+		VirtualBaseClass<Base> tag(derivedThis);
+		self.process_as(self, tag);
+		return self;
+	}
+
+	/// Serializes var at the next serializeDeferments() instead of here
+	template <typename T>
+	inline ArchiveType& defer(T& var) {
+		auto& self = static_cast<ArchiveType&>(*this);
+		DeferredData<T&> tag{var};
+		self.process_as(self, tag);
+		return self;
+	}
+
+	/// Serializes size elements starting at data as one block of raw memory
+	template <binary_serializable_type T>
+	inline ArchiveType& binary_data(T* data, std::size_t size) requires (is_binary_archive && !std::is_const_v<T>) {
+		auto& self = static_cast<ArchiveType&>(*this);
+		BinaryData<sizeof(T)> tag{data, size};
+		self.process_as(self, tag);
 		return self;
 	}
 
@@ -494,14 +468,16 @@ public:
 		return var;
 	}
 
+	/// Serializes the number of elements of a container, ahead of the elements.
+	/// Untrusted: size the container through safe_to_reserve() or validate_read_size()
 	inline ArchiveType& size_tag(size_type& size) {
 		auto& self = static_cast<ArchiveType&>(*this);
-		::vide::SizeTag<size_type&> tag(size);
+		SizeTag<size_type&> tag{size};
 		self.process_as(self, tag);
 		return self;
 	}
 
-	inline size_type size_tag() {
+	[[nodiscard]] inline size_type size_tag() {
 		size_type size{};
 		size_tag(size);
 		return size;
@@ -513,6 +489,9 @@ public:
 				throw Exception("Validation failed during serialization: " + std::string(message));
 	}
 
+	/// Number of T to reserve up front for a container of numElements loaded elements, at most numElements.
+	/// Draws on a budget of VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER times the input size, shared by the whole
+	/// archive: a forged size cannot allocate more. Elements past it are added one by one, each loaded first
 	template <typename T>
 	[[nodiscard]] std::size_t safe_to_reserve(size_type numElements) {
 		const auto requestedBytes = numElements * sizeof(T);
@@ -521,6 +500,8 @@ public:
 		return numSafeElements;
 	}
 
+	/// Throws unless numElements of T fit the unread input, before resizing for a binary_data() load.
+	/// maximumBinaryReadSize() of the archive reports the unread bytes
 	template <typename T> requires is_binary_archive
 	inline void validate_read_size(size_type numElements) {
 		const auto requestedBytes = numElements * sizeof(T);
@@ -583,19 +564,19 @@ public:
 		}
 	}
 
-	// The node of the wrapper is the node of the base: both are opened by the generic process_as
+	// The node of the tag is the node of the base: both are opened by the generic process_as
 	template <class As, class T>
-	inline void process_as(As& as, vide::base_class<T>& wrapper) {
-		as.process_as(as, *wrapper.base_ptr);
+	inline void process_as(As& as, BaseClass<T>& tag) {
+		as.process_as(as, *tag.base_ptr);
 	}
 
 	// Serialized later, out of place: a name given here has no node to land on
 	template <class As, class T>
-	inline void process_as(As&, DeferredData<T>& d) {
+	inline void process_as(As&, DeferredData<T>& tag) {
 		discardNextName();
-		std::function<void()> deferment([this, d] {
+		std::function<void()> deferment([this, tag] {
 			auto& self = static_cast<ArchiveType&>(*this);
-			self.process_as(self, d.value);
+			self.process_as(self, tag.value);
 		});
 		addDeferment(std::move(deferment));
 	}
@@ -603,9 +584,9 @@ public:
 	// Once per object: a diamond reaches the same virtual base on every path. A skipped one writes
 	// nothing, not even its name
 	template <class As, class T>
-	inline void process_as(As& as, vide::virtual_base_class<T>& wrapper) {
-		if (registerVirtualBaseClass(detail::base_class_id(wrapper.base_ptr)))
-			as.process_as(as, *wrapper.base_ptr);
+	inline void process_as(As& as, VirtualBaseClass<T>& tag) {
+		if (registerVirtualBaseClass(detail::base_class_id(tag.base_ptr)))
+			as.process_as(as, *tag.base_ptr);
 		else
 			discardNextName();
 	}

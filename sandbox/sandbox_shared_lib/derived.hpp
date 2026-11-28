@@ -10,7 +10,7 @@ class Derived : public Base
     template <class Archive>
     void serialize(Archive & ar, const std::uint32_t)
     {
-      ar(vide::base_class<Base>(this));
+      ar.template base_class<Base>(this);
     }
 };
 

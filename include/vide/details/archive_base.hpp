@@ -96,7 +96,7 @@ public:
 	}
 
 public:
-	/// Serializes the data wrapped in DeferredData so far
+	/// Serializes every value deferred with defer() so far, including the ones deferred meanwhile
 	// Template and VIDE_NOINLINE solely for compile time
 	template <class = void>
 	VIDE_NOINLINE void serializeDeferments() {

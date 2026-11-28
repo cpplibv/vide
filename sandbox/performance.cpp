@@ -319,7 +319,8 @@ struct PoDChildCereal : virtual PoDStructCereal
   template <class Archive>
   void serialize( Archive & ar )
   {
-    ar( vide::virtual_base_class<PoDStructCereal>(this), v );
+    ar.template virtual_base_class<PoDStructCereal>(this);
+    ar( v );
   }
 };
 

@@ -30,7 +30,6 @@
 
 #pragma once
 
-#include <vide/binary_data.hpp>
 #include <vide/exception.hpp>
 #include <vide/types/std_string.hpp>
 #include <vide/serializer.hpp>
@@ -61,7 +60,7 @@ struct serializer<std::bitset<N>> {
 	static void serialize(Archive& ar, std::bitset<N>& bits, std::uint32_t) {
 		if constexpr (Archive::is_output) {
 			if constexpr (Archive::template supports_binary<std::uint32_t>) {
-				// when BinaryData optimization supported
+				// Binary archives: packed bits
 				ar.nvp("type", bitset_detail::type::bits);
 
 				// Serialize 8 bit chunks
@@ -87,7 +86,7 @@ struct serializer<std::bitset<N>> {
 				if (mask != 0x80)
 					ar(chunk);
 			} else {
-				// when BinaryData is not supported
+				// Text archives: the narrowest representation that holds the bits
 				try {
 					auto const b = bits.to_ulong();
 					ar.nvp("type", bitset_detail::type::ulong);
@@ -131,8 +130,7 @@ struct serializer<std::bitset<N>> {
 				break;
 			}
 			case bitset_detail::type::bits: {
-				// Normally we would use BinaryData to route this at compile time,
-				// but doing this at runtime doesn't break any old serialization
+				// Picked by the stored type at runtime, not by the archive at compile time: keeps old data loadable
 				std::uint8_t chunk = 0;
 				std::uint8_t mask = 0;
 

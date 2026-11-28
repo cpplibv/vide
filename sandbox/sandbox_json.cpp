@@ -56,7 +56,7 @@ private:
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(a));
+		ar.nvp("a", a);
 	}
 };
 
@@ -92,7 +92,7 @@ template <>
 struct vide::serializer<Test3> {
 	template <class Archive>
 	static void serialize(Archive& ar, Test3& t, std::uint32_t) {
-		ar(VIDE_NVP(t.a));
+		ar.nvp("a", t.a);
 	}
 };
 
@@ -108,7 +108,7 @@ template <>
 struct vide::serializer<test4::Test4> {
 	template <class Archive>
 	static void serialize(Archive& ar, test4::Test4& t, std::uint32_t) {
-		ar(VIDE_NVP(t.a));
+		ar.nvp("a", t.a);
 	}
 };
 
@@ -138,13 +138,13 @@ struct Everything {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(x));
-		ar(VIDE_NVP(y));
-		ar(VIDE_NVP(t1));
-		ar(VIDE_NVP(t2));
-		ar(VIDE_NVP(t3));
-		ar(VIDE_NVP(t4));
-		ar(VIDE_NVP(s));
+		ar.nvp("x", x);
+		ar.nvp("y", y);
+		ar.nvp("t1", t1);
+		ar.nvp("t2", t2);
+		ar.nvp("t3", t3);
+		ar.nvp("t4", t4);
+		ar.nvp("s", s);
 	}
 
 	bool operator==(Everything const& o) {
@@ -175,11 +175,11 @@ struct SubFixture {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(a));
+		ar.nvp("a", a);
 		ar(b);
 		ar(c);
-		ar(VIDE_NVP(d));
-		ar(VIDE_NVP(s));
+		ar.nvp("d", d);
+		ar.nvp("s", s);
 	}
 
 	void change() {
@@ -205,7 +205,7 @@ struct Fixture {
 	template <class Archive>
 	void save(Archive& ar) const {
 		ar(f1);
-		ar(VIDE_NVP(f2));
+		ar.nvp("f2", f2);
 		ar(f3);
 		ar.saveBinaryValue(array, sizeof(int) * 4, "cool array man");
 	}
@@ -213,7 +213,7 @@ struct Fixture {
 	template <class Archive>
 	void load(Archive& ar) {
 		ar(f1);
-		ar(VIDE_NVP(f2));
+		ar.nvp("f2", f2);
 		ar(f3);
 		ar.loadBinaryValue(array, sizeof(int) * 4);
 	}
@@ -234,8 +234,8 @@ struct AAA {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(one))(VIDE_NVP(two));
-		//ar( VIDE_NVP(three) );
+		ar.nvp("one", one).nvp("two", two);
+		//ar.nvp("three", three);
 	}
 };
 
@@ -261,7 +261,7 @@ private:
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(data));
+		ar.nvp("data", data);
 	}
 };
 
@@ -282,10 +282,10 @@ struct OOJson {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(c));
-		ar(VIDE_NVP(a));
+		ar.nvp("c", c);
+		ar.nvp("a", a);
 		ar(b);
-		ar(VIDE_NVP(d));
+		ar.nvp("d", d);
 	}
 };
 
@@ -303,7 +303,7 @@ int main() {
 		//oar( f2 );
 		Stuff s;
 		s.fillData();
-		oar(vide::make_nvp("best data ever", s));
+		oar.nvp("best data ever", s);
 	}
 
 	{
@@ -317,7 +317,7 @@ int main() {
 		vide::JSONOutputArchive archive(std::cout);
 		bool arr[] = {true, false};
 		std::vector<int> vec = {1, 2, 3, 4, 5};
-		archive(VIDE_NVP(vec));
+		archive.nvp("vec", vec);
 		archive(arr);
 		auto f = std::make_shared<Fixture>();
 		auto f2 = f;
@@ -332,45 +332,45 @@ int main() {
 		vide::JSONOutputArchive ar2(std::cout,
 				vide::JSONOutputArchive::Options(2, vide::JSONOutputArchive::Options::IndentChar::space, 2));
 
-		ar(vide::make_nvp("1", 1));
-		ar(vide::make_nvp("2", 2));
+		ar.nvp("1", 1);
+		ar.nvp("2", 2);
 		ar(3);
 		ar(0); // unused
-		ar(vide::make_nvp("4", 4));
-		ar(vide::make_nvp("5", 5));
+		ar.nvp("4", 4);
+		ar.nvp("5", 5);
 
 		int x = 33;
 		ar.saveBinaryValue(&x, sizeof(int), "bla");
 
-		ar2(vide::make_nvp("1", 1));
-		ar2(vide::make_nvp("2", 2));
+		ar2.nvp("1", 1);
+		ar2.nvp("2", 2);
 		ar2(3);
 		ar2(0); // unused
-		ar2(vide::make_nvp("4", 4));
-		ar2(vide::make_nvp("5", 5));
+		ar2.nvp("4", 4);
+		ar2.nvp("5", 5);
 		ar2.saveBinaryValue(&x, sizeof(int), "bla");
 
 		OOJson oo(1, 2, true, 4.2);
-		ar(VIDE_NVP(oo));
-		ar2(VIDE_NVP(oo));
+		ar.nvp("oo", oo);
+		ar2.nvp("oo", oo);
 
-		ar(vide::make_nvp("usingop()", oo))(6);
+		ar.nvp("usingop()", oo)(6);
 		ar(5)(4)(3);
 
-		ar2(vide::make_nvp("usingop()", oo))(6);
+		ar2.nvp("usingop()", oo)(6);
 		ar2(5)(4)(3);
 
 		long double ld = std::numeric_limits<long double>::max();
 		long long ll = std::numeric_limits<long long>::max();
 		unsigned long long ull = std::numeric_limits<unsigned long long>::max();
 
-		ar(VIDE_NVP(ld));
-		ar(VIDE_NVP(ll));
-		ar(VIDE_NVP(ull));
+		ar.nvp("ld", ld);
+		ar.nvp("ll", ll);
+		ar.nvp("ull", ull);
 
-		ar2(VIDE_NVP(ld));
-		ar2(VIDE_NVP(ll));
-		ar2(VIDE_NVP(ull));
+		ar2.nvp("ld", ld);
+		ar2.nvp("ll", ll);
+		ar2.nvp("ull", ull);
 	}
 
 	{
@@ -378,14 +378,14 @@ int main() {
 		int i1, i2, i3, i4, i5, x;
 
 		ar(i1);
-		ar(vide::make_nvp("2", i2))(i3);
-		ar(vide::make_nvp("4", i4))(i5);
+		ar.nvp("2", i2)(i3);
+		ar.nvp("4", i4)(i5);
 
 		ar.loadBinaryValue(&x, sizeof(int));
 
 		OOJson ii;
-		ar(vide::make_nvp("oo", ii));
-		ar(vide::make_nvp("2", i2));
+		ar.nvp("oo", ii);
+		ar.nvp("2", i2);
 
 		std::cout << i1 << " " << i2 << " " << i3 << " " << i4 << " " << i5 << std::endl;
 		std::cout << x << std::endl;
@@ -395,7 +395,7 @@ int main() {
 		std::cout << std::endl;
 
 		OOJson oo;
-		ar(vide::make_nvp("usingop()", oo));
+		ar.nvp("usingop()", oo);
 		std::cout << oo.a << " " << oo.b << " " << oo.c.first << " " << oo.c.second << " ";
 		for (auto z : oo.d)
 			std::cout << z << " ";
@@ -408,9 +408,9 @@ int main() {
 		long long ll;
 		unsigned long long ull;
 
-		ar(VIDE_NVP(ld));
-		ar(VIDE_NVP(ll));
-		ar(VIDE_NVP(ull));
+		ar.nvp("ld", ld);
+		ar.nvp("ll", ll);
+		ar.nvp("ull", ull);
 
 		std::cout << (ld == std::numeric_limits<long double>::max()) << std::endl;
 		std::cout << (ll == std::numeric_limits<long long>::max()) << std::endl;

@@ -3,13 +3,19 @@
 #pragma once
 
 #include <vide/base_class.hpp>
+#include <vide/binary_data.hpp>
+#include <vide/binary_serializable_type.hpp>
+#include <vide/deferred_data.hpp>
 #include <vide/details/validation.hpp>
-#include <vide/details/value_if_nvp.hpp>
 #include <vide/exception.hpp>
-#include <vide/nvp.hpp>
+#include <vide/size_tag.hpp>
 #include <vide/traits/underlying_archive.hpp>
 
+#include <cstddef>
 #include <cstdint>
+#include <string>
+#include <string_view>
+#include <type_traits>
 #include <utility>
 
 
@@ -17,10 +23,11 @@ namespace vide {
 
 // -------------------------------------------------------------------------------------------------
 
+/// Base of proxy archives, forwards everything to Ar. CRTP, the derived proxy, intercepts values and tags with
+/// process_as overloads of its own; serializers see CRTP as their archive
 template <typename CRTP, typename Ar>
 struct ProxyArchive {
 public:
-	static constexpr bool ignores_nvp = Ar::ignores_nvp;
 	static constexpr bool enforce_validation = Ar::enforce_validation;
 	static constexpr bool is_proxy = true;
 	static constexpr bool is_output = Ar::is_output;
@@ -63,14 +70,13 @@ public:
 	inline CRTP& operator()(T&& var, const Validators&... validators) {
 		auto& as = static_cast<CRTP&>(*this);
 		if constexpr (CRTP::enforce_validation && is_output)
-			(validators(value_if_nvp(var)), ...); // Output archive check before save
+			(validators(var), ...); // Output archive check before save
 		as.process_as(as, var);
 		if constexpr (CRTP::enforce_validation && is_input)
-			(validators(value_if_nvp(var)), ...); // Input archive check after load
+			(validators(var), ...); // Input archive check after load
 		return as;
 	}
 
-	// Sets the name directly instead of a NameValuePair round trip through operator()
 	template <typename T, typename... Validators>
 	inline CRTP& nvp(const char* name, T&& var, const Validators&... validators) {
 		auto& as = static_cast<CRTP&>(*this);
@@ -86,16 +92,40 @@ public:
 	template <typename Base, typename Derived>
 	inline CRTP& base_class(const Derived* derivedThis) {
 		auto& as = static_cast<CRTP&>(*this);
-		vide::base_class<Base> wrapper(derivedThis);
-		as.process_as(as, wrapper);
+		BaseClass<Base> tag(derivedThis);
+		as.process_as(as, tag);
 		return as;
 	}
 
 	template <typename Base, typename Derived>
 	inline CRTP& virtual_base_class(const Derived* derivedThis) {
 		auto& as = static_cast<CRTP&>(*this);
-		vide::virtual_base_class<Base> wrapper(derivedThis);
-		as.process_as(as, wrapper);
+		VirtualBaseClass<Base> tag(derivedThis);
+		as.process_as(as, tag);
+		return as;
+	}
+
+	template <typename T>
+	inline CRTP& defer(T&& var) requires (is_output || std::is_lvalue_reference_v<T>) {
+		auto& as = static_cast<CRTP&>(*this);
+		DeferredData<T> tag{std::forward<T>(var)};
+		as.process_as(as, tag);
+		return as;
+	}
+
+	template <binary_serializable_type T>
+	inline CRTP& binary_data(const T* data, std::size_t size) requires (is_output && is_binary_archive) {
+		auto& as = static_cast<CRTP&>(*this);
+		BinaryData<sizeof(T)> tag{const_cast<T*>(data), size};
+		as.process_as(as, tag);
+		return as;
+	}
+
+	template <binary_serializable_type T>
+	inline CRTP& binary_data(T* data, std::size_t size) requires (is_input && is_binary_archive && !std::is_const_v<T>) {
+		auto& as = static_cast<CRTP&>(*this);
+		BinaryData<sizeof(T)> tag{data, size};
+		as.process_as(as, tag);
 		return as;
 	}
 
@@ -125,20 +155,21 @@ public:
 		return var;
 	}
 
-	inline CRTP& size_tag(uint32_t size) requires is_output {
-		ar.size_tag(size);
-		return static_cast<CRTP&>(*this);
-	}
-	inline CRTP& size_tag(uint64_t size) requires is_output {
-		ar.size_tag(size);
-		return static_cast<CRTP&>(*this);
+	inline CRTP& size_tag(std::uint64_t size) requires is_output {
+		auto& as = static_cast<CRTP&>(*this);
+		as.process_as(as, SizeTag<size_type>{detail::checked_size<size_type>(size)});
+		return as;
 	}
 	inline CRTP& size_tag(size_type& size) requires is_input {
-		ar.size_tag(size);
-		return static_cast<CRTP&>(*this);
+		auto& as = static_cast<CRTP&>(*this);
+		SizeTag<size_type&> tag{size};
+		as.process_as(as, tag);
+		return as;
 	}
-	inline size_type size_tag() requires is_input {
-		return ar.size_tag();
+	[[nodiscard]] inline size_type size_tag() requires is_input {
+		size_type size{};
+		size_tag(size);
+		return size;
 	}
 
 	template <typename T>

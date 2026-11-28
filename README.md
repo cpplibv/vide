@@ -189,7 +189,73 @@ The version is stored once per type per archive. `serialize_class_version` can a
 | `ar.template virtual_base_class<B>(this)` | Serialize a virtual base class, once per object |
 | `ar.template load<T>()`, `ar.template nvp_load<T>(name)` | Load and return a value; input archives only |
 | `ar.template ignore<T>()`, `ar.template nvp_ignore<T>(name)` | Load and discard a value; no-op when saving |
+| `ar.defer(value)`, `ar.serializeDeferments()` | Serialize a value later, see [Deferred serialization](#deferred-serialization) |
+| `ar.size_tag(n)`, `ar.size_tag()` | Serialize the size of a container, see [Container serializers](#container-serializers) |
+| `ar.binary_data(data, n)` | Serialize `n` elements as one block of raw memory; binary archives only |
 | `Archive::is_input`, `Archive::is_output` | Direction, for `if constexpr` |
+| `Archive::is_text_archive`, `Archive::is_binary_archive` | Format: named nodes (JSON, XML) or raw bytes without names |
+
+### Container serializers
+
+```cpp
+template <class T>
+struct vide::serializer<Ring<T>> {
+	template <class Archive>
+	static void serialize(Archive& ar, Ring<T>& ring, std::uint32_t) {
+		if constexpr (Archive::is_output) {
+			ar.size_tag(ring.size());
+			for (const T& element : ring)
+				ar(element);
+		} else {
+			const auto size = ar.size_tag(); // Untrusted
+			ring.clear();
+			ring.reserve(ar.template safe_to_reserve<T>(size));
+			for (std::size_t i = 0; i < size; ++i)
+				ar(ring.emplace_back());
+		}
+	}
+};
+```
+
+- `ar.size_tag(n)` comes before the elements. Binary archives store it; JSON and XML write an array instead
+  and count its children on load, so hand edited data stays loadable. A size beyond `VIDE_SIZE_TYPE` throws
+- The loaded size comes from the input, so it is not trusted: `ar.template safe_to_reserve<T>(size)` is how
+  many elements to reserve up front. It draws on one budget per archive, `VIDE_RESERVE_MEMORY_BUDGET_MULTIPLIER`
+  times the input size; past it the container grows one loaded element at a time
+- Contiguous plain values can skip the per element calls on binary archives:
+
+```cpp
+if constexpr (Archive::template supports_binary<T>) {
+	ar.template validate_read_size<T>(size); // Throws unless the rest of the input holds size elements
+	buffer.resize(size);
+	ar.binary_data(buffer.data(), size);
+}
+```
+
+`supports_binary<T>` holds on binary archives for arithmetic types except `bool` (a loaded `bool` is checked
+to be `0` or `1`) and for enums with no domain or an unbounded one. Portable binary swaps the bytes of each
+element as needed.
+
+### Deferred serialization
+
+Every pointer in a chain adds a level of recursion, so a long linked structure can overflow the stack.
+`ar.defer(value)` postpones a value to the next `ar.serializeDeferments()`:
+
+```cpp
+struct Node {
+	std::vector<std::shared_ptr<Node>> edges;
+
+	template <class Archive> void serialize(Archive& ar) {
+		ar.defer(edges); // Not from inside this node: from serializeDeferments(), one node at a time
+	}
+};
+
+ar.nvp("nodes", nodes);
+ar.serializeDeferments();
+```
+
+Deferred values are stored without a name, in the order they were deferred; save and load have to call
+`serializeDeferments()` at the same point.
 
 ## Archives
 
@@ -307,6 +373,19 @@ proxy.nvp("login", login); // Every Password is written as "***"
 
 Polymorphic serialization falls back to the underlying archive. A proxy can opt out of validation with
 `static constexpr bool enforce_validation = false;`.
+
+Besides values, `process_as` also sees the tags created by the archive API, so these can be intercepted too:
+
+| Tag | Created by | Members |
+|---|---|---|
+| `vide::BaseClass<B>`, `vide::VirtualBaseClass<B>` | `ar.base_class<B>(this)`, `ar.virtual_base_class<B>(this)` | `base_ptr` |
+| `vide::DeferredData<T>` | `ar.defer(value)` | `value` |
+| `vide::SizeTag<S>` | `ar.size_tag(n)` | `size` |
+| `vide::BinaryData<N>` | `ar.binary_data(data, n)` | `data` (`void*`), `size` in elements of `N` bytes |
+| `vide::MapItem<K, V>` | map serializers, one per entry | `key`, `value` |
+
+`T`, `S`, `K` and `V` are const or references as the direction needs: `SizeTag<size_type>` when saving,
+`SizeTag<size_type&>` when loading. Custom archives handle the same tags: JSON turns a `SizeTag` into an array.
 
 ## Reflection
 
@@ -427,7 +506,8 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 1. Rename: `cereal` namespace, `<cereal/...>` includes and `CEREAL_*` macros become `vide`, `<vide/...>` and `VIDE_*`.
    Std type headers gained an `std_` prefix: `types/vector.hpp` -> `types/std_vector.hpp`.
 2. Free `serialize` / `save` / `load` functions become `vide::serializer<T>` specializations.
-3. `ar(a, b, c)` becomes `ar(a)(b)(c)`; `CEREAL_NVP(x)` becomes `ar.nvp("x", x)`.
+3. `ar(a, b, c)` becomes `ar(a)(b)(c)`; `CEREAL_NVP(x)` and `cereal::make_nvp("x", x)` become `ar.nvp("x", x)`.
+   `cereal::base_class<B>(this)` becomes `ar.template base_class<B>(this)`, `cereal::defer(x)` becomes `ar.defer(x)`.
 4. `CEREAL_CLASS_VERSION(T, n)` becomes `static constexpr std::uint32_t serialize_class_version = n;`.
 5. `load_and_construct` is gone; types are default constructed (`vide::access` can reach private constructors).
 6. Data written by cereal cannot be read by vide.
@@ -438,6 +518,10 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - `VIDE_CLASS_VERSION` becomes `serialize_class_version`; versioned serializers without one no longer store a version, so their data has to be re-saved
 - Code using polymorphic pointers or `VIDE_REGISTER_TYPE` includes `vide/types/polymorphic.hpp` explicitly
 - Custom text archives provide public `setNextName`, `startNode` and `finishNode`
+- `ar(vide::make_nvp("x", x))` and `ar(VIDE_NVP(x))` become `ar.nvp("x", x)`
+- `ar(vide::base_class<B>(this))` becomes `ar.template base_class<B>(this)`, the same for `virtual_base_class`
+- `ar(vide::defer(x))` becomes `ar.defer(x)`; `ar(vide::binary_data(p, n * sizeof(T)))` becomes `ar.binary_data(p, n)`
+- Archives drop the `IgnoreNVP` flag, proxy archives the `ignores_nvp` trait; `is_binary_archive` replaces it
 
 ## Roadmap
 
@@ -463,6 +547,14 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - Breaking: Remove the `THREAD_SAFE` option
 - Breaking: Every header requires static reflection (`-freflection`), not only `types/reflection.hpp`
 - Breaking: Enum value sets are called enum domains; `VIDE_STRICT_ENUM_VALUE_SET` is renamed to `VIDE_STRICT_ENUM_DOMAIN`
+- Breaking: Remove `vide::NameValuePair`, `vide::make_nvp`, `VIDE_NVP` and `vide/nvp.hpp`; `ar.nvp("name", value)` names values
+- Breaking: Remove the `IgnoreNVP` archive flag and the `ignores_nvp` archive trait
+- Breaking: Remove `vide::defer`, `vide::binary_data`, `vide::make_size_tag` and `vide::make_map_item`; `ar.defer(value)` and `ar.binary_data(data, size)` replace the first two
+- Breaking: Rename `vide::base_class` and `vide::virtual_base_class` to `vide::BaseClass` and `vide::VirtualBaseClass`; `ar.base_class<B>(this)` and `ar.virtual_base_class<B>(this)` are unchanged
+- Breaking: `vide::BinaryData` is templated on the element size instead of the pointer type and holds an element count instead of a byte count
+- Breaking fix: Portable binary keeps the element order of C arrays saved in the non-native byte order; v3 stored them reversed, so such data loads reversed
+- Add: `ar.defer(value)` and `ar.binary_data(data, size)`
+- Improve: Proxy archives can intercept container sizes (`vide::SizeTag`)
 - Add: `static constexpr bool minimal = true` for `vide::serializer<T>` specializations
 - Add: boost `flat_multiset` serializer
 - Improve: Faster compilation of serializer lookup and polymorphic registration
@@ -472,6 +564,7 @@ Relevant upstream fixes are ported by hand; synced with cereal up to `22a1b369` 
 - Improve: Compile errors name the types involved for clashing member serializers, clashing or (strict mode) missing enum domains, raw pointers and smart pointers over `VIDE_SMART_PTR_MAX_SIZE`
 - Add: `VIDE_DIAGNOSTIC_COLORS=1` colors the type names in compile errors
 - Fix: `ar.ranged()` is available on output archives
+- Fix: Saving a container with more elements than `VIDE_SIZE_TYPE` holds throws instead of storing a truncated size
 - Fix: Possible hash collision between registered class versions
 - Fix: `long long` and `unsigned long long` JSON deserialization on Linux
 - Fix: Linux build

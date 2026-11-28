@@ -7,6 +7,7 @@
 #include <vide/types/std_vector.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <sstream>
 #include <string>
@@ -120,6 +121,81 @@ struct ReversingProxy : vide::ProxyArchive<ReversingProxy<Ar>, Ar> {
 	}
 };
 
+struct TaggedBase {
+	int b = 3;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar.nvp("b", b);
+	}
+};
+
+struct TaggedVirtualBase {
+	int v = 4;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar.nvp("v", v);
+	}
+};
+
+struct Tagged : TaggedBase, virtual TaggedVirtualBase {
+	std::vector<int> values{1, 2, 3};
+	int later = 5;
+
+	template <class Archive>
+	void serialize(Archive& ar) {
+		ar.template base_class<TaggedBase>(this);
+		ar.template virtual_base_class<TaggedVirtualBase>(this);
+		ar.nvp("values", values); // size_tag() and binary_data()
+		ar.defer(later);
+	}
+};
+
+/// Counts the tags passing through process_as, the archive still handles them
+template <typename Ar>
+struct TagCountingProxy : vide::ProxyArchive<TagCountingProxy<Ar>, Ar> {
+	using Base = vide::ProxyArchive<TagCountingProxy<Ar>, Ar>;
+	using Base::Base;
+	using Base::process_as;
+
+	int base_classes = 0;
+	int virtual_base_classes = 0;
+	int size_tags = 0;
+	int binary_blocks = 0;
+	int deferred = 0;
+
+	template <class As, class T>
+	void process_as(As& as, const vide::BaseClass<T>& tag) {
+		++base_classes;
+		Base::process_as(as, tag);
+	}
+
+	template <class As, class T>
+	void process_as(As& as, const vide::VirtualBaseClass<T>& tag) {
+		++virtual_base_classes;
+		Base::process_as(as, tag);
+	}
+
+	template <class As, class T>
+	void process_as(As& as, const vide::SizeTag<T>& tag) {
+		++size_tags;
+		Base::process_as(as, tag);
+	}
+
+	template <class As, std::size_t ElementSize>
+	void process_as(As& as, const vide::BinaryData<ElementSize>& tag) {
+		++binary_blocks;
+		Base::process_as(as, tag);
+	}
+
+	template <class As, class T>
+	void process_as(As& as, const vide::DeferredData<T>& tag) {
+		++deferred;
+		Base::process_as(as, tag);
+	}
+};
+
 } // namespace -------------------------------------------------------------------------------------
 
 TEST_CASE("output interception") {
@@ -220,4 +296,37 @@ TEST_CASE("input interception") {
 	CHECK_EQ(plain.password.text, "2retnuh"); // Stored reversed
 	CHECK_EQ(undone.password.text, "hunter2");
 	CHECK_EQ(undone.user, "vader");
+}
+
+TEST_CASE("tags pass through the proxy") {
+	Tagged tagged;
+	tagged.b = 30;
+	tagged.v = 40;
+	tagged.values = {10, 20};
+	tagged.later = 50;
+
+	std::stringstream ss;
+	{
+		vide::BinaryOutputArchive ar(ss);
+		TagCountingProxy<vide::BinaryOutputArchive> proxy(ar);
+		proxy(tagged);
+		proxy.serializeDeferments();
+
+		CHECK_EQ(proxy.base_classes, 1);
+		CHECK_EQ(proxy.virtual_base_classes, 1);
+		CHECK_EQ(proxy.size_tags, 1);
+		CHECK_EQ(proxy.binary_blocks, 1);
+		CHECK_EQ(proxy.deferred, 1);
+	}
+	Tagged loaded;
+	{
+		vide::BinaryInputArchive ar(ss);
+		ar(loaded);
+		ar.serializeDeferments();
+	}
+
+	CHECK_EQ(loaded.b, 30);
+	CHECK_EQ(loaded.v, 40);
+	CHECK_EQ(loaded.values, std::vector{10, 20});
+	CHECK_EQ(loaded.later, 50);
 }

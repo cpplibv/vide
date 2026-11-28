@@ -3,6 +3,7 @@
 #include <vide/archives/json.hpp>
 #include <vide/archives/xml.hpp>
 #include <vide/base_class.hpp>
+#include <vide/deferred_data.hpp>
 #include <vide/types/std_string.hpp>
 
 #include <algorithm>
@@ -32,7 +33,7 @@ struct Left : virtual Base {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(vide::make_nvp("base", vide::virtual_base_class<Base>(this)));
+		ar.nvp("base", vide::VirtualBaseClass<Base>(this));
 		ar.nvp("l", l);
 	}
 };
@@ -43,7 +44,7 @@ struct Right : virtual Base {
 	template <class Archive>
 	void serialize(Archive& ar) {
 		// Skipped: Left already wrote Base
-		ar.nvp("base", vide::virtual_base_class<Base>(this));
+		ar.nvp("base", vide::VirtualBaseClass<Base>(this));
 		ar(r);
 	}
 };
@@ -62,7 +63,7 @@ struct Deferring {
 
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(vide::make_nvp("x", vide::defer(x)));
+		ar.nvp("x", vide::DeferredData<int&>{x});
 		ar(y);
 	}
 };

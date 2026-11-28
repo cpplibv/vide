@@ -27,7 +27,6 @@
 
 #include <vide/archives/binary.hpp>
 #include <vide/archives/portable_binary.hpp>
-#include <vide/binary_data.hpp>
 #include <vide/details/util.hpp>
 
 #include <bit>
@@ -108,17 +107,40 @@ TEST_CASE("portable binary byte order options") {
 				std::ostringstream os;
 				{
 					vide::PortableBinaryOutputArchive ar(os, output_options);
-					ar(vide::binary_data(elements.data(), elements.size() * sizeof(std::int32_t)));
+					ar.binary_data(elements.data(), elements.size());
 				}
 				std::vector<std::int32_t> loaded(elements.size());
 				std::istringstream is(os.str());
 				{
 					vide::PortableBinaryInputArchive ar(is, input_options);
-					ar(vide::binary_data(loaded.data(), loaded.size() * sizeof(std::int32_t)));
+					ar.binary_data(loaded.data(), loaded.size());
 				}
 
 				for (std::size_t i = 0; i < elements.size(); ++i)
 					CHECK_EQ(loaded[i], swapped ? byte_swapped(elements[i]) : elements[i]);
+			}
+
+			SUBCASE("C arrays swap per innermost element") {
+				std::int32_t elements[2][3];
+				for (auto& row : elements)
+					for (auto& element : row)
+						element = random_value<std::int32_t>(gen);
+
+				std::ostringstream os;
+				{
+					vide::PortableBinaryOutputArchive ar(os, output_options);
+					ar(elements);
+				}
+				std::int32_t loaded[2][3]{};
+				std::istringstream is(os.str());
+				{
+					vide::PortableBinaryInputArchive ar(is, input_options);
+					ar(loaded);
+				}
+
+				for (std::size_t i = 0; i < 2; ++i)
+					for (std::size_t j = 0; j < 3; ++j)
+						CHECK_EQ(loaded[i][j], swapped ? byte_swapped(elements[i][j]) : elements[i][j]);
 			}
 		}
 	}

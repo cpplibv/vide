@@ -14,7 +14,7 @@ inline void implementation_map_save(Archive& ar, const Map& map) {
 	ar.size_tag(map.size());
 
 	for (const auto& i : map)
-		ar(make_map_item(i.first, i.second));
+		ar(MapItem{i.first, i.second});
 }
 
 template <typename Archive, typename Map>
@@ -32,7 +32,7 @@ inline void implementation_map_load(Archive& ar, Map& map) {
 		typename Map::key_type key;
 		typename Map::mapped_type value;
 
-		ar(make_map_item(key, value));
+		ar(MapItem{key, value});
 		// Hint at the end is mandatory to preserve the insertion order for multiset
 		map.emplace_hint(map.end(), std::move(key), std::move(value));
 	}

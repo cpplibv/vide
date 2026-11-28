@@ -1,10 +1,11 @@
 #pragma once
 
-#include <vide/macros.hpp>
 #include <vide/serializer.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <forward_list>
+#include <iterator>
 #include <ranges>
 
 
@@ -18,7 +19,7 @@ struct serializer<std::forward_list<T, A>> {
 			// write the size - note that this is slow because we need to traverse
 			// the entire list. there are ways we could avoid this but this was chosen
 			// since it works in the most general fashion with any archive type
-			ar.size_tag(static_cast<VIDE_SIZE_TYPE>(std::distance(forward_list.begin(), forward_list.end())));
+			ar.size_tag(static_cast<std::size_t>(std::distance(forward_list.begin(), forward_list.end())));
 
 			// write the list
 			for (const auto& i : forward_list)

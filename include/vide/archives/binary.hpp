@@ -25,7 +25,7 @@ namespace vide {
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, IgnoreNVP | BinaryArchive> {
+class BinaryOutputArchive : public OutputArchive<BinaryOutputArchive, BinaryArchive> {
 private:
 	std::ostream& itsStream;
 
@@ -52,11 +52,6 @@ public:
 	using OutputArchive::process_as;
 
 	template <class As, typename T>
-	inline void process_as(As& as, const NameValuePair<T>& t) {
-		as.process_as(as, t.value);
-	}
-
-	template <class As, typename T>
 	inline void process_as(As& as, const SizeTag<T>& t) {
 		as.process_as(as, t.size);
 	}
@@ -76,9 +71,9 @@ public:
 		saveBinary(std::addressof(t), sizeof(t));
 	}
 
-	template <class As, class T>
-	inline void process_as(As&, const BinaryData<T>& t) {
-		saveBinary(t.data, static_cast<std::streamsize>(t.size));
+	template <class As, std::size_t ElementSize>
+	inline void process_as(As&, const BinaryData<ElementSize>& t) {
+		saveBinary(t.data, static_cast<std::streamsize>(t.size * ElementSize));
 	}
 };
 
@@ -94,7 +89,7 @@ public:
 	inadvertently.
 
 	\ingroup Archives */
-class BinaryInputArchive : public InputArchive<BinaryInputArchive, IgnoreNVP | BinaryArchive> {
+class BinaryInputArchive : public InputArchive<BinaryInputArchive, BinaryArchive> {
 private:
 	std::istream::pos_type end;
 	std::istream& itsStream;
@@ -125,6 +120,7 @@ public:
 			throw Exception("Failed to read " + std::to_string(size) + " bytes from input stream. Read " + std::to_string(readSize));
 	}
 
+	/// Bytes left unread in the input, see validate_read_size()
 	[[nodiscard]] inline std::size_t maximumBinaryReadSize() const {
 		const auto pos = itsStream.tellg();
 		return end - pos;
@@ -133,11 +129,6 @@ public:
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
 	using InputArchive::process_as;
-
-	template <class As, typename T>
-	inline void process_as(As& as, NameValuePair<T>& t) {
-		as.process_as(as, t.value);
-	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, SizeTag<T>& t) {
@@ -161,9 +152,9 @@ public:
 		loadBinary(std::addressof(t), sizeof(t));
 	}
 
-	template <class As, class T>
-	inline void process_as(As&, BinaryData<T>& t) {
-		loadBinary(t.data, static_cast<std::streamsize>(t.size));
+	template <class As, std::size_t ElementSize>
+	inline void process_as(As&, BinaryData<ElementSize>& t) {
+		loadBinary(t.data, static_cast<std::streamsize>(t.size * ElementSize));
 	}
 };
 

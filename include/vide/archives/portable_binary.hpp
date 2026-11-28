@@ -60,6 +60,10 @@ inline void swap_bytes(std::uint8_t* data) {
 }
 } // end namespace portable_binary_detail
 
+// binary_data() only knows the element size, not whether it is floating point
+static_assert(std::numeric_limits<float>::is_iec559 && std::numeric_limits<double>::is_iec559,
+		"Portable binary only supports IEEE 754 standardized floating point");
+
 // =================================================================================================
 
 //! An output archive designed to save data in a compact binary representation portable over different architectures
@@ -80,7 +84,7 @@ inline void swap_bytes(std::uint8_t* data) {
 
   \ingroup Archives */
 class PortableBinaryOutputArchive :
-		public OutputArchive<PortableBinaryOutputArchive, IgnoreNVP | BinaryArchive> {
+		public OutputArchive<PortableBinaryOutputArchive, BinaryArchive> {
 
 private:
 	std::ostream& itsStream;
@@ -152,11 +156,6 @@ public:
 	using OutputArchive::process_as;
 
 	template <class As, typename T>
-	inline void process_as(As& as, const NameValuePair<T>& t) {
-		as.process_as(as, t.value);
-	}
-
-	template <class As, typename T>
 	inline void process_as(As& as, const SizeTag<T>& t) {
 		as.process_as(as, t.size);
 	}
@@ -179,14 +178,9 @@ public:
 		saveBinary<sizeof(T)>(std::addressof(t), sizeof(t));
 	}
 
-	template <class As, class T>
-	inline void process_as(As&, const BinaryData<T>& t) {
-		using TT = std::remove_pointer_t<T>;
-
-		static_assert(!std::is_floating_point_v<TT> || std::numeric_limits<TT>::is_iec559,
-				"Portable binary only supports IEEE 754 standardized floating point");
-
-		saveBinary<sizeof(TT)>(t.data, static_cast<std::streamsize>(t.size));
+	template <class As, std::size_t ElementSize>
+	inline void process_as(As&, const BinaryData<ElementSize>& t) {
+		saveBinary<ElementSize>(t.data, static_cast<std::streamsize>(t.size * ElementSize));
 	}
 };
 
@@ -217,7 +211,7 @@ public:
 			 <a href="www.github.com/USCiLab/cereal">the project github</a>.
 
   \ingroup Archives */
-class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, IgnoreNVP | BinaryArchive> {
+class PortableBinaryInputArchive : public InputArchive<PortableBinaryInputArchive, BinaryArchive> {
 private:
 	std::istream::pos_type end;
 	std::istream& itsStream;
@@ -301,6 +295,7 @@ public:
 		}
 	}
 
+	/// Bytes left unread in the input, see validate_read_size()
 	[[nodiscard]] inline std::size_t maximumBinaryReadSize() const {
 		const auto pos = itsStream.tellg();
 		return end - pos;
@@ -309,11 +304,6 @@ public:
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
 	using InputArchive::process_as;
-
-	template <class As, typename T>
-	inline void process_as(As& as, NameValuePair<T>& t) {
-		as.process_as(as, t.value);
-	}
 
 	template <class As, typename T>
 	inline void process_as(As& as, SizeTag<T>& t) {
@@ -340,14 +330,9 @@ public:
 		loadBinary<sizeof(T)>(std::addressof(t), sizeof(t));
 	}
 
-	template <class As, class T>
-	inline void process_as(As&, BinaryData<T>& t) {
-		using TT = std::remove_pointer_t<T>;
-
-		static_assert(!std::is_floating_point_v<TT> || std::numeric_limits<TT>::is_iec559,
-				"Portable binary only supports IEEE 754 standardized floating point");
-
-		loadBinary<sizeof(TT)>(t.data, static_cast<std::streamsize>(t.size));
+	template <class As, std::size_t ElementSize>
+	inline void process_as(As&, BinaryData<ElementSize>& t) {
+		loadBinary<ElementSize>(t.data, static_cast<std::streamsize>(t.size * ElementSize));
 	}
 };
 

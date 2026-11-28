@@ -76,8 +76,6 @@
     (e.g. 32 vs 64 bit), which may use different underlying types for
     std::size_t.
 
-    More information can be found in vide/details/helpers.hpp.
-
     If you choose to modify this type, ensure that you use a fixed
     size type (e.g. uint32_t). */
 #define VIDE_SIZE_TYPE std::uint32_t

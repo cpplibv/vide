@@ -90,11 +90,11 @@ struct DeferNode {
 	void serialize(Archive& ar) {
 		ar(id);
 		ar(w);
-		ar(vide::defer(iser));
-		ar(vide::defer(ispl));
-		ar(vide::defer(eser));
-		ar(vide::defer(espl));
-		ar(vide::defer(relations));
+		ar.defer(iser);
+		ar.defer(ispl);
+		ar.defer(eser);
+		ar.defer(espl);
+		ar.defer(relations);
 		ar(z);
 	}
 

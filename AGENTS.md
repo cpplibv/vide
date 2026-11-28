@@ -9,6 +9,9 @@ serialized output are breaking changes.
 
 - `include/vide/` - the library; everything is a header
   - `vide.hpp` - core: `InputArchive` / `OutputArchive`, dispatch to `vide::serializer<T>`
+  - `base_class.hpp`, `binary_data.hpp`, `deferred_data.hpp`, `map_item.hpp`, `size_tag.hpp` - tag types, the
+    `process_as` side of the archive API (`ar.base_class<B>(this)` -> `BaseClass<B>`, `ar.size_tag(n)` -> `SizeTag`);
+    plain aggregates, created only by the archives and serializers, so proxies and archives can intercept them
   - `serializer.hpp` - `vide::serializer<T>`, the only serialization entry point: specializations for non-intrusive
     types, the primary template forwards to the member shapes (`serialize`, `save`/`load`, `*_minimal`, each optionally
     versioned). No free-function serializers, no ADL lookup

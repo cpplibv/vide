@@ -65,14 +65,14 @@ struct MyType : public Base {
 	template <class Archive>
 	void save(Archive& ar) const {
 		std::cout << "Saving MyType" << std::endl;
-		ar(vide::virtual_base_class<Base>(this));
+		ar.template virtual_base_class<Base>(this);
 		ar(x);
 	}
 
 	template <class Archive>
 	void load(Archive& ar) {
 		std::cout << "Loading MyType" << std::endl;
-		ar(vide::base_class<Base>(this));
+		ar.template base_class<Base>(this);
 		ar(x);
 	}
 };
@@ -164,18 +164,18 @@ struct DerivedVirtual : public virtual BaseVirtual {
 
 	// template <class Archive>
 	// void save(Archive& ar) const {
-	// 	ar(vide::virtual_base_class<BaseVirtual>(this));
+	// 	ar.template virtual_base_class<BaseVirtual>(this);
 	// 	ar(y);
 	// }
 	//
 	// template <class Archive>
 	// void load(Archive& ar) {
-	// 	ar(vide::virtual_base_class<BaseVirtual>(this));
+	// 	ar.template virtual_base_class<BaseVirtual>(this);
 	// 	ar(y);
 	// }
 	template <class Archive>
 	void serialize(Archive& ar) {
-		ar(vide::virtual_base_class<BaseVirtual>(this));
+		ar.template virtual_base_class<BaseVirtual>(this);
 		ar(y);
 	}
 };

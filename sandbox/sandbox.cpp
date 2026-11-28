@@ -86,7 +86,7 @@ public:
 
 	template<class Archive>
 	void serialize(Archive& ar) {
-		ar(vide::virtual_base_class <Base>(this));
+		ar.template virtual_base_class<Base>(this);
 		std::cout << "Derived serialize" << std::endl;
 		ar(y);
 	}
@@ -96,7 +96,7 @@ public:
 	// template <class Archive>
 	// void save( Archive & ar ) const
 	// {
-	//   ar( vide::virtual_base_class<Base>(this) );
+	//   ar.template virtual_base_class<Base>(this);
 	//   std::cout << "Derived save" << std::endl;
 	//   ar( y );
 	// }
@@ -104,7 +104,7 @@ public:
 	// template <class Archive>
 	// void load( Archive & ar )
 	// {
-	//   ar( vide::virtual_base_class<Base>(this) );
+	//   ar.template virtual_base_class<Base>(this);
 	//   std::cout << "Derived load" << std::endl;
 	//   ar( y );
 	// }
@@ -131,7 +131,7 @@ private:
 
 	template<class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(a));
+		ar.nvp("a", a);
 	}
 };
 
@@ -169,7 +169,7 @@ template <>
 struct vide::serializer<Test3> {
 	template<class Archive>
 	static void serialize(Archive& ar, Test3& t, std::uint32_t) {
-		ar(VIDE_NVP(t.a));
+		ar.nvp("t.a", t.a);
 	}
 };
 
@@ -185,7 +185,7 @@ template <>
 struct vide::serializer<test4::Test4> {
 	template<class Archive>
 	static void serialize(Archive& ar, test4::Test4& t, std::uint32_t) {
-		ar(VIDE_NVP(t.a));
+		ar.nvp("t.a", t.a);
 	}
 };
 
@@ -218,15 +218,15 @@ struct Everything {
 
 	template<class Archive>
 	void serialize(Archive& ar) {
-		ar(VIDE_NVP(x));
-		ar(VIDE_NVP(y));
-		ar(VIDE_NVP(t1));
-		ar(VIDE_NVP(t2));
-		ar(VIDE_NVP(t3));
-		ar(VIDE_NVP(t4));
-		ar(VIDE_NVP(time_point));
-		ar(VIDE_NVP(time_dur));
-		ar(VIDE_NVP(s));
+		ar.nvp("x", x);
+		ar.nvp("y", y);
+		ar.nvp("t1", t1);
+		ar.nvp("t2", t2);
+		ar.nvp("t3", t3);
+		ar.nvp("t4", t4);
+		ar.nvp("time_point", time_point);
+		ar.nvp("time_dur", time_dur);
+		ar.nvp("s", s);
 	}
 
 	bool operator==(const Everything& o) const {
@@ -284,16 +284,16 @@ struct unordered_naming {
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(VIDE_NVP(x),
-			VIDE_NVP(z),
-			VIDE_NVP(y));
+		ar.nvp("x", x);
+		ar.nvp("z", z);
+		ar.nvp("y", y);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(x,
-			VIDE_NVP(y),
-			VIDE_NVP(z));
+		ar(x);
+		ar.nvp("y", y);
+		ar.nvp("z", z);
 	}
 
 	bool operator==(unordered_naming const& other) const {
@@ -338,13 +338,13 @@ void test_unordered_loads() {
 			std::ofstream os("test.xml");
 			OArchive oar(os);
 
-			oar(vide::make_nvp(name1, o_int1),
-				vide::make_nvp(name2, o_double2),
-				vide::make_nvp(name3, o_vecbool3),
-				vide::make_nvp(name4, o_int4),
-				vide::make_nvp(name5, o_int5),
-				vide::make_nvp(name6, o_int6),
-				vide::make_nvp(name7, o_un7));
+			oar.nvp(name1, o_int1);
+			oar.nvp(name2, o_double2);
+			oar.nvp(name3, o_vecbool3);
+			oar.nvp(name4, o_int4);
+			oar.nvp(name5, o_int5);
+			oar.nvp(name6, o_int6);
+			oar.nvp(name7, o_un7);
 		}
 
 		decltype(o_int1) i_int1;
@@ -358,14 +358,14 @@ void test_unordered_loads() {
 		std::ifstream is("test.xml"); {
 			IArchive iar(is);
 
-			iar(vide::make_nvp(name7, o_un7),
-				vide::make_nvp(name2, i_double2),
-				vide::make_nvp(name4, i_int4),
-				vide::make_nvp(name3, i_vecbool3),
-				vide::make_nvp(name1, i_int1),
-				vide::make_nvp(name5, i_int5),
-				i_int6,
-				i_un7);
+			iar.nvp(name7, o_un7);
+			iar.nvp(name2, i_double2);
+			iar.nvp(name4, i_int4);
+			iar.nvp(name3, i_vecbool3);
+			iar.nvp(name1, i_int1);
+			iar.nvp(name5, i_int5);
+			iar(i_int6);
+			iar(i_un7);
 		}
 	}
 }
@@ -478,7 +478,7 @@ int main() {
 	Test2 t2 = {22}; {
 		std::ofstream os("out.txt", std::ios::binary);
 		vide::BinaryOutputArchive archive(os);
-		archive(VIDE_NVP(e_out));
+		archive.nvp("e_out", e_out);
 		archive(t2);
 		archive(nodefault);
 	}
@@ -488,7 +488,7 @@ int main() {
 	std::unique_ptr <NoDefaultCtor> nodefaultin(new NoDefaultCtor(1)); {
 		std::ifstream is("out.txt", std::ios::binary);
 		vide::BinaryInputArchive archive(is);
-		archive(VIDE_NVP(e_in));
+		archive.nvp("e_in", e_in);
 		archive(t2);
 		archive(nodefaultin);
 		std::remove("out.txt");
@@ -512,13 +512,13 @@ int main() {
 		vide::XMLOutputArchive oar(os);
 		//vide::XMLOutputArchive oar( std::cout );
 
-		oar(vide::make_nvp("hello", 5));
+		oar.nvp("hello", 5);
 
 		std::string bla("bla");
 		oar(bla);
 
 		auto intptr = std::make_shared <int>(99);
-		oar(VIDE_NVP(intptr));
+		oar.nvp("intptr", intptr);
 
 		std::map <std::string, int> map1 =
 		{
@@ -527,10 +527,10 @@ int main() {
 			{"three", 3}
 		};
 
-		oar(VIDE_NVP(map1));
+		oar.nvp("map1", map1);
 
 		int x = 3;
-		oar(VIDE_NVP(x));
+		oar.nvp("x", x);
 		oar(5);
 		oar(3.3);
 		oar(3.2f);
@@ -547,7 +547,7 @@ int main() {
 
 		std::vector<std::vector<std::string>> vec2 = {vec, vec, vec};
 
-		oar(vide::make_nvp("EVERYTHING", e_out));
+		oar.nvp("EVERYTHING", e_out);
 		oar(vec);
 		oar(vec2);
 
@@ -566,7 +566,7 @@ int main() {
 		vide::XMLInputArchive iar(is);
 
 		int hello;
-		iar(vide::make_nvp("hello", hello));
+		iar.nvp("hello", hello);
 		assert(hello == 5);
 
 		std::string bla;
@@ -574,19 +574,19 @@ int main() {
 		assert(bla == "bla");
 
 		std::shared_ptr <int> intptr;
-		iar(VIDE_NVP(intptr));
+		iar.nvp("intptr", intptr);
 		assert(*intptr == 99);
 
 		std::map <std::string, int> map1;
 
-		iar(VIDE_NVP(map1));
+		iar.nvp("map1", map1);
 		assert(map1["one"] == 1);
 		assert(map1["two"] == 2);
 		assert(map1["three"] == 3);
 
 
 		int x;
-		iar(VIDE_NVP(x));
+		iar.nvp("x", x);
 		assert(x == 3);
 
 		int x5;
@@ -611,7 +611,7 @@ int main() {
 			assert(arr[i] == (i+1));
 
 		Everything e;
-		iar(vide::make_nvp("EVERYTHING", e));
+		iar.nvp("EVERYTHING", e);
 		assert(e == e_out);
 
 		std::vector<std::string> vec;
@@ -689,7 +689,7 @@ int main() {
 		std::vector<int> four = {1, 2, 3, 4};
 
 		// Output is ordered 3 2 1 4
-		ar(three)(VIDE_NVP(two))(one)(vide::make_nvp("five", four));
+		ar(three).nvp("two", two)(one).nvp("five", four);
 	} {
 		std::ifstream ss("xml_ordering.out");
 		vide::XMLInputArchive ar(ss);
@@ -701,17 +701,17 @@ int main() {
 		std::vector<int> four;
 
 		ar(one); // vide can only give warnings if you used an NVP!
-		ar(VIDE_NVP(two));
+		ar.nvp("two", two);
 		ar(three);
 
 		try {
-			ar(VIDE_NVP(three));
+			ar.nvp("three", three);
 		} catch (vide::Exception const& e) {
 			std::cout << e.what() << std::endl;
 			std::cout << "Looked for three but we didn't use an NVP when saving" << std::endl;
 		}
-		ar(vide::make_nvp("five", four));
-		ar(vide::make_nvp("five", four)); // do it a second time since it shouldn't matter as we provide the name
+		ar.nvp("five", four);
+		ar.nvp("five", four); // do it a second time since it shouldn't matter as we provide the name
 
 		std::cout << one << std::endl;
 		std::cout << two << std::endl;

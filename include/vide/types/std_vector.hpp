@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vide/binary_data.hpp>
 #include <vide/serializer.hpp>
 
 #include <cstdint>
@@ -16,7 +15,7 @@ struct serializer<std::vector<T, A>> {
 		if constexpr (Archive::is_output) {
 			ar.size_tag(vector.size());
 			if constexpr (Archive::template supports_binary<T>)
-				ar(binary_data(vector.data(), vector.size() * sizeof(T)));
+				ar.binary_data(vector.data(), vector.size());
 			else
 				for (const auto& v : vector)
 					ar(v);
@@ -25,7 +24,7 @@ struct serializer<std::vector<T, A>> {
 			if constexpr (Archive::template supports_binary<T>) {
 				ar.template validate_read_size<T>(size);
 				vector.resize(size);
-				ar(binary_data(vector.data(), vector.size() * sizeof(T)));
+				ar.binary_data(vector.data(), vector.size());
 
 			} else {
 				const auto reservable = ar.template safe_to_reserve<T>(size);

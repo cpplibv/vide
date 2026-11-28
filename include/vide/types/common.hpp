@@ -5,7 +5,6 @@
 #include <string_view>
 #include <type_traits>
 
-#include <vide/binary_data.hpp>
 #include <vide/details/diagnostic.hpp>
 #include <vide/serializer.hpp>
 
@@ -37,8 +36,10 @@ template <class T, std::size_t N>
 struct serializer<T[N]> {
 	template <class Archive>
 	static void serialize(Archive& ar, T (&array)[N], std::uint32_t) {
-		if constexpr (Archive::template supports_binary<std::remove_all_extents_t<T>>)
-			ar(binary_data(array, sizeof(array)));
+		using Element = std::remove_all_extents_t<T>;
+		if constexpr (Archive::template supports_binary<Element>)
+			// Multidimensional arrays are contiguous: one block of every innermost element
+			ar.binary_data(reinterpret_cast<Element*>(array), sizeof(array) / sizeof(Element));
 		else
 			for (auto& i : array)
 				ar(i);

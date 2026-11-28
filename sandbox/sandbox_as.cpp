@@ -65,21 +65,21 @@ struct TestType0 {
 		a += ar.my_user_data;
 
 		ar(a);
-		ar(VIDE_NVP_("b", b));
+		ar.nvp("b", b);
 		ar.nvp("c", c);
-		ar(VIDE_NVP(d));
-		ar(VIDE_NVP(nullptr));
+		ar.nvp("d", d);
+		ar.nvp("nullptr", nullptr);
 		ar(nullptr);
 		ar(vecA);
-		ar(VIDE_NVP(vecB));
+		ar.nvp("vecB", vecB);
 		ar(helloA);
-		ar(VIDE_NVP(helloB));
+		ar.nvp("helloB", helloB);
 		ar(bits0);
-		ar(VIDE_NVP(bits1));
+		ar.nvp("bits1", bits1);
 		ar(complex0);
-		ar(VIDE_NVP(complex1));
+		ar.nvp("complex1", complex1);
 		ar(enum0);
-		ar(VIDE_NVP(enum1));
+		ar.nvp("enum1", enum1);
 
 		if constexpr (Archive::is_output) {
 			ar.nvp("ignored", ignored); // we only save it here, so we can ignore it during load
@@ -133,7 +133,7 @@ int main() {
 		{
 			vide::JSONOutputArchive oar(os);
 			UserProxyArchive<vide::JSONOutputArchive> ctxar(oar);
-			ctxar(vide::make_nvp("t0", t0));
+			ctxar.nvp("t0", t0);
 		}
 		const auto data = std::move(os).str();
 		std::cout << data << std::endl;
@@ -142,7 +142,7 @@ int main() {
 			std::istringstream is{data};
 			vide::JSONInputArchive iar(is);
 			UserProxyArchive<vide::JSONInputArchive> ctxar(iar);
-			ctxar(vide::make_nvp("t0", t0));
+			ctxar.nvp("t0", t0);
 		}
 	}
 

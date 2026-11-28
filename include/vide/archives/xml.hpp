@@ -85,9 +85,9 @@ inline bool isWhitespace(char c) {
 
 	XML archives do not output the size information for any dynamically sized structure
 	and instead infer it from the number of children for a node.  This means that data
-	can be hand edited for dynamic sized structures and will still be readable.  This
-	is accomplished through the vide::SizeTag object, which will also add an attribute
-	to its parent field.
+	can be hand edited for dynamic sized structures and will still be readable.  The
+	ar.size_tag() of a container adds a size="dynamic" attribute to its node instead,
+	see Options::sizeAttributes.
 	\ingroup Archives */
 class XMLOutputArchive : public OutputArchive<XMLOutputArchive, vide::TextArchive> {
 public:
@@ -360,12 +360,6 @@ public:
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
 	using OutputArchive::process_as;
-	template <class As, typename T>
-	inline void process_as(As& as, const NameValuePair<T>& t) {
-		setNextName(t.name);
-		as.process_as(as, t.value);
-	}
-
 	template <class As, class T>
 	inline void process_as(As&, const SizeTag<T>&) {
 		if (hasSizeAttributes())
@@ -413,7 +407,7 @@ public:
 	but may be possible to use if properly formatted.
 
 	The XMLInputArchive does not require that nodes are loaded in the same
-	order they were saved by XMLOutputArchive.  Using name value pairs (NVPs),
+	order they were saved by XMLOutputArchive.  Using names given with ar.nvp(),
 	it is possible to load in an out of order fashion or otherwise skip/select
 	specific nodes to load.
 
@@ -427,13 +421,10 @@ public:
 	Consider this simple example where loading of some data is skipped:
 
 	@code{cpp}
-	// imagine the input file has someData(1-9) saved in order at the top level node
-	ar( someData1, someData2, someData3 );        // XML loads in the order it sees in the file
-	ar( vide::make_nvp( "hello", someData6 ) ); // NVP given does not
-												  // match expected NVP name, so we search
-												  // for the given NVP and load that value
-	ar( someData7, someData8, someData9 );        // with no NVP given, loading resumes at its
-												  // current location, proceeding sequentially
+	// The input holds value1 to value4 saved in order at the top level node
+	ar.nvp("value1", value1); // Loads in the order of the input
+	ar.nvp("value3", value3); // Not the next node: searched for on the current level, value2 is skipped
+	ar(value4);               // Unnamed: loading resumes after value3
 	@endcode
 
 	\ingroup Archives */
@@ -765,12 +756,6 @@ protected:
 	// --- process_as remapping ------------------------------------------------------------------------
 public:
 	using InputArchive::process_as;
-	template <class As, typename T>
-	inline void process_as(As& as, NameValuePair<T>& t) {
-		setNextName(t.name);
-		as.process_as(as, t.value);
-	}
-
 	template <class As, class T>
 	inline void process_as(As&, SizeTag<T>& t) {
 		loadSize(t.size);

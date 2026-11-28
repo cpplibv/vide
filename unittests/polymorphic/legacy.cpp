@@ -64,7 +64,7 @@ struct PolyBaseB : virtual PolyBaseAA {
 	template <class Archive>
 	void serialize(Archive& ar) {
 		record_call<Archive>(this);
-		ar(vide::virtual_base_class<PolyBaseAA>(this));
+		ar.template virtual_base_class<PolyBaseAA>(this);
 		ar(x);
 	}
 
@@ -87,7 +87,7 @@ struct PolyBaseC : virtual PolyBaseAA {
 	template <class Archive>
 	void serialize(Archive& ar) {
 		record_call<Archive>(this);
-		ar(vide::virtual_base_class<PolyBaseAA>(this));
+		ar.template virtual_base_class<PolyBaseAA>(this);
 		ar(y);
 	}
 
@@ -110,8 +110,8 @@ struct PolyDerivedD : PolyBaseB, PolyBaseC {
 	template <class Archive>
 	void serialize(Archive& ar) {
 		record_call<Archive>(this);
-		ar(vide::base_class<PolyBaseB>(this));
-		ar(vide::base_class<PolyBaseC>(this));
+		ar.template base_class<PolyBaseB>(this);
+		ar.template base_class<PolyBaseC>(this);
 		ar(z);
 	}
 
@@ -164,7 +164,7 @@ struct PolyDerived : PolyBase {
 	template <class Archive>
 	void serialize(Archive& ar) {
 		record_call<Archive>(this);
-		ar(vide::base_class<PolyBase>(this));
+		ar.template base_class<PolyBase>(this);
 		ar(a)(b);
 	}
 

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <vide/details/helpers.hpp>
 #include <vide/details/polymorphic_helper.hpp>
 #include <vide/details/polymorphic_impl.hpp>
 #include <vide/details/stored_smart_ptr.hpp>
@@ -86,8 +85,8 @@
 //! Registers the base-derived relationship for a polymorphic type
 /*! When polymorphic serialization occurs, vide needs to know how to
     properly cast between derived and base types for the polymorphic
-    type. Normally this happens automatically whenever vide::base_class
-    or vide::virtual_base_class are used to serialize a base class. In
+    type. Normally this happens automatically whenever ar.base_class
+    or ar.virtual_base_class are used to serialize a base class. In
     cases where neither of these is ever called but a base class still
     exists, this explicit registration is required.
 

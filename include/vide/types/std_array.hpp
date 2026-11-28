@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vide/binary_data.hpp>
 #include <vide/serializer.hpp>
 
 #include <array>
@@ -15,7 +14,7 @@ struct serializer<std::array<T, N>> {
 	template <class Archive>
 	static void serialize(Archive& ar, std::array<T, N>& array, std::uint32_t) {
 		if constexpr (Archive::template supports_binary<T>) {
-			ar(binary_data(array.data(), N * sizeof(T)));
+			ar.binary_data(array.data(), N);
 		} else {
 			for (auto& i : array)
 				ar(i);

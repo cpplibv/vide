@@ -1,33 +1,3 @@
-/*! \file base_class.hpp
-    \brief Support for base classes (virtual and non-virtual)
-    \ingroup OtherTypes */
-/*
-  Copyright (c) 2013-2022, Randolph Voorhies, Shane Grant
-  All rights reserved.
-
-  Redistribution and use in source and binary forms, with or without
-  modification, are permitted provided that the following conditions are met:
-      * Redistributions of source code must retain the above copyright
-        notice, this list of conditions and the following disclaimer.
-      * Redistributions in binary form must reproduce the above copyright
-        notice, this list of conditions and the following disclaimer in the
-        documentation and/or other materials provided with the distribution.
-      * Neither the name of the copyright holder nor the
-        names of its contributors may be used to endorse or promote products
-        derived from this software without specific prior written permission.
-
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
-  DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-  (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-  ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
 #pragma once
 
 #include <vide/details/polymorphic_impl.hpp> // Polymorphic bases register their casters even when serialized by value
@@ -36,150 +6,37 @@
 
 
 namespace vide { // --------------------------------------------------------------------------------
-namespace base_class_detail {
 
-//! Used to register polymorphic relations and avoid the need to include
-//! polymorphic.hpp when no polymorphism is used
-/*! @internal */
-template <class Base, class Derived, bool IsPolymorphic = std::is_polymorphic_v<Base>>
-struct RegisterPolymorphicBaseClass {
-	static void bind() {
-	}
-};
-
-//! Polymorphic version
-/*! @internal */
-template <class Base, class Derived>
-struct RegisterPolymorphicBaseClass<Base, Derived, true> {
-	static void bind() { detail::RegisterPolymorphicCaster<Base, Derived>::bind(); }
-};
-
-} // namespace base_class_detail -------------------------------------------------------------------
-
-//! Casts a derived class to its non-virtual base class in a way that safely supports abstract classes
-/*! This should be used in cases when a derived type needs to serialize its base type. This is better than directly
-	using static_cast, as it allows for serialization of pure virtual (abstract) base classes.
-
-	This also automatically registers polymorphic relation between the base and derived class, assuming they
-	are indeed polymorphic. Note this is not the same as polymorphic type registration. For more information
-	see the documentation on polymorphism. If using a polymorphic class, be sure to include support for
-	polymorphism (vide/types/polymorphic.hpp).
-
-	\sa virtual_base_class
-
-	@code{.cpp}
-	struct MyBase {
-		int x;
-
-		virtual void foo() = 0;
-
-		template <class Archive>
-		void serialize(Archive & ar) {
-			ar(x);
-		}
-	};
-
-	struct MyDerived : public MyBase { //<-- Note non-virtual inheritance
-		int y;
-
-		virtual void foo() {};
-
-		template <class Archive>
-		void serialize(Archive & ar) {
-			ar(vide::base_class<MyBase>(this));
-			ar(y);
-		}
-	};
-	@endcode */
+/// Tag of a non-virtual base class subobject, created by ar.base_class<Base>(this).
+/// Serialized as the base itself, abstract bases included
 template <class Base>
-struct base_class {
-	using is_base_class = void;
-
+struct BaseClass {
+	/// Non-const even when saving: save() const passes a const this, output archives only read through it
 	Base* base_ptr;
 
 	template <class Derived>
-	explicit base_class(const Derived* derived) :
+	explicit BaseClass(const Derived* derived) :
 		base_ptr(const_cast<Base*>(static_cast<const Base*>(derived))) {
-		static_assert(std::is_base_of<Base, Derived>::value, "Can only use base_class on a valid base class");
-		base_class_detail::RegisterPolymorphicBaseClass<Base, Derived>::bind();
+		static_assert(std::is_base_of_v<Base, Derived>, "BaseClass<Base> requires a class derived from Base");
+		// Lets a pointer to Base load a Derived, even when no Derived is ever serialized by value
+		if constexpr (std::is_polymorphic_v<Base>)
+			detail::RegisterPolymorphicCaster<Base, Derived>::bind();
 	}
 };
 
-//! Casts a derived class to its virtual base class in a way that allows vide to track inheritance
-/*! This should be used in cases when a derived type features virtual inheritance from some
-	base type.  This allows vide to track the inheritance and to avoid making duplicate copies
-	during serialization.
-
-	It is safe to use virtual_base_class in all circumstances for serializing base classes, even in cases
-	where virtual inheritance does not take place, though it may be slightly faster to utilize
-	vide::base_class<> if you do not need to worry about virtual inheritance.
-
-	This also automatically registers polymorphic relation between the base and derived class, assuming they
-	are indeed polymorphic. Note this is not the same as polymorphic type registration. For more information
-	see the documentation on polymorphism. If using a polymorphic class, be sure to include support for
-	polymorphism (vide/types/polymorphic.hpp).
-
-	\sa base_class
-
-	@code{.cpp}
-	struct MyBase {
-		int x;
-
-		template <class Archive>
-		void serialize(Archive & ar) {
-			ar(x);
-		}
-	};
-
-	struct MyLeft : virtual MyBase { //<-- Note the virtual inheritance
-		int y;
-
-		template <class Archive>
-		void serialize(Archive & ar) {
-			ar(vide::virtual_base_class<MyBase>(this));
-			ar(y);
-		}
-	};
-
-	struct MyRight : virtual MyBase {
-		int z;
-
-		template <class Archive>
-		void serialize(Archive & ar) {
-			ar(vide::virtual_base_clas<MyBase>(this));
-			ar(z);
-		}
-	};
-
-	// diamond virtual inheritance; contains one copy of each base class
-	struct MyDerived : virtual MyLeft, virtual MyRight {
-		int a;
-
-		template <class Archive>
-		void serialize(Archive & ar) {
-			ar(vide::virtual_base_class<MyLeft>(this));  // safely serialize data members in MyLeft
-			ar(vide::virtual_base_class<MyRight>(this)); // safely serialize data members in MyRight
-			ar(a);
-
-			// Because we used virtual_base_class, vide will ensure that only one instance of MyBase is
-			// serialized as we traverse the inheritance heirarchy. This means that there will be one copy
-			// each of the variables x, y, z, and a
-
-			// If we had chosen to use static_cast<> instead, vide would perform no tracking and
-			// assume that every base class should be serialized (in this case leading to a duplicate
-			// serialization of MyBase due to diamond inheritance
-		};
-	}
-	@endcode */
+/// Tag of a virtual base class subobject, created by ar.virtual_base_class<Base>(this).
+/// Serialized once per object: a diamond reaches the same base on every path, only the first one writes it
 template <class Base>
-struct virtual_base_class {
+struct VirtualBaseClass {
+	/// Non-const even when saving, see BaseClass::base_ptr
 	Base* base_ptr;
 
 	template <class Derived>
-	explicit virtual_base_class(const Derived* derived) :
+	explicit VirtualBaseClass(const Derived* derived) :
 		base_ptr(const_cast<Base*>(static_cast<const Base*>(derived))) {
-		static_assert(std::is_base_of<Base, Derived>::value, "Can only use virtual_base_class on a valid base class");
-		base_class_detail::RegisterPolymorphicBaseClass<Base, Derived>::bind();
+		static_assert(std::is_base_of_v<Base, Derived>, "VirtualBaseClass<Base> requires a class derived from Base");
+		if constexpr (std::is_polymorphic_v<Base>)
+			detail::RegisterPolymorphicCaster<Base, Derived>::bind();
 	}
 };
 

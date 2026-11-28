@@ -1,6 +1,5 @@
 #pragma once
 
-#include <vide/binary_data.hpp>
 #include <vide/serializer.hpp>
 
 #include <cstdint>
@@ -15,14 +14,18 @@ struct serializer<std::basic_string<CharT, Traits, Alloc>> {
 	static void serialize(Archive& ar, std::basic_string<CharT, Traits, Alloc>& str, std::uint32_t) {
 		if constexpr (Archive::is_output) {
 			ar.size_tag(str.size());
-			ar(binary_data(str.data(), str.size() * sizeof(CharT)));
+			if constexpr (Archive::template supports_binary<CharT>)
+				ar.binary_data(str.data(), str.size());
+			else
+				for (const CharT& element : str)
+					ar(element);
 		} else {
 			const auto size = ar.size_tag();
 
 			if constexpr (Archive::template supports_binary<CharT>) {
 				ar.template validate_read_size<CharT>(size);
 				str.resize(size);
-				ar(binary_data(str.data(), str.size() * sizeof(CharT)));
+				ar.binary_data(str.data(), str.size());
 
 			} else {
 				const auto reservable = ar.template safe_to_reserve<CharT>(size);

@@ -3,19 +3,16 @@
 #include <string_view>
 
 
-namespace vide {
+namespace vide { // --------------------------------------------------------------------------------
 
-// -------------------------------------------------------------------------------------------------
-
-/// @usage
-/// constexpr inline SmartPtrTag type_tag_std_shared_ptr{"std::shared_ptr"};
+/// Identity of a smart pointer family, compared by address: a shared object loaded through one family
+/// cannot be referenced again through another. The name only appears in error messages.
 ///
-/// stored.assignFrom(ptr, ptr, typeid(T), &type_tag_std_shared_ptr);
-/// stored.pointerType != &type_tag_std_shared_ptr
+///     constexpr inline SmartPtrTag type_tag_std_shared_ptr{"std::shared_ptr"};
+///     stored.assign(ptr, typeid(T), &type_tag_std_shared_ptr);
+///     if (stored.pointerType != &type_tag_std_shared_ptr) ...
 struct SmartPtrTag {
 	std::string_view name;
 };
 
-// -------------------------------------------------------------------------------------------------
-
-} // namespace vide
+} // namespace vide --------------------------------------------------------------------------------

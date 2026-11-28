@@ -13,12 +13,8 @@
 
 
 
-There were a lot of recent changes in the project,
-some legacy helper/tag types remained their legacy form:
-Improve, make consistent, cleanup, remove: NVP, base, bytes, and any other small tag types
-Improve documentation around them
-Generic improvements
-
+portable binary (actually)
+	drop leading marker
 
 
 
@@ -61,19 +57,10 @@ vide: Make sure binary_data does not swap bytes for floating points numbers
 
 vide: Archive.reset() (close archive, and clear every state in the archive, but keep allocated memory, make it reusable)
 vide: Archive.finish() or .flush() similar to reset()
-vide: archive.binary_data(ptr, size) and archive.binary_data(name, ptr, size) dependent name or function for BinaryData, cleanup BinaryData
 vide: archive.enable_trace(): detailed exception (try-catch and append debug info in every serializer), as this might be heavy it might need to be a compile time flag not runtime
 
 vide: visiting_archive
 vide: force inlines
-
-Better document:
-	validate_read_size
-	safe_to_reserve
-	is_binary_archive
-	maximumBinaryReadSize
-
-cleanup SizeTag
 
 vide: std::vector<std::byte> should be base64 serialized in JSON/XML
 	(any std::ranges::contiguous_range of std::byte)

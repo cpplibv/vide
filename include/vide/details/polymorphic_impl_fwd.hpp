@@ -16,4 +16,11 @@ struct PolymorphicCasters;
 template <class Base, class Derived>
 struct PolymorphicRelation;
 
+/// Forward declaration for VIDE_REGISTER_ARCHIVE, see polymorphic_impl.hpp for more information
+template <class Archive, class T>
+struct polymorphic_serialization_support;
+
+/// Forward declaration for VIDE_REGISTER_ARCHIVE, see polymorphic_impl.hpp for more information
+struct adl_tag;
+
 } // namespace vide::detail ------------------------------------------------------------------------

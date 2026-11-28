@@ -25,7 +25,6 @@
   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <vide/nvp.hpp>
 #include <vide/types/std_pair.hpp>
 #include <vide/types/std_vector.hpp>
 
@@ -51,19 +50,19 @@ struct Reordered {
 	template <class Archive>
 	void save(Archive& ar) const {
 		record_call<Archive>(this);
-		ar(VIDE_NVP(x));
-		ar(VIDE_NVP(z));
-		ar(VIDE_NVP(y));
-		ar(VIDE_NVP(xx));
+		ar.nvp("x", x);
+		ar.nvp("z", z);
+		ar.nvp("y", y);
+		ar.nvp("xx", xx);
 	}
 
 	template <class Archive>
 	void load(Archive& ar) {
 		record_call<Archive>(this);
 		ar(x);
-		ar(VIDE_NVP(y));
-		ar(VIDE_NVP(z));
-		ar(VIDE_NVP(xx));
+		ar.nvp("y", y);
+		ar.nvp("z", z);
+		ar.nvp("xx", xx);
 	}
 
 	bool operator==(const Reordered&) const = default;
@@ -89,13 +88,13 @@ TEST_CASE_TEMPLATE("unordered loads", Ar, VIDE_ALL_TEXT_ARCHIVES) {
 	std::ostringstream os;
 	{
 		typename Ar::output ar(os);
-		ar(vide::make_nvp("first", first));
-		ar(vide::make_nvp("second", second));
-		ar(vide::make_nvp("third", third));
-		ar(vide::make_nvp("fourth", fourth));
-		ar(vide::make_nvp("fifth", fifth));
-		ar(vide::make_nvp("sixth", sixth));
-		ar(vide::make_nvp("seventh", seventh));
+		ar.nvp("first", first);
+		ar.nvp("second", second);
+		ar.nvp("third", third);
+		ar.nvp("fourth", fourth);
+		ar.nvp("fifth", fifth);
+		ar.nvp("sixth", sixth);
+		ar.nvp("seventh", seventh);
 	}
 
 	int loaded_first = 0;
@@ -109,12 +108,12 @@ TEST_CASE_TEMPLATE("unordered loads", Ar, VIDE_ALL_TEXT_ARCHIVES) {
 	std::istringstream is(os.str());
 	{
 		typename Ar::input ar(is);
-		ar(vide::make_nvp("seventh", loaded_seventh));
-		ar(vide::make_nvp("second", loaded_second));
-		ar(vide::make_nvp("fourth", loaded_fourth));
-		ar(vide::make_nvp("third", loaded_third));
-		ar(vide::make_nvp("first", loaded_first));
-		ar(vide::make_nvp("fifth", loaded_fifth));
+		ar.nvp("seventh", loaded_seventh);
+		ar.nvp("second", loaded_second);
+		ar.nvp("fourth", loaded_fourth);
+		ar.nvp("third", loaded_third);
+		ar.nvp("first", loaded_first);
+		ar.nvp("fifth", loaded_fifth);
 		ar(loaded_sixth);
 	}
 
